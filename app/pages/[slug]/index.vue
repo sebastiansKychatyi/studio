@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Одноуровневые страницы: личные (/sk/sebastian, /cs/roman) и страницы городов (/sk/bratislava, /uk/kyiv)
+// Personal pages (/sk/sebastian) and city pages (/sk/bratislava)
 import { cities } from '~~/data/cities'
 
 const route = useRoute()
@@ -11,7 +11,7 @@ if (!person.value && !city.value) {
   throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true })
 }
 
-// SEO личной страницы; у страницы города своё SEO внутри CityPage
+// City pages handle their own SEO in CityPage
 if (person.value) useSiteSeo(person)
 </script>
 

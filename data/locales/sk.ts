@@ -1,4 +1,4 @@
-// Slovenčina. Slová v *hviezdičkách* v nadpise hero sa zvýraznia gradientom.
+// Slovak. *Words* in the hero title get the gradient.
 export default {
   htmlLang: 'sk',
   locale: 'sk_SK',
@@ -12,7 +12,7 @@ export default {
     ogTitle: 'Duo Studio — AI automatizácia, weby a aplikácie | Bratislava · Nitra',
   },
 
-  // Zobrazí sa návštevníkovi zo Slovenska, ak je na inej jazykovej verzii
+  // Shown to visitors from Slovakia on another language version
   geoHint: { text: 'Vyzerá to, že ste zo Slovenska.', action: 'Prepnúť na slovenčinu', close: 'Zavrieť' },
 
   skip: 'Preskočiť na obsah',
@@ -27,7 +27,7 @@ export default {
     ctaSecondary: 'Pozrieť portfólio',
     stats: [
       { value: 7, suffix: '+', label: 'projektov v portfóliu' },
-      { value: 3, suffix: '', label: 'jazyky: SK · CZ · UA' },
+      { value: 4, suffix: '', label: 'jazyky: SK · CZ · UA · EN' },
       { value: 24, suffix: 'h', label: 'odpoveď na dopyt' },
     ],
     visual: { url: 'vasfirma.sk', chip1: 'SEO 100/100', chip2: 'LCP 0.8 s', chip3: 'AI odporúča' },
@@ -213,7 +213,7 @@ export default {
     top: 'Hore',
   },
 
-  // Osobné stránky (/sk/sebastian, /sk/roman)
+  // Personal pages
   personal: {
     back: 'Späť na štúdio',
     hello: 'Ahoj, som',

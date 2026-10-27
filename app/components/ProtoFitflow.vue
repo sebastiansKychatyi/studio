@@ -1,24 +1,70 @@
 <script setup lang="ts">
-// Прототип «FitFlow» — фитнес-приложение (320×640): кольца активности → тренировка с таймером → итог; светлая/тёмная тема
+// "FitFlow" prototype: fitness app (320×640) with light/dark theme
 const props = defineProps<{ preview?: boolean }>()
 
 const c = useConceptCopy({
   sk: { hi: 'Ahoj 👋', today: 'Dnešná aktivita', rings: ['Pohyb', 'Cvičenie', 'Státie'], workouts: 'Tréningy pre teba', min: 'min', start: 'Začať', next: 'Ďalší cvik', pause: 'Pauza', play: 'Pokračovať', of: 'z', doneTitle: 'Skvelá práca! 🔥', kcal: 'kcal', time: 'čas', back: 'Späť na prehľad', names: [['HIIT 12', ['Drepy', 'Kliky', 'Burpees']], ['Jóga flow', ['Pes hlavou dole', 'Bojovník', 'Strom']], ['Core', ['Plank', 'Brušáky', 'Horolezec']]] },
   cs: { hi: 'Ahoj 👋', today: 'Dnešní aktivita', rings: ['Pohyb', 'Cvičení', 'Stání'], workouts: 'Tréninky pro tebe', min: 'min', start: 'Začít', next: 'Další cvik', pause: 'Pauza', play: 'Pokračovat', of: 'z', doneTitle: 'Skvělá práce! 🔥', kcal: 'kcal', time: 'čas', back: 'Zpět na přehled', names: [['HIIT 12', ['Dřepy', 'Kliky', 'Angličáky']], ['Jóga flow', ['Pes hlavou dolů', 'Bojovník', 'Strom']], ['Core', ['Plank', 'Sklapovačky', 'Horolezec']]] },
   uk: { hi: 'Привіт 👋', today: 'Активність сьогодні', rings: ['Рух', 'Вправи', 'Стояння'], workouts: 'Тренування для тебе', min: 'хв', start: 'Почати', next: 'Наступна вправа', pause: 'Пауза', play: 'Продовжити', of: 'з', doneTitle: 'Чудова робота! 🔥', kcal: 'ккал', time: 'час', back: 'До огляду', names: [['HIIT 12', ['Присідання', 'Віджимання', 'Берпі']], ['Йога flow', ['Собака мордою вниз', 'Воїн', 'Дерево']], ['Core', ['Планка', 'Скручування', 'Скелелаз']]] },
+  en: {
+    "hi": "Hi 👋",
+    "today": "Today’s activity",
+    "rings": [
+      "Move",
+      "Exercise",
+      "Stand"
+    ],
+    "workouts": "Workouts for you",
+    "min": "min",
+    "start": "Start",
+    "next": "Next exercise",
+    "pause": "Pause",
+    "play": "Resume",
+    "of": "of",
+    "doneTitle": "Great job! 🔥",
+    "kcal": "kcal",
+    "time": "time",
+    "back": "Back to overview",
+    "names": [
+      [
+        "HIIT 12",
+        [
+          "Squats",
+          "Push-ups",
+          "Burpees"
+        ]
+      ],
+      [
+        "Yoga flow",
+        [
+          "Downward dog",
+          "Warrior",
+          "Tree"
+        ]
+      ],
+      [
+        "Core",
+        [
+          "Plank",
+          "Crunches",
+          "Mountain climbers"
+        ]
+      ]
+    ]
+  },
 })
 
 const meta = [{ min: 12, kcal: 180, color: '#FF5A36' }, { min: 15, kcal: 90, color: '#8B5CF6' }, { min: 10, kcal: 120, color: '#10B981' }]
 const ringColors = ['#FF5A36', '#A3E635', '#22D3EE']
 const rings = ref([0.72, 0.45, 0.9])
-const shown = ref([0, 0, 0]) // анимируем от нуля
+const shown = ref([0, 0, 0]) // animate from zero
 const dark = ref(false)
 const screen = ref<'home' | 'run' | 'done'>('home')
 const w = ref(0)
 const step = ref(0)
 const left = ref(10)
 const running = ref(false)
-const STEP = 10 // секунд на упражнение (демо)
+const STEP = 10 // seconds per exercise (demo)
 let timer: ReturnType<typeof setInterval> | undefined
 
 const workout = computed(() => c.value.names[w.value]! as [string, string[]])

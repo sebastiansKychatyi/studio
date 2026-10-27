@@ -1,6 +1,6 @@
 import site from '../../data/site'
 
-// Явно разрешаем поисковых и AI-краулеров (важно для GEO)
+// Explicitly allow search and AI crawlers
 const aiBots = ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-SearchBot', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended', 'Bingbot']
 
 export default defineEventHandler((event) => {

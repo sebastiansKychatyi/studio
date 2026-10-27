@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Выбирает нужный прототип. preview — уменьшенная неинтерактивная копия для обложки карточки
+// Renders a prototype; `preview` = non-interactive copy for card covers
 defineProps<{ kind: 'nordic' | 'byty' | 'fitflow'; preview?: boolean }>()
 </script>
 

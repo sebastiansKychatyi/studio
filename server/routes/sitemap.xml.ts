@@ -3,7 +3,7 @@ import { concepts } from '../../data/concepts'
 import { cities } from '../../data/cities'
 import { cases } from '../../data/cases'
 
-// sitemap.xml с hreflang-альтернативами: общая страница + личные страницы на каждом языке
+// sitemap.xml with hreflang alternates for every page and language
 export default defineEventHandler((event) => {
   const today = new Date().toISOString().slice(0, 10)
   const paths = ['', ...site.people.map((p) => `/${p.slug}`), ...cities.map((c) => `/${c.slug}`), ...cases.map((c) => `/case/${c.id}`), ...concepts.map((c) => `/lab/${c.id}`)]

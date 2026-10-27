@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Концепт «Kinetic» — streetwear e-shop в стиле брутализм: гигантская типографика, рабочая корзина, «летящий» товар
+// "Kinetic" concept: brutalist streetwear e-shop with a working cart
 useHead({
   link: [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap' }],
 })
@@ -32,14 +32,76 @@ const c = useConceptCopy({
     look: 'Lookbook', drag: 'Тягніть →', looks: ['Місто в русі', 'Нічна лінія', 'Бетон & неон', 'Ранок після'],
     qv: { view: 'Швидкий перегляд', quick: 'Швидко додати', color: 'Колір', size: 'Розмір', guide: 'Таблиця розмірів', guideHead: ['Розмір', 'Груди', 'Довжина'], qty: 'Кількість', add: 'Додати в кошик', choose: 'Спершу обери розмір', added: 'Додано в кошик ✓', soldOut: 'Розпродано', isNew: 'Новинка', last: 'Останні штуки', perks: ['Безкоштовна доставка від 60 €', 'Повернення 30 днів', '100 % органічна бавовна'] },
   },
+  en: {
+    "promo": [
+      "Free shipping over €60",
+      "Drop 07 is here",
+      "30-day returns"
+    ],
+    "nav": [
+      "New",
+      "Hoodies",
+      "Tees",
+      "Accessories"
+    ],
+    "cart": "Cart",
+    "sub": "Clothing for people who never stop. Limited collection — 300 pieces.",
+    "cta": "Shop the drop",
+    "filters": [
+      "All",
+      "Hoodies",
+      "Tees",
+      "Accessories"
+    ],
+    "size": "Pick a size",
+    "one": "One size",
+    "cartTitle": "Cart",
+    "empty": "Your cart is empty. For now.",
+    "total": "Total",
+    "checkout": "Checkout (demo)",
+    "remove": "Remove",
+    "close": "Close",
+    "look": "Lookbook",
+    "drag": "Drag →",
+    "looks": [
+      "City in motion",
+      "Night line",
+      "Concrete & neon",
+      "Morning after"
+    ],
+    "qv": {
+      "view": "Quick view",
+      "quick": "Quick add",
+      "color": "Colour",
+      "size": "Size",
+      "guide": "Size guide",
+      "guideHead": [
+        "Size",
+        "Chest",
+        "Length"
+      ],
+      "qty": "Quantity",
+      "add": "Add to cart",
+      "choose": "Pick a size first",
+      "added": "Added to cart ✓",
+      "soldOut": "Sold out",
+      "isNew": "New",
+      "last": "Last pieces",
+      "perks": [
+        "Free shipping over €60",
+        "30-day returns",
+        "100 % organic cotton"
+      ]
+    }
+  },
 })
 
 type Kind = 'hoodie' | 'tee' | 'cap' | 'tote'
 type Product = {
   id: number; name: string; cat: 1 | 2 | 3; price: number; oldPrice?: number; kind: Kind
-  colors: string[] // варианты цвета, первый — основной
+  colors: string[] // color variants, first is default
   badge?: 'new' | 'sale' | 'last'
-  soldOut?: string[] // распроданные размеры
+  soldOut?: string[] // sold-out sizes
 }
 const products: Product[] = [
   { id: 1, name: 'Orbit Hoodie', cat: 1, price: 79, kind: 'hoodie', colors: ['#D7FF3A', '#1F1F1F', '#FF4D2E'], badge: 'new', soldOut: ['XL'] },
@@ -55,14 +117,14 @@ const shapes: Record<Kind, string> = {
   cap: 'M30 130 Q30 60 100 55 Q170 60 170 130 Z M20 130 L190 130 Q195 145 175 148 L20 140 Z',
   tote: 'M40 80 L160 80 L170 190 L30 190 Z',
 }
-// Детали поверх силуэта (капюшон, шнурки, карман, швы, ручки сумки)
+// Detail strokes drawn over the silhouette
 const details: Record<Kind, string> = {
   hoodie: 'M76 50 Q100 84 124 50 M92 66 V100 M108 66 V100 M66 150 H134 L128 180 H72 Z',
   tee: 'M84 36 Q100 50 116 36',
   cap: 'M100 56 V130 M60 70 Q80 100 78 130 M140 70 Q120 100 122 130',
   tote: 'M70 80 Q70 30 100 30 Q130 30 130 80 M60 125 H140',
 }
-// На тёмной вещи детали рисуем светлыми, иначе их не видно
+// Light detail strokes on dark garments
 const detailStroke = (hex: string) => {
   const n = parseInt(hex.slice(1), 16)
   const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
@@ -76,11 +138,11 @@ const badgeText = (p: Product) =>
 const filter = ref(0)
 const visible = computed(() => products.filter((p) => filter.value === 0 || p.cat === filter.value))
 
-// Выбранный цвет на карточке (индекс варианта)
+// Selected color index per card
 const cardColor = reactive<Record<number, number>>({})
 const colorOf = (p: Product) => p.colors[cardColor[p.id] ?? 0]!
 
-// --- Быстрый просмотр товара
+// --- Quick view
 const quick = ref<Product | null>(null)
 const qColor = ref(0)
 const qSize = ref<string | null>(null)
@@ -110,7 +172,7 @@ const onKey = (e: KeyboardEvent) => {
   cartOpen.value = false
 }
 
-// --- Корзина
+// --- Cart
 const cart = ref<{ key: string; id: number; size: string; qty: number; color: string }[]>([])
 const cartOpen = ref(false)
 const bump = ref(false)
@@ -126,13 +188,13 @@ function add(p: Product, size: string, e: MouseEvent, colorIdx = cardColor[p.id]
   const line = cart.value.find((i) => i.key === key)
   if (line) line.qty += qty
   else cart.value.push({ key, id: p.id, size, qty, color })
-  // «Летящая» точка от кнопки к корзине
+  // Dot flying from the button to the cart
   const target = cartBtn.value?.getBoundingClientRect()
   if (target) {
     const f = { id: ++flyId, x: e.clientX, y: e.clientY, dx: target.left + target.width / 2 - e.clientX, dy: target.top + target.height / 2 - e.clientY, color, go: false }
     flyers.value.push(f)
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      // точка могла уже исчезнуть (rAF в фоновой вкладке срабатывает позже таймера)
+      // may be gone already: rAF is delayed in background tabs
       const fly = flyers.value.find((x) => x.id === f.id)
       if (fly) fly.go = true
     }))
@@ -146,7 +208,7 @@ function add(p: Product, size: string, e: MouseEvent, colorIdx = cardColor[p.id]
 const remove = (key: string) => (cart.value = cart.value.filter((i) => i.key !== key))
 const productOf = (id: number) => products.find((p) => p.id === id)!
 
-// --- Наклон гигантского заголовка от скорости прокрутки
+// --- Skew the giant title by scroll velocity
 const skew = ref(0)
 let lastY = 0
 let raf = 0
@@ -160,7 +222,7 @@ function onScroll() {
   })
 }
 
-// --- Lookbook: перетаскивание мышью
+// --- Lookbook drag-to-scroll
 const track = ref<HTMLElement>()
 let drag: { x: number; left: number } | null = null
 const down = (e: PointerEvent) => { drag = { x: e.clientX, left: track.value!.scrollLeft } }
@@ -227,7 +289,7 @@ onBeforeUnmount(() => {
               </svg>
               <span class="kn-view">{{ c.qv.view }} ↗</span>
             </div>
-            <!-- Быстрое добавление (отдельно от кликабельной картинки: кнопки не вкладываем в кнопку) -->
+            <!-- Quick add (outside the clickable image: no nested buttons) -->
             <div class="kn-sizes">
               <small>{{ c.qv.quick }}</small>
               <div>
@@ -275,7 +337,7 @@ onBeforeUnmount(() => {
     </section>
     <footer class="kn-footer">KINETIC © DROP 07</footer>
 
-    <!-- летящие товары -->
+    <!-- flying items -->
     <i
       v-for="f in flyers"
       :key="f.id"
@@ -283,7 +345,7 @@ onBeforeUnmount(() => {
       :style="{ left: `${f.x}px`, top: `${f.y}px`, background: f.color, transform: f.go ? `translate(${f.dx}px, ${f.dy}px) scale(.3)` : 'none' }"
     />
 
-    <!-- быстрый просмотр товара -->
+    <!-- quick view -->
     <Transition name="kn-veil"><div v-if="quick" class="kn-veil" @click="quick = null" /></Transition>
     <Transition name="kn-pop">
       <div v-if="quick" class="kn-qv" role="dialog" aria-modal="true" :aria-label="quick.name">
@@ -350,7 +412,7 @@ onBeforeUnmount(() => {
       </div>
     </Transition>
 
-    <!-- корзина -->
+    <!-- cart -->
     <Transition name="kn-veil"><div v-if="cartOpen" class="kn-veil" @click="cartOpen = false" /></Transition>
     <Transition name="kn-drawer">
       <aside v-if="cartOpen" class="kn-drawer" role="dialog" :aria-label="c.cartTitle">
@@ -438,7 +500,7 @@ onBeforeUnmount(() => {
 .kn-price.big { display: inline-block; align-self: flex-start; font-size: 1.4rem; margin: 6px 0 4px; }
 .kn-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--kn-ink); vertical-align: -1px; }
 
-/* Быстрый просмотр товара */
+/* Quick view */
 .kn-qv { position: fixed; z-index: 92; top: 50%; left: 50%; width: min(940px, calc(100% - 24px)); max-height: calc(100vh - 24px); overflow: auto;
   transform: translate(-50%, -50%); display: grid; grid-template-columns: 1fr 1fr; background: var(--kn-bg); border: 3px solid var(--kn-ink); box-shadow: 10px 10px 0 var(--kn-ink); }
 .kn-qv-close { position: absolute; top: 12px; right: 12px; z-index: 2; width: 42px; height: 42px; border: 3px solid var(--kn-ink); background: #fff; font-weight: 800; cursor: pointer; }

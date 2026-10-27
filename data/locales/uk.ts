@@ -1,4 +1,4 @@
-// Українська. Слова в *зірочках* у заголовку hero виділяються градієнтом.
+// Ukrainian. *Words* in the hero title get the gradient.
 import type sk from './sk'
 
 const uk: typeof sk = {
@@ -28,7 +28,7 @@ const uk: typeof sk = {
     ctaSecondary: 'Дивитися портфоліо',
     stats: [
       { value: 7, suffix: '+', label: 'проєктів у портфоліо' },
-      { value: 3, suffix: '', label: 'мови: UA · SK · CZ' },
+      { value: 4, suffix: '', label: 'мови: UA · SK · CZ · EN' },
       { value: 24, suffix: 'год', label: 'відповідь на запит' },
     ],
     visual: { url: 'vashbiznes.com.ua', chip1: 'SEO 100/100', chip2: 'LCP 0.8 с', chip3: 'AI радить вас' },

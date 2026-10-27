@@ -3,7 +3,7 @@ import { concepts } from './data/concepts'
 import { cities } from './data/cities'
 import { cases } from './data/cases'
 
-// Мета-теги верификации (Search Console / Bing) и аналитика без cookies — включаются из data/site.ts
+// Verification meta tags and cookie-less analytics (configured in data/site.ts)
 const verificationMeta: { name: string; content: string }[] = []
 if (site.verification.google) verificationMeta.push({ name: 'google-site-verification', content: site.verification.google })
 if (site.verification.bing) verificationMeta.push({ name: 'msvalidate.01', content: site.verification.bing })
@@ -38,12 +38,12 @@ export default defineNuxtConfig({
           href: 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap',
         },
       ],
-      // Скрываем элементы для анимации появления только если JS включён
+      // Hide reveal elements only when JS is on
       script: [{ innerHTML: "document.documentElement.classList.add('js')", tagPosition: 'head' }, ...analyticsScripts],
     },
   },
 
-  // Секреты формы (из .env: NUXT_TELEGRAM_BOT_TOKEN, NUXT_TELEGRAM_CHAT_ID, NUXT_WEB3FORMS_KEY) — только на сервере
+  // Server-only form secrets (from .env)
   runtimeConfig: {
     telegramBotToken: '',
     telegramChatId: '',
@@ -58,8 +58,9 @@ export default defineNuxtConfig({
       { code: 'sk', language: 'sk-SK', name: 'Slovenčina' },
       { code: 'cs', language: 'cs-CZ', name: 'Čeština' },
       { code: 'uk', language: 'uk-UA', name: 'Українська' },
+      { code: 'en', language: 'en', name: 'English' },
     ],
-    // Язык определяем сами: по стране посетителя (public/index.html + GeoLangHint), см. app/composables/useGeoLang.ts
+    // Language detection is custom (country based), see useGeoLang.ts
     detectBrowserLanguage: false,
   },
 

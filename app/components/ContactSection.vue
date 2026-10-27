@@ -11,7 +11,7 @@ watchEffect(() => {
   if (!t.value.contact.form.types.includes(form.type)) form.type = t.value.contact.form.types[0]!
 })
 
-// Запасной вариант: письмо в почтовой программе (если сервер формы не настроен)
+// Fallback: open the mail client
 function openMail() {
   const f = t.value.contact.form
   const body = `${form.message}\n\n—\n${form.name} <${form.email}>\n${form.type}`
@@ -31,7 +31,7 @@ async function submit() {
     status.value = 'sent'
   } catch (e: unknown) {
     const code = (e as { statusCode?: number }).statusCode
-    // 404 — статический хостинг без сервера, 503 — не заданы ключи: открываем почту
+    // 404 = static hosting, 503 = no keys configured → mail fallback
     if (!code || code === 404 || code === 405 || code === 503) openMail()
     else status.value = 'error'
   } finally {
@@ -75,7 +75,7 @@ async function submit() {
             <textarea id="f-msg" v-model="form.message" name="message" rows="4" required maxlength="5000" placeholder=" " />
             <label for="f-msg">{{ t.contact.form.message }}</label>
           </div>
-          <!-- Ловушка для спам-ботов: человек это поле не видит и не заполняет -->
+          <!-- Honeypot for spam bots -->
           <input v-model="form.company" class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
           <label class="consent">
             <input v-model="form.consent" type="checkbox" required>

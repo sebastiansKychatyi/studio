@@ -1,6 +1,6 @@
-// Концепт-дизайны для вымышленных брендов — показывают, в каких стилях мы умеем работать.
-// Страницы: /sk/lab/<id>. Тексты карточек — data/locales/<lang>.ts -> lab.items[id]
-// Обложки: public/img/concepts/<id>.jpg (скриншоты самих страниц)
+// Lab concepts for fictional brands.
+// Pages: /<lang>/lab/<id>; card texts: locales -> lab.items[id]
+// Covers: public/img/concepts/<id>.jpg
 
 export const concepts = [
   { id: 'noir', name: 'Noir', colors: ['#0E0D0B', '#C9A45C'], tags: ['Fine dining', 'Dark UI', 'Serif'] },

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Ochrana osobných údajov (GDPR): /sk/privacy, /cs/privacy, /uk/privacy
+// GDPR privacy policy page
+import type { Lang } from '~~/data/site'
 import { privacy } from '~~/data/privacy'
 
 const { t, cfg } = useSite()
@@ -7,7 +8,7 @@ const { locale } = useI18n()
 const localePath = useLocalePath()
 const i18nHead = useLocaleHead({ seo: true })
 
-const p = computed(() => privacy[locale.value as 'sk' | 'cs' | 'uk'])
+const p = computed(() => privacy[locale.value as Lang])
 const controller = cfg.people[0]!
 const fill = (s: string) =>
   s.replace('{name}', controller.name).replace(/\{email\}/g, cfg.email).replace('{phone}', cfg.phone).replace('{city}', cfg.location.city)

@@ -6,15 +6,14 @@ const props = defineProps<{ project: ProjectView; showAuthor?: boolean }>()
 const { t } = useSite()
 const localePath = useLocalePath()
 const { show } = useDesignModal()
-// Основная ссылка карточки: живой сайт, иначе GitHub
+// Main link: live site, otherwise GitHub
 const href = computed(() => props.project.url || props.project.repo || '')
 const hasCase = computed(() => cases.some((c) => c.id === props.project.id))
 </script>
 
 <template>
   <div class="project-link" :style="{ '--c1': project.colors[0], '--c2': project.colors[1] }">
-    <!-- Дизайн с прототипом — открывается в окне. Не <button>: внутри превью есть свои кнопки,
-         а кнопка в кнопке — невалидный HTML (браузер перестраивает DOM и ломается гидратация) -->
+    <!-- Opens the prototype dialog. Not a <button>: the preview contains buttons -->
     <div
       v-if="project.prototype"
       role="button"

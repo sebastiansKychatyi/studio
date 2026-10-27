@@ -16,7 +16,7 @@ const flowIcons = ['mail', 'spark', 'doc', 'send']
         <p v-reveal class="section-text" style="--d: 160ms">{{ t.ai.text }}</p>
       </div>
 
-      <!-- Анимированная схема автоматизации: данные «бегут» по цепочке -->
+      <!-- Animated automation flow -->
       <div v-reveal class="flow" style="--d: 200ms">
         <p class="flow-label">{{ t.ai.flowLabel }}</p>
         <ol class="flow-steps">

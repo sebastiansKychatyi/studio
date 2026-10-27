@@ -1,9 +1,9 @@
-// Текст страницы «Ochrana osobných údajov» (GDPR). Подстановки: {name}, {email}, {phone}, {city}.
-// Это шаблон, а не юридическая консультация — перед запуском стоит проверить у юриста.
+// GDPR privacy policy texts. Placeholders: {name}, {email}, {phone}, {city}.
+// Template, not legal advice — have it reviewed before launch.
 
 type Privacy = { title: string; updated: string; intro: string; sections: [string, string[]][] }
 
-export const privacy: { sk: Privacy; cs: Privacy; uk: Privacy } = {
+export const privacy: { sk: Privacy; cs: Privacy; uk: Privacy; en: Privacy } = {
   sk: {
     title: 'Ochrana osobných údajov',
     updated: 'Platné od 27. 10. 2026',
@@ -125,6 +125,47 @@ export const privacy: { sk: Privacy; cs: Privacy; uk: Privacy } = {
         'Скаргу можна подати до Úrad na ochranu osobných údajov SR, Hraničná 12, 820 07 Bratislava (dataprotection.gov.sk), або до наглядового органу в країні ЄС, де ви проживаєте.',
       ]],
       ['Контакт', ['З питань захисту персональних даних пишіть нам на {email}.']],
+    ],
+  },
+  en: {
+    title: 'Privacy policy',
+    updated: 'Effective from 27 October 2026',
+    intro: 'This page explains what personal data we process when you use our website or contact us, why we do it and what rights you have under the GDPR.',
+    sections: [
+      ['Data controller', ['The controller of your personal data is {name}, {city}, Slovakia. Contact: {email}, {phone}.']],
+      ['What data we process', [
+        'Contact form: your name, e-mail, type of enquiry and the message you send us.',
+        'E-mail or phone communication: the data you provide to us yourself.',
+        'Technical data: IP address and browser information automatically logged by the hosting server when you visit the website.',
+      ]],
+      ['Purpose and legal basis', [
+        'Replying to your enquiry and preparing a quote — steps prior to entering into a contract (Art. 6(1)(b) GDPR).',
+        'Protecting the website and form against abuse and spam — legitimate interest (Art. 6(1)(f) GDPR).',
+        'Anonymous, cookie-less visitor statistics — legitimate interest in improving the website (Art. 6(1)(f) GDPR).',
+      ]],
+      ['Recipients and third-party services', [
+        'The hosting provider the website runs on.',
+        'Telegram — delivering a notification about a new enquiry from the form.',
+        'Web3Forms — delivering the form message to our e-mail.',
+        'api.country.is — detecting your country from your IP address to offer the right website language. We do not store the country on our server.',
+        'Google Fonts — loading fonts; Google may process your IP address in doing so.',
+        'If analytics is enabled (Umami or Plausible), it works without cookies and without storing personal data.',
+        'For services outside the EU, transfers are based on standard contractual clauses or the EU–US Data Privacy Framework.',
+      ]],
+      ['Retention period', [
+        'We keep enquiries for no longer than 2 years after the last communication if no contract is concluded.',
+        'If we conclude a contract, we keep the data for its duration and in line with statutory periods (e.g. accounting records for 10 years).',
+      ]],
+      ['Cookies and local storage', [
+        'We do not use advertising or tracking cookies.',
+        'We only store a "lang" cookie with your chosen language (1 year) and, in your browser storage, your country and whether you dismissed the language hint during the session. These are strictly necessary and do not require consent.',
+      ]],
+      ['Your rights', [
+        'You have the right to access, rectify and erase your data, to restrict processing, to data portability and to object to processing.',
+        'Where we process data based on consent, you can withdraw it at any time.',
+        'You can lodge a complaint with the Office for Personal Data Protection of the Slovak Republic, Hraničná 12, 820 07 Bratislava (dataprotection.gov.sk), or with the supervisory authority in the EU country where you live.',
+      ]],
+      ['Contact', ['For questions about personal data protection, write to us at {email}.']],
     ],
   },
 }

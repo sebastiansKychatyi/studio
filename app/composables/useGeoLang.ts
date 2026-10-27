@@ -1,9 +1,9 @@
 import site from '~~/data/site'
 
-const CHOICE_COOKIE = 'lang' // язык, который посетитель выбрал сам
+const CHOICE_COOKIE = 'lang' // language picked manually
 const CACHE_KEY = 'geo_country'
 
-// Страна посетителя по IP (api.country.is — бесплатный, без ключа). Кэшируется на сессию.
+// Visitor country by IP (api.country.is), cached per session
 export async function getVisitorCountry(): Promise<string | null> {
   if (import.meta.server) return null
   try {
@@ -23,8 +23,10 @@ export async function getVisitorCountry(): Promise<string | null> {
   }
 }
 
+// SK → sk, CZ → cs, UA → uk, other countries → en, unknown → null
 export function langForCountry(country: string | null) {
-  return (country && site.geoLanguages[country.toUpperCase()]) || null
+  if (!country) return null
+  return site.geoLanguages[country.toUpperCase()] || site.fallbackLang
 }
 
 export function useLangChoice() {

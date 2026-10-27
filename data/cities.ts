@@ -1,15 +1,15 @@
-// Страницы городов для локального SEO: /sk/bratislava, /cs/praha, /uk/kyiv …
-// Порядок = приоритет: Bratislava, Nitra → Praha → Kyiv, Uzhhorod.
-// inPerson — можно встретиться лично; projects — какие проекты показать на странице города.
+// City pages for local SEO: /<lang>/<slug>
+// Order = priority: Bratislava, Nitra → Prague → Kyiv, Uzhhorod.
+// inPerson: meetings possible; projects: shown on the page.
 
 type CityText = {
   name: string
-  loc: string // «в городе» в нужном падеже: «v Bratislave», «v Praze», «у Києві»
+  loc: string // "in <city>" with correct grammar
   metaTitle: string
   metaDescription: string
-  h1: [string, string] // [начало, выделенная часть]
+  h1: [string, string] // [start, highlighted part]
   intro: string
-  points: [string, string][] // локальные преимущества
+  points: [string, string][] // local benefits
   faq: [string, string][]
 }
 
@@ -19,10 +19,10 @@ export type City = {
   geo: { lat: number; lng: number }
   inPerson: boolean
   projects: string[]
-  text: { sk: CityText; cs: CityText; uk: CityText }
+  text: { sk: CityText; cs: CityText; uk: CityText; en: CityText }
 }
 
-export const cities: City[] = [
+const base: (Omit<City, 'text'> & { text: Omit<City['text'], 'en'> })[] = [
   {
     slug: 'bratislava',
     country: 'SK',
@@ -309,3 +309,89 @@ export const cities: City[] = [
     },
   },
 ]
+
+// English texts (international visitors)
+const en: Record<string, CityText> = {
+  bratislava: {
+    name: 'Bratislava', loc: 'in Bratislava',
+    metaTitle: 'AI automation and web development in Bratislava | Duo Studio',
+    metaDescription: 'AI automation, website, app and mini game development for businesses in Bratislava, Slovakia. In-person meetings, fixed prices and support after launch.',
+    h1: ['AI automation and websites', 'in Bratislava'],
+    intro: 'We help businesses in Bratislava save time and win customers: we automate processes with AI, build fast websites, apps and mini games and integrate artificial intelligence into your systems.',
+    points: [
+      ['Meet in person', 'We meet clients in Bratislava and the surrounding area in person — from the Old Town to Ružinov and Petržalka.'],
+      ['Local SEO for Bratislava', 'We set up your website so customers looking for your services in Bratislava find you — on Google and in AI assistants.'],
+      ['Experience in Bratislava', 'We have worked for Bratislava companies, such as the website for Bratislava Technical Company, and on hybrid projects directly in Bratislava.'],
+    ],
+    faq: [
+      ['Do you build websites and AI automations for companies in Bratislava?', 'Yes. For businesses in Bratislava and the region we build AI automations, websites, e-shops, apps and mini games. The first meeting can be in person in Bratislava or online.'],
+      ['How much does a website for a Bratislava company cost?', 'Price depends on scope, not on the address. After a free consultation we send a fixed-price quote with no hidden fees.'],
+    ],
+  },
+  nitra: {
+    name: 'Nitra', loc: 'in Nitra',
+    metaTitle: 'AI automation and web development in Nitra | Duo Studio',
+    metaDescription: 'Website, app and mini game development, AI automation and AI integration for businesses in Nitra, Slovakia, and the surrounding region.',
+    h1: ['AI automation and websites', 'in Nitra'],
+    intro: 'We are a development team with roots in Nitra. We build websites, apps and mini games for local businesses, automate routine work with AI and connect their systems with artificial intelligence.',
+    points: [
+      ['We are from Nitra', 'We meet in person in Nitra and nearby — in Zobor, Klokočina, Chrenová or right at your office.'],
+      ['Local SEO for Nitra', 'We help customers find you when they search Google for your services in Nitra and the region.'],
+      ['Projects in Nitra', 'We have already built websites for Nitra businesses, such as the Hodinový manžel Nitra landing page, and we study at the university in Nitra.'],
+    ],
+    faq: [
+      ['Do you build websites for companies in Nitra?', 'Yes, we are from Nitra. We build websites, e-shops, apps and AI automations for businesses in Nitra and the whole Nitra region and are happy to meet in person.'],
+      ['Can you help a small business in Nitra with a website and SEO?', 'Yes. For sole traders and small companies we prepare a fast website with local SEO so customers from Nitra and the surrounding area can find you.'],
+    ],
+  },
+  praha: {
+    name: 'Prague', loc: 'in Prague',
+    metaTitle: 'AI automation and web development for businesses in Prague | Duo Studio',
+    metaDescription: 'AI automation, website, app and mini game development for companies in Prague and across Czechia. Remote collaboration, communication in Czech, Slovak or English.',
+    h1: ['AI automation and websites', 'for Prague'],
+    intro: 'We help companies in Prague and across Czechia remotely: we automate processes with AI, build websites, apps and mini games and integrate artificial intelligence into their systems.',
+    points: [
+      ['Remote collaboration', 'Consultations, designs and handover all happen online. For larger projects we can also arrange an in-person meeting.'],
+      ['SEO for Google and Seznam', 'We optimize websites for the Czech market for Google, Seznam.cz and AI search.'],
+      ['Czech without a translator', 'We communicate in Czech, Slovak and English and write website copy in natural Czech.'],
+    ],
+    faq: [
+      ['Do you work with companies in Prague?', 'Yes. We work remotely with clients in Prague and across Czechia — from the first consultation to launch and ongoing support.'],
+      ['Do you also optimize websites for Seznam?', 'Yes. For the Czech market we set up SEO for Google and Seznam.cz, structured data and GEO for AI assistants.'],
+    ],
+  },
+  kyiv: {
+    name: 'Kyiv', loc: 'in Kyiv',
+    metaTitle: 'AI automation and web development for businesses in Kyiv | Duo Studio',
+    metaDescription: 'AI automation, website, app and mini game development for companies in Kyiv and across Ukraine. Remote collaboration and help entering the EU market.',
+    h1: ['AI automation and websites', 'for Kyiv'],
+    intro: 'We help companies in Kyiv and across Ukraine remotely: we automate processes with AI, build websites, apps and mini games and integrate artificial intelligence into their systems.',
+    points: [
+      ['In Ukrainian', 'We communicate in Ukrainian, understand the local market and build websites for Ukraine as well as for the EU.'],
+      ['Entering the EU market', 'We help Ukrainian companies with multilingual websites and SEO for Slovakia, Czechia and other EU countries.'],
+      ['Remote collaboration', 'The time difference is just one hour; consultations and handover happen online.'],
+    ],
+    faq: [
+      ['Do you work with companies in Kyiv?', 'Yes. We work remotely with clients in Kyiv and across Ukraine and communicate in Ukrainian or English.'],
+      ['Can you help a Ukrainian company enter the EU market?', 'Yes. We build a multilingual website (UA, SK, CZ, EN) with SEO for specific EU countries and integrate AI tools into your processes.'],
+    ],
+  },
+  uzhhorod: {
+    name: 'Uzhhorod', loc: 'in Uzhhorod',
+    metaTitle: 'AI automation and web development for businesses in Uzhhorod | Duo Studio',
+    metaDescription: 'AI automation, website, app and mini game development for companies in Uzhhorod and Transcarpathia. Right next to the Slovak border, communication in Ukrainian and Slovak.',
+    h1: ['AI automation and websites', 'for Uzhhorod'],
+    intro: 'Uzhhorod lies right on the Slovak border. We build websites, apps and mini games for companies in Uzhhorod and Transcarpathia, automate their processes with AI and help them reach customers in both Slovakia and Ukraine.',
+    points: [
+      ['Close to Slovakia', 'Uzhhorod and Transcarpathia are just across the border — we help you reach customers in Ukraine and Slovakia alike.'],
+      ['Ukrainian and Slovak', 'We communicate in Ukrainian and Slovak and build bilingual websites with local SEO.'],
+      ['Cross-border business', 'Websites and automations for companies trading between Ukraine and the EU — from orders to invoices.'],
+    ],
+    faq: [
+      ['Do you work with companies in Uzhhorod?', 'Yes. We work remotely with clients in Uzhhorod and Transcarpathia and communicate in Ukrainian and Slovak.'],
+      ['Can you build a website for both Ukrainian and Slovak customers?', 'Yes. We build a bilingual website with SEO for Ukraine and Slovakia so customers on both sides of the border can find you.'],
+    ],
+  },
+}
+
+export const cities: City[] = base.map((c) => ({ ...c, text: { ...c.text, en: en[c.slug]! } }))

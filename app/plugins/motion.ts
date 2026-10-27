@@ -1,5 +1,5 @@
-// Директивы анимаций: v-reveal (появление при прокрутке), v-tilt (3D-наклон),
-// v-magnetic (магнитные кнопки), v-spot (световое пятно за курсором).
+// Animation directives: v-reveal (scroll reveal), v-tilt (3D tilt),
+// v-magnetic (magnetic buttons), v-spot (cursor spotlight).
 import type { Directive } from 'vue'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -15,7 +15,7 @@ export default defineNuxtPlugin((nuxtApp) => {
             const el = e.target as HTMLElement
             el.classList.add('is-in')
             io!.unobserve(el)
-            // после появления убираем задержку, чтобы hover реагировал сразу
+            // drop the delay so hover reacts instantly
             setTimeout(() => el.style.setProperty('--d', '0ms'), 1400)
           }),
         { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }

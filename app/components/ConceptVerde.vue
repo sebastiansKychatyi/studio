@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Концепт «Verde» — эко-жильё: параллакс-иллюстрация, «липкая» история, интерактивный выбор квартир на фасаде
+// "Verde" concept: eco housing with parallax and apartment picker
 useHead({
   link: [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&display=swap' }],
 })
@@ -35,9 +35,68 @@ const c = useConceptCopy({
     stats: [['A', 'клас енергоефективності'], ['48', 'квартир'], ['2028', 'здача']],
     footer: 'Резиденція Verde — вигаданий проєкт для демонстрації дизайну',
   },
+  en: {
+    "nav": [
+      "Project",
+      "Apartments",
+      "Location"
+    ],
+    "cta": "I am interested",
+    "kicker": "Verde Residence · Nitra",
+    "title": "Living in rhythm with nature.",
+    "sub": "48 apartments in energy class A0, with green roofs and a park on your doorstep. Completion in spring 2028.",
+    "steps": [
+      [
+        "Sun",
+        "Solar panels on the roof power the common areas and EV chargers."
+      ],
+      [
+        "Water",
+        "Rainwater is collected to water the gardens and roof terraces."
+      ],
+      [
+        "Greenery",
+        "40 % of the plot is a park with an orchard, a playground and benches."
+      ]
+    ],
+    "pickTitle": "Choose your apartment.",
+    "hint": "Click an apartment on the facade",
+    "filters": [
+      "All",
+      "1-room",
+      "2-room",
+      "3-room"
+    ],
+    "status": [
+      "Available",
+      "Reserved",
+      "Sold"
+    ],
+    "statusLabel": "Status",
+    "floor": "Floor",
+    "rooms": "Rooms",
+    "area": "Area",
+    "price": "Price",
+    "book": "Book a viewing",
+    "stats": [
+      [
+        "A0",
+        "energy class"
+      ],
+      [
+        "48",
+        "apartments"
+      ],
+      [
+        "2028",
+        "completion"
+      ]
+    ],
+    "footer": "Verde Residence — a fictional project for a design demo"
+  },
 })
 
-// --- Параллакс слоёв иллюстрации
+// --- Illustration parallax
 const y = ref(0)
 let raf = 0
 const onScroll = () => {
@@ -46,12 +105,12 @@ const onScroll = () => {
 }
 const layer = (k: number) => ({ transform: `translateY(${y.value * k}px)` })
 
-// --- «Липкая» история: активный шаг по прокрутке
+// --- Sticky story: active step on scroll
 const active = ref(0)
 const stepEls = ref<HTMLElement[]>([])
 let io: IntersectionObserver | undefined
 
-// --- Квартиры (детерминированные данные)
+// --- Apartments (deterministic data)
 const units = Array.from({ length: 24 }, (_, i) => {
   const floor = 4 - Math.floor(i / 6)
   const rooms = [1, 2, 3, 2, 3, 1][i % 6]!

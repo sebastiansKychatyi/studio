@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Концепт «Noir» — ресторан fine dining: тёмный фон, золото, антиква, рисующаяся тарелка, меню с превью за курсором
+// "Noir" concept: fine dining restaurant, dark and gold
 useHead({
   link: [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap' }],
 })
@@ -47,6 +47,100 @@ const c = useConceptCopy({
     resTitle: 'Бронювання', date: 'Дата', guests: 'Кількість гостей', time: 'Час', send: 'Підтвердити бронювання',
     done: 'Дякуємо! Це лише демо — бронювання нікуди не надіслано.',
   },
+  en: {
+    "nav": [
+      "Menu",
+      "Story",
+      "Reservations"
+    ],
+    "book": "Book a table",
+    "kicker": "Seasonal tasting cuisine · Bratislava",
+    "sub": "Eight courses. One evening. Flavours you will remember.",
+    "scroll": "Scroll down",
+    "menuTitle": "Menu",
+    "tabs": [
+      "Tasting",
+      "À la carte"
+    ],
+    "menus": [
+      [
+        [
+          "Oyster & yuzu",
+          "cucumber, dill, sea foam"
+        ],
+        [
+          "Roasted beetroot",
+          "goat cheese, hazelnuts, raspberry"
+        ],
+        [
+          "Tatra trout",
+          "beurre blanc, caviar, leek"
+        ],
+        [
+          "Duck breast",
+          "cherries, celeriac, demi-glace"
+        ],
+        [
+          "Cheese & honey",
+          "sheep cheese, acacia honey"
+        ],
+        [
+          "Chocolate 70 %",
+          "salted caramel, cocoa nibs"
+        ]
+      ],
+      [
+        [
+          "Beef tartare",
+          "egg yolk, capers, sourdough"
+        ],
+        [
+          "Porcini risotto",
+          "parmesan, thyme, truffle"
+        ],
+        [
+          "Rack of lamb",
+          "aubergine, yoghurt, mint"
+        ],
+        [
+          "Seasonal sorbet",
+          "sea buckthorn, elderflower"
+        ]
+      ]
+    ],
+    "prices": [
+      "€89 / person",
+      [
+        "€18",
+        "€24",
+        "€34",
+        "€9"
+      ]
+    ],
+    "storyKicker": "Story",
+    "quote": "We cook with what has just ripened — not with what happens to be in fashion.",
+    "author": "Head chef, Noir",
+    "stats": [
+      [
+        "8",
+        "tasting courses"
+      ],
+      [
+        "24",
+        "seats"
+      ],
+      [
+        "100 %",
+        "seasonal ingredients"
+      ]
+    ],
+    "resTitle": "Reservations",
+    "date": "Date",
+    "guests": "Guests",
+    "time": "Time",
+    "send": "Confirm reservation",
+    "done": "Thank you! This is just a demo — the reservation was not sent anywhere."
+  },
 })
 
 const plateColors = ['#E9D8B4', '#9B2C3A', '#D9825B', '#6E3B2A', '#E7C46A', '#3B2418']
@@ -54,7 +148,7 @@ const tab = ref(0)
 const courses = computed(() => c.value.menus[tab.value]!)
 const priceOf = (i: number) => (tab.value === 0 ? (i === 0 ? c.value.prices[0] : '') : (c.value.prices[1] as string[])[i])
 
-// Тарелка, которая следует за курсором над меню
+// Plate preview following the cursor over the menu
 const hover = reactive({ i: -1, x: 0, y: 0 })
 function move(e: PointerEvent, i: number) {
   hover.i = i
@@ -62,7 +156,7 @@ function move(e: PointerEvent, i: number) {
   hover.y = e.clientY
 }
 
-// Частицы «золотой пыли» — детерминированные, чтобы совпадали SSR и клиент
+// Deterministic gold dust (SSR-safe)
 const dust = Array.from({ length: 22 }, (_, i) => ({
   left: `${(i * 37) % 100}%`,
   delay: `${(i * 0.7) % 8}s`,
@@ -70,7 +164,7 @@ const dust = Array.from({ length: 22 }, (_, i) => ({
   size: `${2 + (i % 3)}px`,
 }))
 
-// Бронирование (демо)
+// Reservation (demo)
 const res = reactive({ date: '', guests: 2, time: '19:30', sent: false })
 const times = ['18:00', '19:30', '21:00']
 </script>

@@ -2,13 +2,14 @@ import site from '~~/data/site'
 import sk from '~~/data/locales/sk'
 import cs from '~~/data/locales/cs'
 import uk from '~~/data/locales/uk'
+import en from '~~/data/locales/en'
 
 export type SiteContent = typeof sk
 type ProjectId = keyof SiteContent['work']['projects']
 
-const all: Record<string, SiteContent> = { sk, cs, uk }
+const all: Record<string, SiteContent> = { sk, cs, uk, en }
 
-// Тексты текущего языка + общие настройки
+// Current-language texts + shared config
 export function useSite() {
   const { locale } = useI18n()
   const t = computed(() => all[locale.value] ?? all[site.defaultLang]!)

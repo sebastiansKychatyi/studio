@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Концепт-дизайн: /sk/lab/noir, /uk/lab/pulse … Каждый концепт — отдельный компонент Concept<Name>
+// Lab concept page; each concept is a Concept<Name> component
 import { concepts } from '~~/data/concepts'
 
 const route = useRoute()
@@ -51,13 +51,13 @@ useHead(() => ({
     <ConceptKinetic v-else-if="concept.id === 'kinetic'" />
     <ConceptVerde v-else-if="concept.id === 'verde'" />
 
-    <!-- Плашка студии: видно, что это концепт, и можно вернуться или перейти к следующему -->
+    <!-- Studio bar: concept label, back and next links -->
     <div v-if="!route.query.cover" class="concept-bar" role="navigation" aria-label="Duo Studio Lab">
       <NuxtLink class="concept-bar-back" :to="localePath('/') + '#lab'" :title="t.lab.back">
         <span class="logo-mark" aria-hidden="true">D</span>
         <span class="concept-bar-text"><b>{{ cfg.brand }} Lab</b><small>{{ t.lab.badge }}</small></span>
       </NuxtLink>
-      <LangSwitch />
+      <LangSwitch up />
       <NuxtLink class="concept-bar-next" :to="localePath(`/lab/${next.id}`)">{{ next.name }} →</NuxtLink>
       <NuxtLink class="btn btn-primary btn-sm concept-bar-cta" :to="localePath('/') + '#contact'">{{ t.lab.cta }}</NuxtLink>
     </div>

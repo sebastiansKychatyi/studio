@@ -1,6 +1,6 @@
-// Кейсы (подробные страницы проектов): /sk/case/e-drivebook …
-// id совпадает с id проекта в data/site.ts (оттуда берутся ссылка, скриншот, теги).
-// Только проверяемые факты — без выдуманных метрик.
+// Case studies: /sk/case/<id>
+// id matches a project in data/site.ts (link, screenshot, tags).
+// Verifiable facts only.
 
 type CaseText = {
   metaTitle: string
@@ -11,16 +11,16 @@ type CaseText = {
   challenge: string
   solution: string
   features: [string, string][]
-  results: [string, string][] // [число/факт, подпись]
+  results: [string, string][] // [value, label]
 }
 
 export type CaseStudy = {
   id: string
   stack: string[]
-  text: { sk: CaseText; cs: CaseText; uk: CaseText }
+  text: { sk: CaseText; cs: CaseText; uk: CaseText; en: CaseText }
 }
 
-export const cases: CaseStudy[] = [
+const base: (Omit<CaseStudy, 'text'> & { text: Omit<CaseStudy['text'], 'en'> })[] = [
   {
     id: 'e-drivebook',
     stack: ['Python', 'FastAPI', 'PostgreSQL', 'SQLAlchemy', 'Alembic', 'OAuth2 / JWT', 'Nuxt 3', 'Vue.js', 'Pinia', 'Docker Compose', 'Caddy', 'GitHub Actions', 'pytest'],
@@ -136,3 +136,43 @@ export const cases: CaseStudy[] = [
     },
   },
 ]
+
+// English texts (international visitors)
+const en: Record<string, CaseText> = {
+  'e-drivebook': {
+    metaTitle: 'e-Drivebook case study: SaaS for driving schools | Duo Studio',
+    metaDescription: 'How we built e-Drivebook from scratch — driving school software with 24/7 online lesson booking, instructor schedules and student records. FastAPI, PostgreSQL, Nuxt 3.',
+    lead: 'Our own SaaS for driving schools — from the first requirements to production used every day by paying driving schools.',
+    client: 'Driving schools in Slovakia', role: 'Design, backend, frontend, deployment',
+    challenge: 'Driving schools planned lessons over the phone, in paper notebooks and spreadsheets. Students did not know when a slot was free, instructors lost time arranging lessons and records of lessons and vehicles were scattered across many places.',
+    solution: 'We designed and built a web application from scratch that brings bookings, schedules, students, instructors and cars into one place. Students book lessons online 24/7 from a computer or phone, and the driving school sees everything in the admin panel.',
+    features: [
+      ['24/7 online booking', 'Students pick a free lesson slot themselves — no phone calls.'],
+      ['Instructor schedules', 'Automatic lesson planning based on instructor and vehicle availability.'],
+      ['Student & training records', 'Records of lessons, their duration and each student’s progress.'],
+      ['Vehicle fleet', 'An overview of cars and their maintenance in one place.'],
+      ['Exam tests', 'Students prepare for the theory exam right in the app.'],
+      ['Secure login', 'OAuth2 / JWT with separate access for administrators, instructors and students.'],
+    ],
+    results: [['3', 'paying driving schools use the system daily'], ['24/7', 'online lesson booking for students'], ['1', 'developer from database to deployment'], ['CI/CD', 'automated tests and deployments with GitHub Actions']],
+  },
+  expertsk: {
+    metaTitle: 'Expert SK case study: directory of verified tradespeople | Duo Studio',
+    metaDescription: 'Expert SK — a trilingual platform for finding verified tradespeople in Slovakia: services, cities, reviews and sign-up for professionals. Nuxt, Tailwind CSS.',
+    lead: 'A platform where customers in Slovakia find a verified electrician, plumber or cleaning service in their city.',
+    client: 'Services platform, Slovakia', role: 'Design, development, SEO, localization',
+    challenge: 'Finding a reliable tradesperson takes time: offers are scattered across classifieds and social media, reviews and prices are missing, and foreigners in Slovakia also face a language barrier.',
+    solution: 'We built a services directory with search by type of work and city, tradesperson profiles with reviews and prices, and direct contact. The platform is available in Slovak, English and Russian, and professionals can sign up on their own.',
+    features: [
+      ['Search', 'By service and city — from handyman to car mechanic.'],
+      ['10+ categories', 'Electrician, plumber, painter, tiler, furniture assembly, cleaning, moving and more.'],
+      ['Reviews & prices', 'Customers compare tradespeople by other people’s experience and price.'],
+      ['Sign-up for professionals', 'Tradespeople create their own profile and offer their services.'],
+      ['Three languages', 'Slovak, English and Russian with hreflang for search engines.'],
+      ['Fast and SEO-ready', 'Nuxt with server-side rendering and a structure built for Google.'],
+    ],
+    results: [['10+', 'service categories'], ['3', 'languages: SK · EN · RU'], ['SSR', 'fast loading and SEO thanks to Nuxt']],
+  },
+}
+
+export const cases: CaseStudy[] = base.map((c) => ({ ...c, text: { ...c.text, en: en[c.id]! } }))

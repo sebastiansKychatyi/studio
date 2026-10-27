@@ -1,8 +1,8 @@
-// Приём заявок из контактной формы → уведомление в Telegram и письмо на e-mail через Web3Forms.
-// Ключи задаются переменными окружения (см. .env.example). Работает при запуске Nuxt как сервера
-// (`npm run build` + `node .output/server/index.mjs`); на чисто статическом хостинге форма откроет почту.
+// Contact form → Telegram notification + e-mail via Web3Forms.
+// Keys come from env (see .env.example). Requires running Nuxt as a server;
+// on static hosting the form falls back to mailto.
 
-const hits = new Map<string, number[]>() // простое ограничение: 5 заявок за 10 минут с одного IP
+const hits = new Map<string, number[]>() // 5 requests per 10 min per IP
 const WINDOW = 10 * 60 * 1000
 
 function rateLimited(ip: string) {
@@ -18,7 +18,7 @@ const clean = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
 export default defineEventHandler(async (event) => {
   const body = await readBody<Record<string, unknown>>(event)
 
-  // Ловушка для ботов: скрытое поле, которое человек не заполняет
+  // Honeypot field
   if (clean(body?.company, 200)) return { ok: true }
 
   const name = clean(body?.name, 120)
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!tasks.length) {
-    // Ничего не настроено — клиент откроет почтовую программу
+    // Nothing configured — client falls back to mailto
     throw createError({ statusCode: 503, statusMessage: 'Contact delivery is not configured' })
   }
 

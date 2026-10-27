@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Подсказка «Похоже, вы из Украины — перейти на украинский?».
-// Без автоматического редиректа: так поисковики индексируют все языковые версии.
+// Suggests the visitor's language based on country.
+// No auto-redirect, so search engines can index every version.
 const { all } = useSite()
 const { locale } = useI18n()
 const switchLocalePath = useSwitchLocalePath()

@@ -1,6 +1,7 @@
-// Общие настройки сайта (не зависят от языка).
-// Тексты для каждого языка — в папке data/locales/ (sk.ts, cs.ts, uk.ts).
+// Language-independent site config.
+// Per-language texts live in data/locales/.
 
+export type Lang = 'sk' | 'cs' | 'uk' | 'en'
 export type Category = 'web' | 'app' | 'design'
 
 export interface Project {
@@ -9,25 +10,25 @@ export interface Project {
   author: 'p1' | 'p2'
   category: Category
   year: number
-  url?: string // живой сайт
+  url?: string // live site
   repo?: string // GitHub
-  image?: string // скриншот в public/img/projects/
-  colors: [string, string] // цвета CSS-макета, если нет скриншота
-  layout: 1 | 2 | 3 | 4 // 4 = «код/API»-макет
+  image?: string // screenshot in public/img/projects/
+  colors: [string, string] // mock colors when there is no screenshot
+  layout: 1 | 2 | 3 | 4 // 4 = code/API mock
   tags: string[]
-  placeholder?: boolean // заглушка — показывается с пометкой «Ukážka»
-  prototype?: 'nordic' | 'byty' | 'fitflow' // кликабельный прототип в окне (app/components/Proto*.vue)
+  placeholder?: boolean // placeholder, shown with a "demo" badge
+  prototype?: 'nordic' | 'byty' | 'fitflow' // clickable prototype (app/components/Proto*.vue)
 }
 
 const site = {
-  // TODO: замените на реальный домен (без слеша в конце) — нужен для canonical, hreflang и sitemap
+  // Main domain (no trailing slash); change with `npm run set-domain`
   domain: 'https://studio.k2drive.com',
   brand: 'Duo Studio',
-  email: 'kichatyisebastian@gmail.com', // контакты студии (главная страница, форма, schema.org)
+  email: 'kichatyisebastian@gmail.com', // studio contact (site, form, schema.org)
   phone: '+421 951 508 228',
-  telegram: '', // например 'https://t.me/username'
+  telegram: '', // e.g. 'https://t.me/username'
 
-  // Где вы находитесь — Geo meta-теги и schema.org
+  // Location for geo meta tags and schema.org
   location: {
     city: 'Nitra',
     region: 'SK-NI',
@@ -35,9 +36,9 @@ const site = {
     lat: 48.3069,
     lng: 18.0864,
   },
-  // Страны, для которых вы работаете (ISO) — schema.org areaServed
+  // Served countries (ISO) for schema.org areaServed
   areaServed: ['SK', 'CZ', 'UA'],
-  // Города для локального SEO — в порядке приоритета (schema.org areaServed, llms.txt, тексты)
+  // Local SEO cities by priority
   cities: [
     { name: 'Bratislava', country: 'SK' },
     { name: 'Nitra', country: 'SK' },
@@ -46,43 +47,45 @@ const site = {
     { name: 'Uzhhorod', country: 'UA' },
   ],
 
-  // Определение языка по стране посетителя (по IP): страна -> язык сайта
+  // Visitor country (IP) → site language
   geoLanguages: { SK: 'sk', CZ: 'cs', UA: 'uk' } as Record<string, string>,
+  // Language for all other countries
+  fallbackLang: 'en' as const,
 
-  // Форма отправляется на серверный /api/contact → Telegram и e-mail (Web3Forms). Ключи — в .env (см. .env.example).
-  // Если сервер не настроен (чисто статический хостинг), форма сама откроет почтовую программу.
+  // Contact form endpoint → Telegram + e-mail (keys in .env).
+  // Falls back to mailto on static hosting.
   contactApi: '/api/contact',
 
-  // Аналитика без cookies — заполните одну (пусто = выключено)
+  // Cookie-less analytics; empty = disabled
   analytics: {
-    umami: { src: '', websiteId: '' }, // например src: 'https://cloud.umami.is/script.js'
+    umami: { src: '', websiteId: '' }, // e.g. src: 'https://cloud.umami.is/script.js'
     plausible: { domain: '', src: 'https://plausible.io/js/script.js' }, // domain: 'studio.k2drive.com'
   },
-  // Подтверждение владения сайтом: Google Search Console («HTML-тег» → content) и Bing Webmaster Tools
+  // Search Console / Bing verification tokens
   verification: { google: '', bing: '' },
 
   defaultLang: 'sk' as const,
-  languages: ['sk', 'cs', 'uk'] as const,
+  languages: ['sk', 'cs', 'uk', 'en'] as const,
 
-  // Команда. slug — адрес личной страницы (/sk/sebastian). theme — дизайн личной страницы: 'dev' | 'creative'.
-  // Тексты (роль, биография, личная страница) — в data/locales/<lang>.ts -> about.people и personal.people
+  // Team. slug = personal page URL; theme = 'dev' | 'creative'.
+  // Texts: locales -> about.people, personal.people
   people: [
     {
       id: 'p1' as const,
       slug: 'sebastian',
       theme: 'dev' as const,
       name: 'Sebastian Kychatyi',
-      degree: 'Bc.', // титул в резюме
+      degree: 'Bc.', // academic title on the résumé
       shortName: 'Sebastian',
       initials: 'SK',
-      photo: '', // например '/img/sebastian.jpg' (файл положить в public/img/)
-      // Контакты из резюме — видны на личной странице и в CV. Пусто — используется общий email студии
+      photo: '', // e.g. '/img/sebastian.jpg' (in public/img/)
+      // Personal contact; empty = studio e-mail
       email: 'kichatyisebastian@gmail.com',
       phone: '+421 951 508 228',
       colors: ['#5B4BFF', '#9F8CFF'] as [string, string],
-      // Короткий список (карточка на главной, чипы)
+      // Short list (cards, chips)
       skills: ['Python', 'FastAPI', 'Odoo 18', 'PostgreSQL', 'Vue.js / Nuxt 3', 'TypeScript', 'Docker', 'AI automation'],
-      // Полный стек по группам (личная страница и резюме)
+      // Full stack by group (profile, résumé)
       skillGroups: [
         { k: 'Backend', v: ['Python', 'FastAPI', 'Odoo 18 (ERP, ORM, OWL)', 'SQLAlchemy', 'Alembic', 'REST API', 'API integrations', 'OAuth2 / JWT', 'Laravel (PHP)'] },
         { k: 'Frontend', v: ['Vue.js', 'Nuxt 3', 'TypeScript', 'JavaScript', 'Pinia', 'HTML / CSS'] },
@@ -99,7 +102,7 @@ const site = {
       id: 'p2' as const,
       slug: 'roman',
       theme: 'creative' as const,
-      name: 'Roman', // TODO: фамилия Романа
+      name: 'Roman', // TODO: Roman's surname
       degree: '',
       shortName: 'Roman',
       initials: 'R',
@@ -114,7 +117,7 @@ const site = {
     },
   ],
 
-  // Портфолио. Описание каждого проекта на каждом языке — data/locales/<lang>.ts -> work.projects[id]
+  // Portfolio; descriptions in locales -> work.projects[id]
   projects: [
     {
       id: 'e-drivebook', title: 'e-Drivebook', author: 'p1', category: 'app', year: 2025,
@@ -158,7 +161,7 @@ const site = {
       colors: ['#0EA5E9', '#BAE6FD'], layout: 4,
       tags: ['FastAPI', 'SQLAlchemy', 'Pydantic', 'httpx'],
     },
-    // Дизайн-концепты Романа с кликабельными прототипами (окно по клику). TODO: замените на реальные работы
+    // Roman's design concepts with clickable prototypes. TODO: replace with real work
     {
       id: 'nordic-living', title: 'Nordic Living', author: 'p2', category: 'design', year: 2026,
       colors: ['#64748B', '#E2E8F0'], layout: 2, tags: ['Figma', 'UI Kit', 'E-shop'], placeholder: true, prototype: 'nordic',

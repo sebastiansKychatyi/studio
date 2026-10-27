@@ -1,7 +1,7 @@
 import type { PersonView } from './useSite'
 
-// SEO + GEO: meta-теги, hreflang, Open Graph, Geo-теги и schema.org (JSON-LD).
-// Без аргумента — общая страница студии; с person — личная страница; cv: true — страница-резюме человека.
+// SEO + GEO: meta tags, hreflang, Open Graph, geo tags, JSON-LD.
+// No args = studio page; `person` = personal page; `cv` = résumé page.
 export function useSiteSeo(person?: Ref<PersonView | undefined>, opts: { cv?: boolean } = {}) {
   const { t, cfg, all, people, projects } = useSite()
   const { locale } = useI18n()
@@ -18,14 +18,14 @@ export function useSiteSeo(person?: Ref<PersonView | undefined>, opts: { cv?: bo
   })
   const description = computed(() => person?.value?.page.metaDescription ?? t.value.meta.description)
   const ogTitle = computed(() => (person?.value ? title.value : t.value.meta.ogTitle))
-  // У каждого человека своя картинка-превью для соцсетей: public/og-<slug>.png
+  // Per-person social image: public/og-<slug>.png
   const ogImage = computed(() => `${cfg.domain}/${person?.value ? `og-${person.value.slug}` : 'og-image'}.png`)
   const countryNames: Record<string, string> = { SK: 'Slovakia', CZ: 'Czech Republic', UA: 'Ukraine' }
 
   useSeoMeta({
     title,
     description,
-    // Резюме дублирует личную страницу — не индексируем, чтобы не конкурировать с ней в поиске
+    // Résumé duplicates the profile, so keep it out of the index
     robots: opts.cv ? 'noindex, follow' : undefined,
     author: () => person?.value?.name ?? people.value.map((p) => p.name).join(', '),
     ogType: () => (person?.value ? 'profile' : 'website'),
@@ -92,7 +92,7 @@ export function useSiteSeo(person?: Ref<PersonView | undefined>, opts: { cv?: bo
     priceRange: '€€',
     address: { '@type': 'PostalAddress', addressLocality: cfg.location.city, addressCountry: cfg.location.country },
     geo: { '@type': 'GeoCoordinates', latitude: cfg.location.lat, longitude: cfg.location.lng },
-    // Сначала города по приоритету (Bratislava, Nitra, Prague, Kyiv, Uzhhorod), затем страны целиком
+    // Cities by priority, then whole countries
     areaServed: [
       ...cfg.cities.map((ct) => ({
         '@type': 'City',

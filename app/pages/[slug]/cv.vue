@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Резюме человека: /sk/roman/cv. Строгий лист A4, кнопка «Скачать PDF» (печать браузера → «Сохранить как PDF»)
+// Résumé page (A4); "Download PDF" uses the browser print dialog
 const route = useRoute()
 const { t, cfg, people, projects } = useSite()
 const localePath = useLocalePath()
@@ -139,7 +139,7 @@ const print = () => window.print()
 .cv-toolbar-right { display: flex; align-items: center; gap: 10px; }
 .cv-tool { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; padding: 8px 14px 8px 10px; border-radius: 999px; background: #fff; }
 .cv-tool:hover { background: var(--ink); color: #fff; }
-.cv-page .lang-switch { background: #fff; }
+.cv-page .lang-dd-btn { background: #fff; }
 
 .cv-sheet {
   max-width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; display: grid; grid-template-columns: 34% 1fr;
@@ -193,7 +193,7 @@ const print = () => window.print()
   .cv-main { padding: 26px 22px; }
 }
 
-/* Печать / «Сохранить как PDF»: только лист, без панели и фона */
+/* Print: sheet only */
 @media print {
   @page { size: A4; margin: 0; }
   html, body { background: #fff !important; }

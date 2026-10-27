@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Диалоговое окно с кликабельным прототипом дизайн-проекта
+// Dialog with a clickable design prototype
 const { t, projects } = useSite()
 const { openId, close } = useDesignModal()
 const project = computed(() => projects.value.find((p) => p.id === openId.value && p.prototype))

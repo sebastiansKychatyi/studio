@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Прототип «Nordic Living» — e-shop скандинавской мебели (окно 900×560): каталог → товар → корзина, плюс UI kit
+// "Nordic Living" prototype: furniture e-shop (900×560) with UI kit
 const props = defineProps<{ preview?: boolean }>()
 useHead({ link: [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Lora:wght@500&display=swap' }] })
 
@@ -7,6 +7,29 @@ const c = useConceptCopy({
   sk: { cats: ['Pohovky', 'Stoličky', 'Lampy'], hero: 'Pokoj v každom detaile.', heroSub: 'Ručne vyrábaný nábytok zo severského dreva.', shop: 'Nakupovať', color: 'Farba', add: 'Do košíka', added: 'Pridané do košíka ✓', back: '← Späť', delivery: 'Doručenie do 5 dní · 2 roky záruka', proto: 'Prototyp', kit: 'UI kit', palette: 'Paleta', type: 'Typografia', buttons: 'Tlačidlá', primary: 'Primárne', secondary: 'Sekundárne', cart: 'Košík' },
   cs: { cats: ['Pohovky', 'Židle', 'Lampy'], hero: 'Klid v každém detailu.', heroSub: 'Ručně vyráběný nábytek ze severského dřeva.', shop: 'Nakupovat', color: 'Barva', add: 'Do košíku', added: 'Přidáno do košíku ✓', back: '← Zpět', delivery: 'Doručení do 5 dnů · 2 roky záruka', proto: 'Prototyp', kit: 'UI kit', palette: 'Paleta', type: 'Typografie', buttons: 'Tlačítka', primary: 'Primární', secondary: 'Sekundární', cart: 'Košík' },
   uk: { cats: ['Дивани', 'Стільці', 'Лампи'], hero: 'Спокій у кожній деталі.', heroSub: 'Меблі ручної роботи з північного дерева.', shop: 'До покупок', color: 'Колір', add: 'У кошик', added: 'Додано в кошик ✓', back: '← Назад', delivery: 'Доставка до 5 днів · гарантія 2 роки', proto: 'Прототип', kit: 'UI kit', palette: 'Палітра', type: 'Типографіка', buttons: 'Кнопки', primary: 'Основна', secondary: 'Другорядна', cart: 'Кошик' },
+  en: {
+    "cats": [
+      "Sofas",
+      "Chairs",
+      "Lamps"
+    ],
+    "hero": "Calm in every detail.",
+    "heroSub": "Handmade furniture from Nordic wood.",
+    "shop": "Shop now",
+    "color": "Colour",
+    "add": "Add to cart",
+    "added": "Added to cart ✓",
+    "back": "← Back",
+    "delivery": "Delivery within 5 days · 2-year warranty",
+    "proto": "Prototype",
+    "kit": "UI kit",
+    "palette": "Palette",
+    "type": "Typography",
+    "buttons": "Buttons",
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "cart": "Cart"
+  },
 })
 
 type Kind = 'sofa' | 'chair' | 'lamp'

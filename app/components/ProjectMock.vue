@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Если у проекта нет скриншота — рисуем абстрактный макет в цветах проекта
-// prototype — вместо картинки показываем живую уменьшенную копию кликабельного прототипа
+// Abstract mock when there is no screenshot
+// `prototype` renders a live scaled-down prototype instead
 defineProps<{ image?: string; title: string; layout: number; tags?: string[]; prototype?: 'nordic' | 'byty' | 'fitflow' }>()
 </script>
 

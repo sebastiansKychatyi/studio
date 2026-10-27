@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Личная страница в стиле «разработчик»: терминал, моноширинный шрифт, сетка активности, превью проектов за курсором
+// Personal page, "developer" theme
 import type { PersonView } from '~/composables/useSite'
 import { cases } from '~~/data/cases'
 
@@ -19,7 +19,7 @@ const other = computed(() => people.value.find((x) => x.id !== p.value.id))
 const email = computed(() => p.value.email || cfg.email)
 const year = new Date().getFullYear()
 
-// --- Имя «расшифровывается» из случайных символов
+// --- Name scramble effect
 const display = ref(p.value.name)
 function scramble() {
   if ($motion.reduce) return
@@ -27,7 +27,7 @@ function scramble() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&*+<>/'
   const total = 36
   let frame = 0
-  // setInterval, а не requestAnimationFrame: rAF замирает в фоновой вкладке и имя осталось бы «зашифрованным»
+  // setInterval, not rAF: rAF pauses in background tabs
   const id = setInterval(() => {
     frame++
     const done = (frame / total) * target.length
@@ -42,7 +42,7 @@ function scramble() {
   }, 40)
 }
 
-// --- Терминал с печатью команд
+// --- Typing terminal
 const lines = computed(() => {
   const out: { cmd: boolean; text: string }[] = []
   for (let i = 0; i < p.value.terminal.length; i += 2) {
@@ -50,7 +50,7 @@ const lines = computed(() => {
   }
   return out
 })
-const lineIdx = ref(lines.value.length) // на сервере терминал показан целиком
+const lineIdx = ref(lines.value.length) // full terminal on SSR
 const charIdx = ref(0)
 let timer: ReturnType<typeof setTimeout> | undefined
 function typeNext() {
@@ -69,7 +69,7 @@ function typeNext() {
 }
 const visibleText = (i: number, text: string) => (i < lineIdx.value ? text : i === lineIdx.value ? text.slice(0, charIdx.value) : '')
 
-// --- Сетка активности (детерминированная, чтобы SSR и клиент совпадали)
+// --- Activity grid (deterministic, SSR-safe)
 const cells = Array.from({ length: 7 * 52 }, (_, i) => {
   const col = Math.floor(i / 7)
   const v = (Math.sin(i * 12.9898 + col * 4.1414) * 43758.5453) % 1
@@ -77,7 +77,7 @@ const cells = Array.from({ length: 7 * 52 }, (_, i) => {
   return { col, level: lvl > 0.82 ? 4 : lvl > 0.6 ? 3 : lvl > 0.38 ? 2 : lvl > 0.18 ? 1 : 0 }
 })
 
-// --- Превью проекта, которое следует за курсором
+// --- Project preview following the cursor
 const preview = reactive({ active: -1, x: 0, y: 0 })
 function onRowMove(e: PointerEvent, i: number) {
   if (!$motion.fine) return
@@ -86,7 +86,7 @@ function onRowMove(e: PointerEvent, i: number) {
   preview.y = e.clientY
 }
 
-// --- Копирование e-mail
+// --- Copy e-mail
 const copied = ref(false)
 async function copyEmail() {
   try {
@@ -279,7 +279,7 @@ onBeforeUnmount(() => clearTimeout(timer))
       </NuxtLink>
     </footer>
 
-    <!-- Превью проекта за курсором (только мышь) -->
+    <!-- Cursor preview (mouse only) -->
     <div
       class="pd-preview"
       :class="{ on: preview.active > -1 }"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Кейс проекта: /sk/case/e-drivebook, /uk/case/expertsk …
+// Case study page: /sk/case/e-drivebook…
+import type { Lang } from '~~/data/site'
 import { cases } from '~~/data/cases'
 
 const route = useRoute()
@@ -14,7 +15,7 @@ if (index.value < 0) {
 }
 const study = computed(() => cases[index.value]!)
 const next = computed(() => cases[(index.value + 1) % cases.length]!)
-const c = computed(() => study.value.text[locale.value as 'sk' | 'cs' | 'uk'])
+const c = computed(() => study.value.text[locale.value as Lang])
 const project = computed(() => projects.value.find((p) => p.id === study.value.id)!)
 const nextProject = computed(() => projects.value.find((p) => p.id === next.value.id)!)
 const url = computed(() => `${cfg.domain}/${locale.value}/case/${study.value.id}`)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Вписывает содержимое фиксированного размера (w × h) в родителя, уменьшая его через transform: scale
+// Fits fixed-size content (w × h) into its parent via transform: scale
 const props = defineProps<{ w: number; h: number }>()
 const box = ref<HTMLElement>()
 const scale = ref(0.4)
@@ -8,7 +8,7 @@ let ro: ResizeObserver | undefined
 onMounted(() => {
   ro = new ResizeObserver(([entry]) => {
     const { width, height } = entry!.contentRect
-    scale.value = Math.min(width / props.w, height / props.h, 1) // не увеличиваем больше натурального размера
+    scale.value = Math.min(width / props.w, height / props.h, 1) // never upscale
   })
   ro.observe(box.value!)
 })

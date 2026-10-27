@@ -1,5 +1,7 @@
-// Тексты концепт-дизайна на текущем языке (у каждого концепта свой небольшой словарь sk / cs / uk)
-export function useConceptCopy<T>(dict: { sk: T; cs: T; uk: T }) {
+// Picks a concept's copy for the current language
+import type { Lang } from '~~/data/site'
+
+export function useConceptCopy<T>(dict: Record<Lang, T>) {
   const { locale } = useI18n()
-  return computed<T>(() => dict[locale.value as 'sk' | 'cs' | 'uk'] ?? dict.sk)
+  return computed<T>(() => dict[locale.value as Lang] ?? dict.en)
 }

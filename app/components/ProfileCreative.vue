@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Личная страница в «креативном» стиле: крупная антиква, стикеры, плавающие фигуры, курсор-капля
+// Personal page, "creative" theme
 import type { PersonView } from '~/composables/useSite'
 
 const props = defineProps<{ person: PersonView }>()
@@ -21,7 +21,7 @@ const letters = computed(() => p.value.shortName.split(''))
 const year = new Date().getFullYear()
 const palette = ['#FF7A59', '#FFC94A', '#B9A8FF', '#9BE7C4']
 
-// Параллакс фигур и курсор-капля
+// Shape parallax and blob cursor
 const mouse = reactive({ x: 0, y: 0, px: 0, py: 0, on: false })
 function onMove(e: PointerEvent) {
   if (!$motion.fine) return
@@ -186,7 +186,7 @@ async function copyEmail() {
 .pc-back:hover { background: #1B1B1B; color: var(--cream); }
 .pc-mark { font-family: var(--serif); font-style: italic; font-weight: 800; font-size: 1.5rem; }
 .pc-mark i { color: var(--coral); }
-.pc .lang-switch { background: #fff; border: 1.5px solid #1B1B1B; }
+.pc .lang-dd-btn { background: #fff; box-shadow: inset 0 0 0 1.5px #1B1B1B; }
 
 .pc-hero { position: relative; padding-block: clamp(48px, 9vw, 120px) clamp(60px, 9vw, 120px); }
 .pc-hello { font-family: var(--serif); font-style: italic; font-size: clamp(1.3rem, 2.4vw, 2rem); }

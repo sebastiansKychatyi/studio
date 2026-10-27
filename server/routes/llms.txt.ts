@@ -4,10 +4,11 @@ import { cases } from '../../data/cases'
 import sk from '../../data/locales/sk'
 import cs from '../../data/locales/cs'
 import uk from '../../data/locales/uk'
+import en from '../../data/locales/en'
 
-// llms.txt — краткое описание сайта для AI-ассистентов (GEO)
-const all: Record<string, typeof sk> = { sk, cs, uk }
-const langName: Record<string, string> = { sk: 'Slovak', cs: 'Czech', uk: 'Ukrainian' }
+// llms.txt: site summary for AI assistants
+const all: Record<string, typeof sk> = { sk, cs, uk, en }
+const langName: Record<string, string> = { sk: 'Slovak', cs: 'Czech', uk: 'Ukrainian', en: 'English' }
 
 export default defineEventHandler((event) => {
   const t = all[site.defaultLang]!
@@ -15,7 +16,7 @@ export default defineEventHandler((event) => {
   setHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
   return `# ${site.brand}
 
-> ${site.brand} is a development team based in Bratislava and Nitra, Slovakia. We do AI automation, website development, web and mobile app development, mini games, process optimization through code automation (CI/CD, tests, scripts) and AI integration (ChatGPT, Claude, chatbots, API). Primary markets: ${site.cities.map((c) => c.name).join(', ')}. We work in Slovak, Czech and Ukrainian.
+> ${site.brand} is a development team based in Bratislava and Nitra, Slovakia. We do AI automation, website development, web and mobile app development, mini games, process optimization through code automation (CI/CD, tests, scripts) and AI integration (ChatGPT, Claude, chatbots, API). Primary markets: ${site.cities.map((c) => c.name).join(', ')}. We work in Slovak, Czech, Ukrainian and English.
 
 ## Team
 ${site.people

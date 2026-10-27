@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import type { Lang } from '~~/data/site'
 import { cities } from '~~/data/cities'
 
 const { t, cfg } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const year = new Date().getFullYear()
-const lang = computed(() => locale.value as 'sk' | 'cs' | 'uk')
+const lang = computed(() => locale.value as Lang)
 </script>
 
 <template>
@@ -14,9 +15,9 @@ const lang = computed(() => locale.value as 'sk' | 'cs' | 'uk')
       <p class="footer-big" aria-hidden="true">{{ cfg.brand }}</p>
       <div class="footer-row">
         <p>{{ t.footer.tagline }}</p>
-        <LangSwitch />
+        <LangSwitch up />
       </div>
-      <!-- Страницы городов: внутренние ссылки для локального SEO -->
+      <!-- City pages: internal links for local SEO -->
       <nav class="footer-row footer-cities" :aria-label="t.city.footerTitle">
         <span>{{ t.city.footerTitle }}:</span>
         <NuxtLink v-for="c in cities" :key="c.slug" :to="localePath(`/${c.slug}`)">{{ c.text[lang].name }}</NuxtLink>

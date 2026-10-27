@@ -1,11 +1,42 @@
 <script setup lang="ts">
-// Прототип «Slnečné Byty» — мобильное приложение (320×640): список → квартира → бронирование просмотра → готово
+// "Slnečné Byty" prototype: real estate mobile app (320×640)
 const props = defineProps<{ preview?: boolean }>()
 
 const c = useConceptCopy({
   sk: { hello: 'Dobrý deň 👋', find: 'Nájdite svoj nový domov', filters: ['Všetky', '2-izb.', '3-izb.'], rooms: 'izb.', floor: 'posch.', plan: 'Pôdorys', book: 'Rezervovať obhliadku', day: 'Vyberte deň', time: 'Vyberte čas', confirm: 'Potvrdiť termín', doneTitle: 'Obhliadka je rezervovaná!', doneText: 'Pošleme vám SMS so všetkými detailmi.', done: 'Hotovo', home: 'Domov', favs: 'Obľúbené', profile: 'Profil', days: ['Po', 'Ut', 'St', 'Št', 'Pi'], noFav: 'Ťuknite na ♡ pri byte, ktorý sa vám páči.', sunny: 'slnečný' },
   cs: { hello: 'Dobrý den 👋', find: 'Najděte svůj nový domov', filters: ['Všechny', '2+kk', '3+kk'], rooms: 'pok.', floor: 'patro', plan: 'Půdorys', book: 'Rezervovat prohlídku', day: 'Vyberte den', time: 'Vyberte čas', confirm: 'Potvrdit termín', doneTitle: 'Prohlídka je rezervována!', doneText: 'Pošleme vám SMS se všemi detaily.', done: 'Hotovo', home: 'Domů', favs: 'Oblíbené', profile: 'Profil', days: ['Po', 'Út', 'St', 'Čt', 'Pá'], noFav: 'Ťukněte na ♡ u bytu, který se vám líbí.', sunny: 'slunný' },
   uk: { hello: 'Добрий день 👋', find: 'Знайдіть свій новий дім', filters: ['Усі', '2-кімн.', '3-кімн.'], rooms: 'кімн.', floor: 'пов.', plan: 'Планування', book: 'Забронювати перегляд', day: 'Оберіть день', time: 'Оберіть час', confirm: 'Підтвердити', doneTitle: 'Перегляд заброньовано!', doneText: 'Ми надішлемо SMS з усіма деталями.', done: 'Готово', home: 'Головна', favs: 'Обране', profile: 'Профіль', days: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'], noFav: 'Натисніть ♡ біля квартири, яка сподобалась.', sunny: 'сонячна' },
+  en: {
+    "hello": "Good afternoon 👋",
+    "find": "Find your new home",
+    "filters": [
+      "All",
+      "2-room",
+      "3-room"
+    ],
+    "rooms": "rooms",
+    "floor": "floor",
+    "plan": "Floor plan",
+    "book": "Book a viewing",
+    "day": "Pick a day",
+    "time": "Pick a time",
+    "confirm": "Confirm",
+    "doneTitle": "Viewing booked!",
+    "doneText": "We will text you all the details.",
+    "done": "Done",
+    "home": "Home",
+    "favs": "Saved",
+    "profile": "Profile",
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ],
+    "noFav": "Tap ♡ on an apartment you like.",
+    "sunny": "sunny"
+  },
 })
 
 const flats = [
@@ -40,7 +71,7 @@ const fmt = (n: number) => `${n.toLocaleString('sk-SK')} €`
     <div class="pb-status"><b>9:41</b><span>●●● ▮</span></div>
 
     <Transition name="pb-push" mode="out-in">
-      <!-- Список -->
+      <!-- List -->
       <div v-if="screen === 'list'" key="list" class="pb-screen">
         <p class="pb-hello">{{ c.hello }}</p>
         <h3>{{ tab === 'favs' ? c.favs : c.find }}</h3>
@@ -63,7 +94,7 @@ const fmt = (n: number) => `${n.toLocaleString('sk-SK')} €`
         <p v-if="!list.length" class="pb-empty">{{ c.noFav }}</p>
       </div>
 
-      <!-- Детали квартиры -->
+      <!-- Apartment detail -->
       <div v-else-if="screen === 'detail'" key="detail" class="pb-screen pb-detail">
         <div class="pb-gallery" :style="{ background: `linear-gradient(160deg, ${photos[photo]![0]}, ${photos[photo]![1]})` }">
           <button type="button" class="pb-round pb-back" @click="screen = 'list'">←</button>
@@ -80,7 +111,7 @@ const fmt = (n: number) => `${n.toLocaleString('sk-SK')} €`
         </div>
       </div>
 
-      <!-- Бронирование -->
+      <!-- Booking -->
       <div v-else-if="screen === 'book'" key="book" class="pb-screen">
         <button type="button" class="pb-round pb-back static" @click="screen = 'detail'">←</button>
         <h3>{{ c.book }}</h3>
@@ -93,7 +124,7 @@ const fmt = (n: number) => `${n.toLocaleString('sk-SK')} €`
         <button type="button" class="pb-cta" @click="screen = 'done'">{{ c.confirm }}</button>
       </div>
 
-      <!-- Готово -->
+      <!-- Done -->
       <div v-else key="done" class="pb-screen pb-done">
         <div class="pb-check"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" /><path d="M15 27l7 7 15-16" /></svg></div>
         <h3>{{ c.doneTitle }}</h3>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Концепт «Pulse» — SaaS / AI-аналитика: стекло, mesh-градиент, «живой» дашборд, AI-чат, переключатель цен
+// "Pulse" concept: SaaS / AI analytics with live dashboard and AI chat
 const c = useConceptCopy({
   sk: {
     nav: ['Funkcie', 'AI asistent', 'Cenník'], login: 'Prihlásiť', start: 'Vyskúšať zadarmo',
@@ -58,13 +58,114 @@ const c = useConceptCopy({
     priceTitle: 'Прості ціни.', monthly: 'Щомісяця', yearly: 'Щороку', save: '−20 %', per: '/ міс.', choose: 'Обрати план', popular: 'Найпопулярніший',
     plans: [['Start', 19, ['1 проєкт', 'Базові метрики', 'Звіти на e-mail']], ['Pro', 49, ['5 проєктів', 'AI-асистент', 'Усі інтеграції', 'Сповіщення']], ['Team', 129, ['Без обмежень', 'Ролі та доступи', 'Пріоритетна підтримка']]],
   },
+  en: {
+    "nav": [
+      "Features",
+      "AI assistant",
+      "Pricing"
+    ],
+    "login": "Log in",
+    "start": "Try for free",
+    "badge": "New: AI assistant v1.0",
+    "title": [
+      "Your data.",
+      "Answers in",
+      "seconds."
+    ],
+    "sub": "Pulse brings sales, marketing and inventory into one dashboard — and AI tells you what to do next.",
+    "emailPh": "you@company.com",
+    "cta": "Start for free",
+    "note": "14 days free · no credit card",
+    "dash": {
+      "revenue": "Revenue today",
+      "orders": "Orders",
+      "conv": "Conversion",
+      "live": "Live",
+      "alert": "AI: Bundle B is up 18 % — increase the budget"
+    },
+    "logos": "Trusted by teams at",
+    "featTitle": "Everything your team needs.",
+    "feats": [
+      [
+        "Live metrics",
+        "Data updates in real time, no page refresh."
+      ],
+      [
+        "Integrations",
+        "Shopify, Stripe, Google Ads and 40+ more services."
+      ],
+      [
+        "Automatic reports",
+        "Every Monday morning, straight to your inbox."
+      ],
+      [
+        "Alerts",
+        "When something breaks, you are the first to know."
+      ]
+    ],
+    "chatTitle": "Ask your data.",
+    "chatSub": "AI assistant demo — pick a question:",
+    "qa": [
+      [
+        "Which product is growing fastest?",
+        "Bundle B: +18 % this week. Most sales came from the Instagram campaign — I recommend raising its budget by 10 %."
+      ],
+      [
+        "Why did conversion drop on Tuesday?",
+        "On Tuesday the checkout loaded 2.1 s slower. After the fix, conversion went back to 3.4 %."
+      ],
+      [
+        "Prepare a report for my boss",
+        "Done ✓ The October report is in your inbox: revenue +12 %, two new customer segments and 3 recommendations for November."
+      ]
+    ],
+    "chatPh": "Type a question…",
+    "chatNote": "Answers are simulated — this is a design demo.",
+    "priceTitle": "Simple pricing.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save": "−20 %",
+    "per": "/ mo",
+    "choose": "Choose plan",
+    "popular": "Most popular",
+    "plans": [
+      [
+        "Start",
+        19,
+        [
+          "1 project",
+          "Basic metrics",
+          "E-mail reports"
+        ]
+      ],
+      [
+        "Pro",
+        49,
+        [
+          "5 projects",
+          "AI assistant",
+          "All integrations",
+          "Alerts"
+        ]
+      ],
+      [
+        "Team",
+        129,
+        [
+          "Unlimited projects",
+          "Roles & permissions",
+          "Priority support"
+        ]
+      ]
+    ]
+  },
 })
 
 const { $motion } = useNuxtApp()
 const logos = ['Northwind', 'Lumio', 'Kaskada', 'Orbita', 'Fjord', 'Nimbus', 'Vektor']
 
-// --- «Живой» дашборд: график и цифры обновляются
-// Округляем до десятых: иначе сервер и браузер дают разные дробные хвосты и ломается гидратация
+// --- Live dashboard
+// Round to avoid SSR/client float mismatch
 const points = ref(Array.from({ length: 24 }, (_, i) => Math.round((40 + Math.sin(i / 2.4) * 14 + i * 1.6) * 10) / 10))
 const revenue = ref(12480)
 const orders = ref(312)
@@ -75,11 +176,11 @@ const linePath = computed(() =>
 const areaPath = computed(() => `${linePath.value} L300 120 L0 120 Z`)
 let tick: ReturnType<typeof setInterval> | undefined
 
-// --- Цены
+// --- Pricing
 const yearly = ref(false)
 const price = (base: number) => (yearly.value ? Math.round(base * 0.8) : base)
 
-// --- AI-чат (симуляция)
+// --- AI chat (simulated)
 type Msg = { me: boolean; text: string }
 const messages = ref<Msg[]>([])
 const typing = ref(false)

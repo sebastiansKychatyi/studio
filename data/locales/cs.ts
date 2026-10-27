@@ -1,4 +1,4 @@
-// Čeština. Slova v *hvězdičkách* v nadpisu hero se zvýrazní gradientem.
+// Czech. *Words* in the hero title get the gradient.
 import type sk from './sk'
 
 const cs: typeof sk = {
@@ -28,7 +28,7 @@ const cs: typeof sk = {
     ctaSecondary: 'Prohlédnout portfolio',
     stats: [
       { value: 7, suffix: '+', label: 'projektů v portfoliu' },
-      { value: 3, suffix: '', label: 'jazyky: CZ · SK · UA' },
+      { value: 4, suffix: '', label: 'jazyky: CZ · SK · UA · EN' },
       { value: 24, suffix: 'h', label: 'odpověď na poptávku' },
     ],
     visual: { url: 'vasefirma.cz', chip1: 'SEO 100/100', chip2: 'LCP 0.8 s', chip3: 'AI doporučuje' },

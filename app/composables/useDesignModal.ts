@@ -1,4 +1,4 @@
-// Какой дизайн-проект сейчас открыт в окне с прототипом (id проекта или null)
+// Project id shown in the prototype dialog (or null)
 export function useDesignModal() {
   const openId = useState<string | null>('design-modal', () => null)
   return {

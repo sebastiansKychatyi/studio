@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Страница города для локального SEO: /sk/bratislava, /cs/praha, /uk/kyiv …
+// City landing page for local SEO: /sk/bratislava, /cs/praha, /uk/kyiv…
+import type { Lang } from '~~/data/site'
 import { cities, type City } from '~~/data/cities'
 
 const props = defineProps<{ city: City }>()
@@ -8,7 +9,7 @@ const { locale } = useI18n()
 const localePath = useLocalePath()
 const i18nHead = useLocaleHead({ seo: true })
 
-const lang = computed(() => locale.value as 'sk' | 'cs' | 'uk')
+const lang = computed(() => locale.value as Lang)
 const c = computed(() => props.city.text[lang.value])
 const cityProjects = computed(() => props.city.projects.map((id) => projects.value.find((p) => p.id === id)).filter((p) => !!p))
 const others = computed(() => cities.filter((x) => x.slug !== props.city.slug))

@@ -2,7 +2,7 @@
 const { t, cfg } = useSite()
 const localePath = useLocalePath()
 const route = useRoute()
-// На главной — якоря (#about), на остальных страницах — ссылки на разделы главной (/sk#about)
+// Anchors on the home page, links to home sections elsewhere
 const anchor = (id: string) => (route.path === localePath('/') ? `#${id}` : `${localePath('/')}#${id}`)
 
 const navItems = ['about', 'ai', 'work', 'lab', 'faq'] as const

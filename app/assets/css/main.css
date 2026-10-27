@@ -100,13 +100,6 @@ ul, ol { list-style: none; }
 .nav-links a:hover, .nav-links a.active { background: var(--bg-2); color: var(--ink); }
 .nav-right { display: flex; align-items: center; gap: 10px; }
 
-.lang-switch { display: flex; padding: 3px; border-radius: 999px; background: var(--bg-2); }
-.lang-switch a {
-  padding: 6px 10px; border-radius: 999px; font-size: .75rem; font-weight: 800; letter-spacing: .04em;
-  color: var(--muted); transition: background .25s, color .25s;
-}
-.lang-switch a:hover { color: var(--ink); }
-.lang-switch a.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
 
 .menu-toggle {
   display: none; width: 42px; height: 42px; border-radius: 50%; border: 0; cursor: pointer;
@@ -394,7 +387,7 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
 }
 .project-actions a:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
 
-/* «Код/API»-макет для проектов без скриншота */
+/* Code/API mock for projects without a screenshot */
 .mock-code { background: #0F172A; color: #E2E8F0; }
 .mock-code .mock-bar { border-color: rgba(255, 255, 255, .08); align-items: center; }
 .mock-code .mock-bar i { background: rgba(255, 255, 255, .2); }
@@ -404,7 +397,7 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
 .mock-code em { color: #4ADE80; font-style: normal; }
 .mock-code i { color: var(--c1); font-style: normal; }
 
-/* Кнопка «Открыть профиль» в карточке человека */
+/* "Open profile" button on person card */
 .person-cta {
   position: relative; display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; padding: 12px 20px;
   border-radius: 999px; background: var(--ink); color: #fff; font-weight: 700; font-size: .92rem;
@@ -553,7 +546,7 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
 /* ===== Footer ===== */
 .site-footer { padding: 40px 0 32px; overflow: hidden; }
 .site-footer .container { container-type: inline-size; }
-/* Размер от ширины контейнера (cqw), а не окна — надпись всегда помещается по ширине */
+/* Sized by container width (cqw) so it always fits */
 .footer-big {
   font-family: var(--font-display); font-weight: 700; font-size: 14.6cqw; line-height: .95; letter-spacing: -.06em; padding-bottom: .04em;
   background: linear-gradient(180deg, var(--ink) 30%, rgba(18, 18, 22, .08)); -webkit-background-clip: text; background-clip: text; color: transparent;
@@ -591,7 +584,6 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
   .stats dt { font-size: 1.6rem; }
 }
 @media (max-width: 380px) {
-  .lang-switch a { padding: 6px 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -599,7 +591,7 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
   .js .word > span, .js .fade-in, .js [data-reveal] { transform: none !important; opacity: 1 !important; }
 }
 
-/* Обложка с живым прототипом (дизайн-проекты) */
+/* Live prototype cover (design projects) */
 .mock-proto { padding: 0; }
 .mock-proto-inner { width: 100%; height: 100%; display: grid; place-items: center; }
 .project-cover.is-proto { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; text-align: left; }
@@ -612,13 +604,13 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
 .project-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: #fff; font-weight: 700; font-size: .85rem; cursor: pointer; transition: background .25s; }
 .project-actions button:hover { background: var(--accent); border-color: var(--accent); }
 
-/* Форма: согласие GDPR и скрытая ловушка для ботов */
+/* Form: GDPR consent and honeypot */
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .consent { display: flex; gap: 10px; align-items: flex-start; font-size: .88rem; color: var(--ink-2); cursor: pointer; }
 .consent input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); }
 .consent a { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 
-/* Подвал: города и ссылки */
+/* Footer: cities and links */
 .footer-cities { justify-content: flex-start; gap: 6px 18px; font-weight: 700; }
 .footer-cities span { color: var(--muted); font-weight: 600; }
 .footer-cities a { color: var(--ink-2); transition: color .25s; }

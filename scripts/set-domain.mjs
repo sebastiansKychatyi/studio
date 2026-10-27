@@ -1,7 +1,7 @@
-// Меняет основной домен сайта во всех местах сразу:
+// Changes the main site domain everywhere:
 //   npm run set-domain -- https://studio.k2drive.com
-// Обновляет data/site.ts (canonical, hreflang, sitemap, schema.org берут домен оттуда)
-// и статические файлы в public/ (корневой index.html и короткие ссылки /sebastian, /roman …).
+// Updates data/site.ts (canonical, hreflang, sitemap, schema.org)
+// and the static pages in public/ (root index.html, short links).
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'

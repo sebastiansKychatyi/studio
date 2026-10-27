@@ -2,7 +2,7 @@
 const { t } = useSite()
 const { $motion } = useNuxtApp()
 
-// "Robíme weby, ktoré *pracujú* za vás." -> слова; *слово* выделяется градиентом
+// Split title into words; *word* gets the gradient
 const words = computed(() =>
   t.value.hero.title.split(' ').map((w) => {
     const m = w.match(/^\*(.+)\*(.*)$/)
@@ -10,7 +10,7 @@ const words = computed(() =>
   })
 )
 
-// Анимированные счётчики
+// Animated counters
 const counts = ref(t.value.hero.stats.map((s) => s.value))
 onMounted(() => {
   if ($motion.reduce) return
@@ -28,7 +28,7 @@ onMounted(() => {
   }, 900)
 })
 
-// Лёгкий параллакс фоновых пятен
+// Subtle blob parallax
 const blobShift = ref({ x: 0, y: 0 })
 function onPointer(e: PointerEvent) {
   if (!$motion.fine) return
