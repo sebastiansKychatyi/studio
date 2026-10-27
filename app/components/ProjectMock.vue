@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { PROTOTYPE_SPECS, type PrototypeKind } from '~~/data/prototypes'
+
 // Abstract mock when there is no screenshot
 // `prototype` renders a live scaled-down prototype instead
-defineProps<{ image?: string; title: string; layout: number; tags?: string[]; prototype?: 'nordic' | 'byty' | 'fitflow' }>()
+defineProps<{ image?: string; title: string; layout: number; tags?: string[]; prototype?: PrototypeKind }>()
 </script>
 
 <template>
   <div class="mock" :class="{ 'mock-proto': prototype }">
-    <ScaledBox v-if="prototype" :w="prototype === 'nordic' ? 960 : 400" :h="prototype === 'nordic' ? 620 : 700">
+    <ScaledBox v-if="prototype" :w="PROTOTYPE_SPECS[prototype].width" :h="PROTOTYPE_SPECS[prototype].height">
       <div class="mock-proto-inner">
         <ProtoView :kind="prototype" preview />
       </div>

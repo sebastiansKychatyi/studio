@@ -1,8 +1,9 @@
 // Language-independent site config.
 // Per-language texts live in data/locales/.
+import type { PrototypeKind } from './prototypes'
 
 export type Lang = 'sk' | 'cs' | 'uk' | 'en'
-export type Category = 'web' | 'app' | 'design'
+export type Category = 'web' | 'app'
 
 export interface Project {
   id: string
@@ -17,7 +18,7 @@ export interface Project {
   layout: 1 | 2 | 3 | 4 // 4 = code/API mock
   tags: string[]
   placeholder?: boolean // placeholder, shown with a "demo" badge
-  prototype?: 'nordic' | 'byty' | 'fitflow' // clickable prototype (app/components/Proto*.vue)
+  prototype?: PrototypeKind
 }
 
 const site = {
@@ -96,24 +97,34 @@ const site = {
         github: 'https://github.com/sebastiansKychatyi',
         linkedin: 'https://www.linkedin.com/in/sebastian-kychatyi-16aa7a272/',
         instagram: '',
+        telegram: '',
       },
     },
     {
       id: 'p2' as const,
       slug: 'roman',
-      theme: 'creative' as const,
-      name: 'Roman', // TODO: Roman's surname
-      degree: '',
+      theme: 'dev' as const,
+      name: 'Roman Zotsenko',
+      degree: 'Bc.',
       shortName: 'Roman',
-      initials: 'R',
+      initials: 'RZ',
       photo: '',
-      email: '',
+      email: 'roman.zotsenko.dev@gmail.com',
       phone: '',
-      colors: ['#FF7A59', '#FFB199'] as [string, string],
-      skills: ['Figma', 'UI/UX', 'Branding', 'Webflow', 'WordPress', 'Illustrator'],
-      skillGroups: [] as { k: string; v: string[] }[],
-      terminal: [] as string[],
-      links: { github: '', linkedin: '', instagram: '' },
+      colors: ['#2F5BEA', '#7AA2FF'] as [string, string],
+      skills: ['Next.js', 'React', 'FastAPI', 'Python', 'TypeScript', 'PostgreSQL', 'Laravel', 'Docker'],
+      skillGroups: [
+        { k: 'Frontend', v: ['Next.js 16', 'React 19', 'TypeScript', 'Tailwind CSS', 'Vue 3 / Inertia', 'Material UI'] },
+        { k: 'Backend', v: ['Python', 'FastAPI', 'SQLAlchemy', 'Alembic', 'Laravel 12/13', 'Express', 'REST API', 'WebSockets', 'Queues & background jobs', 'Payment integrations', 'OAuth'] },
+        { k: 'Data & DevOps', v: ['PostgreSQL', 'MySQL', 'Redis', 'Docker', 'Nginx', 'GitHub Actions (CI/CD)', 'AWS S3', 'Linux', 'Git', 'pytest', 'Pest / PHPUnit'] },
+      ],
+      terminal: ['whoami', 'Bc. Roman Zotsenko', 'role', 'Full-Stack Engineer', 'stack', 'Next.js · React · FastAPI · Python', 'status', 'open to work ✓'],
+      links: {
+        github: 'https://github.com/wwtanji',
+        linkedin: 'https://www.linkedin.com/in/roman-zotsenko',
+        instagram: '',
+        telegram: 'https://t.me/r_zotsenko',
+      },
     },
   ],
 
@@ -161,18 +172,49 @@ const site = {
       colors: ['#0EA5E9', '#BAE6FD'], layout: 4,
       tags: ['FastAPI', 'SQLAlchemy', 'Pydantic', 'httpx'],
     },
-    // Roman's design concepts with clickable prototypes. TODO: replace with real work
     {
-      id: 'nordic-living', title: 'Nordic Living', author: 'p2', category: 'design', year: 2026,
-      colors: ['#64748B', '#E2E8F0'], layout: 2, tags: ['Figma', 'UI Kit', 'E-shop'], placeholder: true, prototype: 'nordic',
+      id: 'classifieds', title: 'Classifieds Platform', author: 'p2', category: 'app', year: 2025,
+      colors: ['#2F5BEA', '#BFD0FF'], layout: 1, prototype: 'classifieds',
+      tags: ['Next.js 16', 'React 19', 'Laravel', 'PostgreSQL', 'Redis', 'Docker'],
     },
     {
-      id: 'slnecne-byty', title: 'Slnečné Byty', author: 'p2', category: 'design', year: 2026,
-      colors: ['#EAB308', '#FEF3C7'], layout: 3, tags: ['Mobile app', 'UX', 'Prototyp'], placeholder: true, prototype: 'byty',
+      id: 'restaurant-reservation', title: 'Restaurant Reservation System', author: 'p2', category: 'app', year: 2026,
+      repo: 'https://github.com/wwtanji/bp-restaurant-reservation-system',
+      colors: ['#0F766E', '#99F6E4'], layout: 4,
+      tags: ['FastAPI', 'SQLAlchemy', 'MySQL', 'React 19', 'TypeScript', 'Stripe', 'pytest'],
     },
     {
-      id: 'fitflow', title: 'FitFlow', author: 'p2', category: 'design', year: 2026,
-      colors: ['#FF5A36', '#FFD3C7'], layout: 3, tags: ['Mobile app', 'Dark mode', 'Motion'], placeholder: true, prototype: 'fitflow',
+      id: 'billing', title: 'Subscription Billing', author: 'p2', category: 'app', year: 2026,
+      colors: ['#7C3AED', '#DDD6FE'], layout: 1, prototype: 'billing',
+      tags: ['Laravel', 'Filament', 'PostgreSQL', 'Redis', 'Crypto payments'],
+    },
+    {
+      id: 'team-crm', title: 'Team CRM', author: 'p2', category: 'app', year: 2025,
+      colors: ['#0EA5E9', '#BAE6FD'], layout: 1, prototype: 'crm',
+      tags: ['Electron', 'Express', 'MySQL', 'JWT'],
+    },
+    {
+      id: 'leads-workspace', title: 'Leads Workspace', author: 'p2', category: 'app', year: 2026,
+      colors: ['#F97316', '#FED7AA'], layout: 1, prototype: 'leads',
+      tags: ['Lead enrichment', 'Scoring', 'UI prototype'],
+    },
+    {
+      id: 'orbit-portfolio', title: 'Orbit Portfolio', author: 'p2', category: 'web', year: 2026,
+      url: 'https://portfolio-azure-alpha-83.vercel.app', repo: 'https://github.com/wwtanji/portfolio',
+      image: '/img/projects/orbit-portfolio.jpg', colors: ['#020617', '#38BDF8'], layout: 1,
+      tags: ['JavaScript', 'WebGL', 'GSAP', 'Vite'],
+    },
+    {
+      id: 'calibre-watches', title: 'Calibre Watches', author: 'p2', category: 'web', year: 2026,
+      url: 'https://calibre-watches-three.vercel.app', repo: 'https://github.com/wwtanji/calibre-watches',
+      image: '/img/projects/calibre-watches.jpg', colors: ['#0A0A0A', '#C9A15A'], layout: 1,
+      tags: ['JavaScript', 'SVG', 'GSAP', 'Vite'],
+    },
+    {
+      id: 'clay-gtm', title: 'GTM Platform Homepage', author: 'p2', category: 'web', year: 2025,
+      url: 'https://clay-ruddy-eight.vercel.app/', repo: 'https://github.com/wwtanji/clay-project',
+      image: '/img/projects/clay-gtm.jpg', colors: ['#111111', '#F3F3F0'], layout: 1,
+      tags: ['Vue 3', 'Tailwind CSS', 'UI concept'],
     },
   ] as Project[],
 }

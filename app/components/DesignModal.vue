@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { PROTOTYPE_SPECS } from '~~/data/prototypes'
+
 // Dialog with a clickable design prototype
 const { t, projects } = useSite()
 const { openId, close } = useDesignModal()
 const project = computed(() => projects.value.find((p) => p.id === openId.value && p.prototype))
+const spec = computed(() => (project.value?.prototype ? PROTOTYPE_SPECS[project.value.prototype] : null))
 const dialog = ref<HTMLElement>()
 
 const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close()
@@ -37,9 +40,9 @@ onBeforeUnmount(() => {
             </div>
             <button type="button" class="dm-close" :aria-label="t.work.proto.close" @click="close">✕</button>
           </header>
-          <div class="dm-stage" :class="`dm-stage--${project.prototype}`">
-            <div class="dm-fit" :class="project.prototype === 'nordic' ? 'wide' : 'tall'">
-              <ScaledBox :w="project.prototype === 'nordic' ? 900 : 320" :h="project.prototype === 'nordic' ? 560 : 640">
+          <div class="dm-stage">
+            <div class="dm-fit" :style="{ aspectRatio: `${spec!.width} / ${spec!.height}` }">
+              <ScaledBox :w="spec!.width" :h="spec!.height">
                 <ProtoView :kind="project.prototype!" />
               </ScaledBox>
             </div>
@@ -70,13 +73,8 @@ onBeforeUnmount(() => {
 .dm-desc { color: #3A3A44; max-width: 640px; }
 .dm-close { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #EEECE6; font-size: 1.1rem; cursor: pointer; transition: background .25s, transform .3s; }
 .dm-close:hover { background: #121216; color: #fff; transform: rotate(90deg); }
-.dm-stage { margin: 0 20px; border-radius: 20px; overflow: hidden; display: grid; place-items: center; padding: 24px; min-height: 420px; }
-.dm-fit { position: relative; width: 100%; }
-.dm-fit.wide { max-width: 900px; aspect-ratio: 900 / 560; }
-.dm-fit.tall { width: auto; height: min(640px, calc(100vh - 340px)); aspect-ratio: 320 / 640; }
-.dm-stage--nordic { background: linear-gradient(135deg, #E9EDF2, #F7F4EE); }
-.dm-stage--byty { background: linear-gradient(135deg, #FEF3C7, #FDE68A); }
-.dm-stage--fitflow { background: linear-gradient(135deg, #FFE4DC, #E0E7FF); }
+.dm-stage { margin: 0 20px; border-radius: 20px; overflow: hidden; display: grid; place-items: center; padding: 24px; min-height: 420px; background: linear-gradient(135deg, #E9EDF2, #F3F1EC); }
+.dm-fit { position: relative; width: 100%; max-width: 960px; }
 .dm-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 16px 28px 24px; font-weight: 700; color: #3A3A44; }
 .dm-pulse { width: 10px; height: 10px; border-radius: 50%; background: #22C55E; animation: pulse 2s infinite; }
 .dm-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }

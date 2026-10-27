@@ -1,10 +1,12 @@
 <script setup lang="ts">
-// Renders a prototype; `preview` = non-interactive copy for card covers
-defineProps<{ kind: 'nordic' | 'byty' | 'fitflow'; preview?: boolean }>()
+import type { PrototypeKind } from '~~/data/prototypes'
+
+defineProps<{ kind: PrototypeKind; preview?: boolean }>()
 </script>
 
 <template>
-  <ProtoNordic v-if="kind === 'nordic'" :preview="preview" />
-  <ProtoByty v-else-if="kind === 'byty'" :preview="preview" />
-  <ProtoFitflow v-else :preview="preview" />
+  <ProtoClassifieds v-if="kind === 'classifieds'" :preview="preview" />
+  <ProtoBilling v-else-if="kind === 'billing'" :preview="preview" />
+  <ProtoCrm v-else-if="kind === 'crm'" :preview="preview" />
+  <ProtoLeads v-else :preview="preview" />
 </template>

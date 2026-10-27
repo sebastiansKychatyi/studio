@@ -6,6 +6,7 @@ import { cases } from '~~/data/cases'
 const props = defineProps<{ person: PersonView }>()
 const { t, cfg, people, projects } = useSite()
 const localePath = useLocalePath()
+const { show: showPrototype } = useDesignModal()
 const { $motion } = useNuxtApp()
 
 useHead({
@@ -213,7 +214,7 @@ onBeforeUnmount(() => clearTimeout(timer))
           >
             <span class="pd-idx">{{ String(i + 1).padStart(2, '0') }}</span>
             <div class="pd-row-thumb">
-              <ProjectMock :image="pr.image" :title="pr.title" :layout="pr.layout" :tags="pr.tags" :style="{ '--c1': pr.colors[0], '--c2': pr.colors[1] }" />
+              <ProjectMock :image="pr.image" :title="pr.title" :layout="pr.layout" :tags="pr.tags" :prototype="pr.prototype" :style="{ '--c1': pr.colors[0], '--c2': pr.colors[1] }" />
             </div>
             <div class="pd-row-main">
               <h3>{{ pr.title }}</h3>
@@ -223,6 +224,7 @@ onBeforeUnmount(() => clearTimeout(timer))
             <div class="pd-row-side">
               <span class="pd-year">{{ pr.year }}</span>
               <NuxtLink v-if="cases.some((cs) => cs.id === pr.id)" :to="localePath(`/case/${pr.id}`)">{{ t.caseStudy.label }} →</NuxtLink>
+              <button v-if="pr.prototype" type="button" class="pd-proto" @click="showPrototype(pr.id)">▶ {{ t.work.proto.open }}</button>
               <a v-if="pr.url" :href="pr.url" target="_blank" rel="noopener">{{ t.work.live }} ↗</a>
               <a v-if="pr.repo" :href="pr.repo" target="_blank" rel="noopener">{{ t.work.code }} ↗</a>
             </div>
@@ -236,7 +238,7 @@ onBeforeUnmount(() => clearTimeout(timer))
           <li v-for="(item, i) in page.timeline" :key="i" :style="{ '--d': `${i * 150}ms` }">
             <span class="pd-when">{{ item.year }}</span>
             <h3>{{ item.title }}</h3>
-            <p>{{ item.text }}</p>
+            <p v-for="(line, lineIndex) in splitLines(item.text)" :key="lineIndex">{{ line }}</p>
           </li>
         </ol>
       </section>
@@ -267,6 +269,7 @@ onBeforeUnmount(() => clearTimeout(timer))
             <a v-if="p.phone" :href="`tel:${p.phone.replace(/\s/g, '')}`"><AppIcon name="phone" /> {{ p.phone }}</a>
             <a v-if="p.links.linkedin" :href="p.links.linkedin" target="_blank" rel="noopener"><AppIcon name="linkedin" /> LinkedIn</a>
             <a v-if="p.links.github" :href="p.links.github" target="_blank" rel="noopener"><AppIcon name="github" /> GitHub</a>
+            <a v-if="p.links.telegram" :href="p.links.telegram" target="_blank" rel="noopener"><AppIcon name="telegram" /> Telegram</a>
           </div>
         </div>
       </section>
@@ -293,6 +296,7 @@ onBeforeUnmount(() => clearTimeout(timer))
           :title="pr.title"
           :layout="pr.layout"
           :tags="pr.tags"
+          :prototype="pr.prototype"
           :style="{ '--c1': pr.colors[0], '--c2': pr.colors[1] }"
         />
       </template>
@@ -402,8 +406,9 @@ onBeforeUnmount(() => clearTimeout(timer))
 .pd-tags li { font-family: var(--mono); font-size: .75rem; padding: 3px 9px; border-radius: 6px; background: var(--bg-2); color: var(--ink-2); }
 .pd-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-family: var(--mono); font-size: .85rem; }
 .pd-year { color: var(--muted); }
-.pd-row-side a { font-weight: 700; padding: 4px 10px; border-radius: 8px; transition: background .25s, color .25s; }
-.pd-row-side a:hover { background: var(--ink); color: #fff; }
+.pd-row-side a, .pd-proto { font-weight: 700; padding: 4px 10px; border-radius: 8px; transition: background .25s, color .25s; }
+.pd-proto { border: 0; background: transparent; font: inherit; font-weight: 700; color: var(--pd-accent); cursor: pointer; }
+.pd-row-side a:hover, .pd-proto:hover { background: var(--ink); color: #fff; }
 
 .pd-preview {
   position: fixed; top: 0; left: 0; z-index: 60; width: 340px; pointer-events: none; border-radius: 16px; overflow: hidden;
@@ -427,6 +432,7 @@ onBeforeUnmount(() => clearTimeout(timer))
 .pd-when { font-family: var(--mono); font-size: .82rem; color: var(--pd-accent); font-weight: 700; }
 .pd-timeline h3 { margin: 2px 0 4px; }
 .pd-timeline p { color: var(--ink-2); max-width: 680px; }
+.pd-timeline p + p { margin-top: 6px; }
 
 .pd-contact { padding-bottom: 40px; }
 .pd-contact-card { padding: clamp(28px, 5vw, 56px); border-radius: 28px; background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow-lg); }
