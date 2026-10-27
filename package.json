@@ -8,7 +8,8 @@
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "set-domain": "node scripts/set-domain.mjs"
   },
   "dependencies": {
     "@nuxtjs/i18n": "^10.6.0",

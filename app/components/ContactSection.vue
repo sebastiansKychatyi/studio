@@ -1,31 +1,39 @@
 <script setup lang="ts">
 const { t, cfg } = useSite()
+const { locale } = useI18n()
+const localePath = useLocalePath()
 
-const form = reactive({ name: '', email: '', type: '', message: '' })
-const status = ref<'' | 'sent' | 'error'>('')
+const form = reactive({ name: '', email: '', type: '', message: '', consent: false, company: '' })
+const status = ref<'' | 'sent' | 'mail' | 'error'>('')
 const sending = ref(false)
 
 watchEffect(() => {
   if (!t.value.contact.form.types.includes(form.type)) form.type = t.value.contact.form.types[0]!
 })
 
-async function submit() {
+// Запасной вариант: письмо в почтовой программе (если сервер формы не настроен)
+function openMail() {
   const f = t.value.contact.form
+  const body = `${form.message}\n\n—\n${form.name} <${form.email}>\n${form.type}`
+  location.href = `mailto:${cfg.email}?subject=${encodeURIComponent(`${f.subject}: ${form.type}`)}&body=${encodeURIComponent(body)}`
+  status.value = 'mail'
+}
+
+async function submit() {
   status.value = ''
-  // Без бэкенда — открываем почтовый клиент с заполненным письмом
-  if (!cfg.formEndpoint) {
-    const body = `${form.message}\n\n—\n${form.name} <${form.email}>\n${form.type}`
-    location.href = `mailto:${cfg.email}?subject=${encodeURIComponent(`${f.subject}: ${form.type}`)}&body=${encodeURIComponent(body)}`
-    status.value = 'sent'
-    return
-  }
   sending.value = true
   try {
-    await $fetch(cfg.formEndpoint, { method: 'POST', body: { ...form }, headers: { Accept: 'application/json' } })
-    Object.assign(form, { name: '', email: '', message: '' })
+    await $fetch(cfg.contactApi, {
+      method: 'POST',
+      body: { ...form, lang: locale.value, page: location.pathname },
+    })
+    Object.assign(form, { name: '', email: '', message: '', consent: false })
     status.value = 'sent'
-  } catch {
-    status.value = 'error'
+  } catch (e: unknown) {
+    const code = (e as { statusCode?: number }).statusCode
+    // 404 — статический хостинг без сервера, 503 — не заданы ключи: открываем почту
+    if (!code || code === 404 || code === 405 || code === 503) openMail()
+    else status.value = 'error'
   } finally {
     sending.value = false
   }
@@ -50,11 +58,11 @@ async function submit() {
 
         <form class="contact-form" @submit.prevent="submit">
           <div class="field">
-            <input id="f-name" v-model="form.name" name="name" required autocomplete="name" placeholder=" ">
+            <input id="f-name" v-model="form.name" name="name" required maxlength="120" autocomplete="name" placeholder=" ">
             <label for="f-name">{{ t.contact.form.name }}</label>
           </div>
           <div class="field">
-            <input id="f-email" v-model="form.email" name="email" type="email" required autocomplete="email" placeholder=" ">
+            <input id="f-email" v-model="form.email" name="email" type="email" required maxlength="160" autocomplete="email" placeholder=" ">
             <label for="f-email">{{ t.contact.form.email }}</label>
           </div>
           <fieldset class="types">
@@ -64,14 +72,20 @@ async function submit() {
             </label>
           </fieldset>
           <div class="field">
-            <textarea id="f-msg" v-model="form.message" name="message" rows="4" required placeholder=" " />
+            <textarea id="f-msg" v-model="form.message" name="message" rows="4" required maxlength="5000" placeholder=" " />
             <label for="f-msg">{{ t.contact.form.message }}</label>
           </div>
+          <!-- Ловушка для спам-ботов: человек это поле не видит и не заполняет -->
+          <input v-model="form.company" class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <label class="consent">
+            <input v-model="form.consent" type="checkbox" required>
+            <span>{{ t.contact.form.consent }} <NuxtLink :to="localePath('/privacy')" target="_blank">{{ t.contact.form.consentLink }}</NuxtLink>.</span>
+          </label>
           <button v-magnetic class="btn btn-primary btn-block" type="submit" :disabled="sending">
-            {{ t.contact.form.send }} <AppIcon name="send" />
+            {{ sending ? t.contact.form.sending : t.contact.form.send }} <AppIcon name="send" />
           </button>
           <p class="form-status" :class="{ err: status === 'error' }" role="status" aria-live="polite">
-            {{ status === 'sent' ? t.contact.form.sent : status === 'error' ? t.contact.form.error : '' }}
+            {{ status === 'sent' || status === 'mail' ? t.contact.form.sent : status === 'error' ? t.contact.form.error : '' }}
           </p>
         </form>
       </div>

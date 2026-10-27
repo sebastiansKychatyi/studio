@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Личная страница в стиле «разработчик»: терминал, моноширинный шрифт, сетка активности, превью проектов за курсором
 import type { PersonView } from '~/composables/useSite'
+import { cases } from '~~/data/cases'
 
 const props = defineProps<{ person: PersonView }>()
 const { t, cfg, people, projects } = useSite()
@@ -221,6 +222,7 @@ onBeforeUnmount(() => clearTimeout(timer))
             </div>
             <div class="pd-row-side">
               <span class="pd-year">{{ pr.year }}</span>
+              <NuxtLink v-if="cases.some((cs) => cs.id === pr.id)" :to="localePath(`/case/${pr.id}`)">{{ t.caseStudy.label }} →</NuxtLink>
               <a v-if="pr.url" :href="pr.url" target="_blank" rel="noopener">{{ t.work.live }} ↗</a>
               <a v-if="pr.repo" :href="pr.repo" target="_blank" rel="noopener">{{ t.work.code }} ↗</a>
             </div>

@@ -49,8 +49,17 @@ const site = {
   // Определение языка по стране посетителя (по IP): страна -> язык сайта
   geoLanguages: { SK: 'sk', CZ: 'cs', UA: 'uk' } as Record<string, string>,
 
-  // Если есть Formspree / другой бэкенд для формы — вставьте URL. Пусто — откроется почта (mailto).
-  formEndpoint: '',
+  // Форма отправляется на серверный /api/contact → Telegram и e-mail (Web3Forms). Ключи — в .env (см. .env.example).
+  // Если сервер не настроен (чисто статический хостинг), форма сама откроет почтовую программу.
+  contactApi: '/api/contact',
+
+  // Аналитика без cookies — заполните одну (пусто = выключено)
+  analytics: {
+    umami: { src: '', websiteId: '' }, // например src: 'https://cloud.umami.is/script.js'
+    plausible: { domain: '', src: 'https://plausible.io/js/script.js' }, // domain: 'duostudio.sk'
+  },
+  // Подтверждение владения сайтом: Google Search Console («HTML-тег» → content) и Bing Webmaster Tools
+  verification: { google: '', bing: '' },
 
   defaultLang: 'sk' as const,
   languages: ['sk', 'cs', 'uk'] as const,

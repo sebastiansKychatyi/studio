@@ -611,3 +611,19 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
 .project-cover.is-proto:hover .mock::before { opacity: 1; translate: -50% 0; }
 .project-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: #fff; font-weight: 700; font-size: .85rem; cursor: pointer; transition: background .25s; }
 .project-actions button:hover { background: var(--accent); border-color: var(--accent); }
+
+/* Форма: согласие GDPR и скрытая ловушка для ботов */
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.consent { display: flex; gap: 10px; align-items: flex-start; font-size: .88rem; color: var(--ink-2); cursor: pointer; }
+.consent input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); }
+.consent a { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Подвал: города и ссылки */
+.footer-cities { justify-content: flex-start; gap: 6px 18px; font-weight: 700; }
+.footer-cities span { color: var(--muted); font-weight: 600; }
+.footer-cities a { color: var(--ink-2); transition: color .25s; }
+.footer-cities a:hover { color: var(--accent); }
+.footer-links { display: flex; gap: 20px; align-items: center; }
+.footer-links a:hover { color: var(--accent); }
+.project-actions .case-link { background: var(--accent); border-color: var(--accent); color: #fff; }
+.project-actions .case-link:hover { background: var(--ink); border-color: var(--ink); }

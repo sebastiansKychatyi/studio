@@ -130,6 +130,36 @@ const cs: typeof sk = {
     },
   },
 
+  city: {
+    eyebrow: 'Působíme',
+    services: 'Co pro vás uděláme',
+    why: 'Proč právě my',
+    projects: 'Vybrané projekty',
+    faq: 'Časté dotazy',
+    cta: 'Napište nám',
+    inPerson: 'Osobní schůzka',
+    remote: 'Spolupráce na dálku',
+    other: 'Působíme i v dalších městech',
+    footerTitle: 'Působíme',
+  },
+  caseStudy: {
+    label: 'Případová studie',
+    back: 'Zpět na portfolio',
+    client: 'Klient',
+    role: 'Naše role',
+    year: 'Rok',
+    challenge: 'Výzva',
+    solution: 'Řešení',
+    features: 'Co jsme vytvořili',
+    results: 'Výsledky',
+    stack: 'Technologie',
+    visit: 'Otevřít web',
+    next: 'Další studie',
+    ctaTitle: 'Chcete podobný projekt?',
+    ctaText: 'Napište nám pár slov o vašem nápadu — ozveme se do 24 hodin.',
+    cta: 'Napište nám',
+  },
+
   process: {
     eyebrow: 'Proces',
     title: 'Jak spolu pracujeme.',
@@ -171,12 +201,16 @@ const cs: typeof sk = {
       sent: 'Děkujeme! Brzy se ozveme.',
       error: 'Něco se pokazilo. Napište nám prosím e-mail.',
       subject: 'Nová poptávka z webu',
+      consent: 'Souhlasím se zpracováním osobních údajů podle',
+      consentLink: 'zásad ochrany osobních údajů',
+      sending: 'Odesílám…',
     },
   },
 
   footer: {
     tagline: 'AI automatizace, weby, aplikace a mini hry · Praha · Bratislava · Nitra · Kyjev · Užhorod',
     rights: 'Všechna práva vyhrazena.',
+    privacy: 'Ochrana osobních údajů',
     top: 'Nahoru',
   },
 

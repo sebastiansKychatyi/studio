@@ -1,6 +1,9 @@
 <script setup lang="ts">
 const { t, cfg } = useSite()
 const localePath = useLocalePath()
+const route = useRoute()
+// На главной — якоря (#about), на остальных страницах — ссылки на разделы главной (/sk#about)
+const anchor = (id: string) => (route.path === localePath('/') ? `#${id}` : `${localePath('/')}#${id}`)
 
 const navItems = ['about', 'ai', 'work', 'lab', 'faq'] as const
 const open = ref(false)
@@ -48,12 +51,12 @@ onBeforeUnmount(() => {
       </NuxtLink>
 
       <nav class="nav-links" aria-label="Main">
-        <a v-for="k in navItems" :key="k" :href="`#${k}`" :class="{ active: active === k }">{{ t.nav[k] }}</a>
+        <a v-for="k in navItems" :key="k" :href="anchor(k)" :class="{ active: active === k }">{{ t.nav[k] }}</a>
       </nav>
 
       <div class="nav-right">
         <LangSwitch />
-        <a v-magnetic class="btn btn-primary btn-sm hide-sm" href="#contact">{{ t.nav.cta }}</a>
+        <a v-magnetic class="btn btn-primary btn-sm hide-sm" :href="anchor('contact')">{{ t.nav.cta }}</a>
         <button
           class="menu-toggle"
           :aria-expanded="open"
@@ -68,8 +71,8 @@ onBeforeUnmount(() => {
 
     <div v-show="open" id="mobile-menu" class="mobile-menu">
       <nav class="container" aria-label="Mobile">
-        <a v-for="k in navItems" :key="k" :href="`#${k}`" @click="open = false">{{ t.nav[k] }}</a>
-        <a href="#contact" @click="open = false">{{ t.nav.contact }}</a>
+        <a v-for="k in navItems" :key="k" :href="anchor(k)" @click="open = false">{{ t.nav[k] }}</a>
+        <a :href="anchor('contact')" @click="open = false">{{ t.nav.contact }}</a>
       </nav>
     </div>
   </header>

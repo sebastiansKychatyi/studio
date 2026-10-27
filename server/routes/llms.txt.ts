@@ -1,4 +1,6 @@
 import site from '../../data/site'
+import { cities } from '../../data/cities'
+import { cases } from '../../data/cases'
 import sk from '../../data/locales/sk'
 import cs from '../../data/locales/cs'
 import uk from '../../data/locales/uk'
@@ -33,6 +35,12 @@ ${real
     return `- ${p.title} (${p.year}, ${p.tags.join(', ')}): ${t.work.projects[p.id as keyof typeof t.work.projects].desc}${links ? ` — ${links}` : ''}`
   })
   .join('\n')}
+
+## Cities (local pages)
+${cities.map((c) => `- [${c.text.sk.name}](${site.domain}/${site.defaultLang}/${c.slug}) — ${c.text.sk.metaDescription}`).join('\n')}
+
+## Case studies
+${cases.map((c) => `- [${c.id}](${site.domain}/${site.defaultLang}/case/${c.id}) — ${c.text.sk.lead}`).join('\n')}
 
 ## Pages
 ${site.languages

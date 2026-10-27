@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ProjectView } from '~/composables/useSite'
+import { cases } from '~~/data/cases'
 
 const props = defineProps<{ project: ProjectView; showAuthor?: boolean }>()
 const { t } = useSite()
@@ -7,6 +8,7 @@ const localePath = useLocalePath()
 const { show } = useDesignModal()
 // Основная ссылка карточки: живой сайт, иначе GitHub
 const href = computed(() => props.project.url || props.project.repo || '')
+const hasCase = computed(() => cases.some((c) => c.id === props.project.id))
 </script>
 
 <template>
@@ -51,7 +53,8 @@ const href = computed(() => props.project.url || props.project.repo || '')
       <ul class="chips">
         <li v-for="tag in project.tags" :key="tag">{{ tag }}</li>
       </ul>
-      <div v-if="project.url || project.repo || project.prototype" class="project-actions">
+      <div v-if="project.url || project.repo || project.prototype || hasCase" class="project-actions">
+        <NuxtLink v-if="hasCase" class="case-link" :to="localePath(`/case/${project.id}`)">{{ t.caseStudy.label }} →</NuxtLink>
         <button v-if="project.prototype" type="button" @click="show(project.id)">▶ {{ t.work.proto.open }}</button>
         <a v-if="project.url" :href="project.url" target="_blank" rel="noopener">{{ t.work.live }} ↗</a>
         <a v-if="project.repo" :href="project.repo" target="_blank" rel="noopener"><AppIcon name="github" /> {{ t.work.code }}</a>
