@@ -1,92 +1,106 @@
-# Duo Studio — сайт-портфолио (Nuxt 4 + Vue 3)
+# Duo Studio — portfolio website (Nuxt 4 + Vue 3)
 
-Сайт на трёх языках: **словацкий** (`/sk`), **чешский** (`/cs`), **украинский** (`/uk`).
+Website of a development team from **Bratislava and Nitra**: AI automation, website and app development, mini games, process optimization through code automation and AI integration.
+Available in three languages: **Slovak** (`/sk`), **Czech** (`/cs`) and **Ukrainian** (`/uk`).
 
-| Страница | Адрес | Дизайн |
+## Pages
+
+| Page | URL | Design |
 |---|---|---|
-| Общая страница студии (услуги, AI-автоматизация, портфолио, FAQ) | `/sk` | светлый, градиенты |
-| Личная страница Себастьяна | `/sk/sebastian` | «разработчик»: терминал, моноширинный шрифт, сетка активности |
-| Личная страница Романа | `/sk/roman` | «креатив»: антиква, стикеры, фигуры, курсор-капля |
-| Резюме (лист A4, кнопка «Скачать PDF») | `/sk/sebastian/cv`, `/sk/roman/cv` | строгий, для работодателей |
+| Studio page (services, AI automation, portfolio, Lab, FAQ) | `/sk` | light, gradients |
+| Sebastian's personal page | `/sk/sebastian` | "developer": terminal, monospace, activity grid |
+| Roman's personal page | `/sk/roman` | "creative": serif type, stickers, shapes, blob cursor |
+| Résumé (A4 sheet, "Download PDF" button) | `/sk/sebastian/cv`, `/sk/roman/cv` | clean, for employers |
+| Lab concepts | `/sk/lab/noir`, `/pulse`, `/kinetic`, `/verde` | four different styles |
 
-## Lab — концепт-дизайны
+## Language by visitor location
 
-Четыре сайта для вымышленных брендов в разных стилях — показывают клиентам, на что мы способны. Все помечены «Koncept — fiktívna značka».
+- **Root `/`** picks the language in this order: language chosen manually (cookie `lang`) → country by IP (SK → `sk`, CZ → `cs`, UA → `uk`) → browser language → Slovak.
+- **Language pages** never redirect automatically (Googlebot crawls from the US and must see every version). Instead, a hint is shown in the visitor's language, e.g. "Схоже, ви з України — перейти на українську?".
+- The country is detected with the free `api.country.is` service (no API key). Country → language mapping: `geoLanguages` in `data/site.ts`.
 
-| Концепт | Адрес | Стиль и интерактив |
+## Local SEO
+
+Target cities in priority order: **Bratislava, Nitra → Prague → Kyiv, Uzhhorod** (`cities` in `data/site.ts`).
+
+- Each language version targets its own market: SK — Bratislava & Nitra, CZ — Prague, UA — Kyiv & Uzhhorod (titles, descriptions, texts, FAQ).
+- schema.org `ProfessionalService` lists the cities in `areaServed`, plus `geo.*` meta tags.
+- Server-rendered page per language and person: title, description, canonical, `hreflang` + x-default, Open Graph.
+- schema.org (JSON-LD): ProfessionalService, Person, ProfilePage, services, FAQPage, portfolio with links to live sites and GitHub.
+- `/sitemap.xml` (all languages and pages with hreflang), `/robots.txt` explicitly allowing AI crawlers, `/llms.txt` for AI assistants (GEO).
+
+## Links to share as a résumé
+
+| For | Link | Opens |
 |---|---|---|
-| Noir — ресторан | `/sk/lab/noir` | тёмный + золото, рисующаяся тарелка, меню с превью за курсором, бронирование |
-| Pulse — SaaS / AI | `/sk/lab/pulse` | стекло и градиенты, живой дашборд, AI-чат (симуляция), переключатель цен |
-| Kinetic — e-shop | `/sk/lab/kinetic` | брутализм, рабочая корзина, «летящий» товар, lookbook с перетаскиванием |
-| Verde — недвижимость | `/sk/lab/verde` | параллакс-иллюстрация, «липкая» история, выбор квартир на фасаде |
+| Clients / social media | `duostudio.sk/roman` | Roman's personal page in the visitor's language |
+| Employers | `duostudio.sk/roman/cv` | Roman's résumé (downloadable as PDF) |
+| Same for Sebastian | `duostudio.sk/sebastian`, `/sebastian/cv` | |
 
-- Код: `app/components/Concept*.vue`, тексты на 3 языках — внутри каждого компонента (`useConceptCopy`), список — `data/concepts.ts`.
-- Обложки `public/img/concepts/*.jpg` — скриншоты самих страниц (адрес с `?cover=1` прячет плашку студии).
+- Short links are files `public/<slug>/index.html` and `public/<slug>/cv/index.html` (they pick the language via `public/go.js`). If you change a person's `slug`, rename these folders too.
+- Link previews (Telegram, LinkedIn, Messenger) show the person's name and role: `public/og-sebastian.png`, `public/og-roman.png`.
+- Résumé pages are `noindex` so they don't compete with the personal pages in search.
+- PDF: click "Stiahnuť PDF" → choose "Save as PDF" in the print dialog.
 
-## Ссылки, которые можно отправлять как резюме
+## Portfolio
 
-| Кому отправить | Ссылка | Что откроется |
+- Real projects with screenshots and links: e-Drivebook (e-drivebook.com), Expert SK, Bratislava Technical Company, ONYX Business Residence, Hodinový manžel Nitra, AmStars, Travel Planner API.
+- **Clickable design prototypes** (Roman's design concepts): Nordic Living (furniture e-shop + UI kit), Slnečné Byty (real-estate mobile app), FitFlow (fitness app with dark mode). Clicking a card opens a dialog with an interactive prototype; the card cover is a live scaled-down copy. Code: `app/components/Proto*.vue`, `DesignModal.vue`.
+
+## Lab — design concepts
+
+Four sites for fictional brands in very different styles, labelled "Koncept — fiktívna značka".
+
+| Concept | URL | Style and interactions |
 |---|---|---|
-| Клиенту / в соцсети | `duostudio.sk/roman` | личная страница Романа на языке посетителя |
-| Работодателю | `duostudio.sk/roman/cv` | резюме Романа (можно скачать PDF) |
-| То же для Себастьяна | `duostudio.sk/sebastian`, `/sebastian/cv` | |
+| Noir — restaurant | `/sk/lab/noir` | dark + gold, self-drawing plate, menu with cursor preview, table booking |
+| Pulse — SaaS / AI | `/sk/lab/pulse` | glass and gradients, live dashboard, AI chat (simulated), pricing toggle |
+| Kinetic — e-shop | `/sk/lab/kinetic` | brutalism, working cart, "flying" product, draggable lookbook |
+| Verde — real estate | `/sk/lab/verde` | parallax illustration, sticky story, apartment picker on the facade |
 
-- Короткие ссылки — файлы `public/<slug>/index.html` и `public/<slug>/cv/index.html` (выбирают язык через `public/go.js`). Если меняете `slug` человека — переименуйте и эти папки.
-- В превью ссылки (Telegram, LinkedIn, Messenger) видно имя и роль человека: картинки `public/og-sebastian.png`, `public/og-roman.png`.
-- Резюме не индексируется поисковиками (`noindex`), чтобы не конкурировать с личной страницей.
-- PDF: кнопка «Stiahnuť PDF» → в окне печати выбрать «Сохранить как PDF».
+Code: `app/components/Concept*.vue`; texts in all three languages live inside each component (`useConceptCopy`); list: `data/concepts.ts`. Covers `public/img/concepts/*.jpg` are screenshots of the pages themselves (`?cover=1` hides the studio bar).
 
-## Язык по стране посетителя
-
-- **Корень `/`** открывает язык в таком порядке: язык, выбранный вручную (cookie `lang`) → страна по IP (SK → `sk`, CZ → `cs`, UA → `uk`) → язык браузера → словацкий.
-- **На языковых страницах** автоматического редиректа нет (иначе Google, который заходит из США, не проиндексирует версии). Вместо этого показывается подсказка на языке страны: «Схоже, ви з України — перейти на українську?».
-- Страна определяется через бесплатный сервис `api.country.is` (без ключа). Соответствие стран и языков — `geoLanguages` в `data/site.ts`.
-
-## Запуск
+## Getting started
 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm run generate   # статическая сборка в .output/public — её и загружать на хостинг
+npm run generate   # static build in .output/public — upload this folder to hosting
 ```
 
-> Nuxt 4.6 просит Node.js ≥ 22.21 (или 24.11+). На 22.16 работает, но выводит предупреждение.
+> Nuxt 4.6 expects Node.js ≥ 22.21 (or 24.11+). It runs on 22.16 but prints a warning.
 
-## Где менять информацию
+## Where to edit content
 
-| Что | Файл |
+| What | File |
 |---|---|
-| Домен, e-mail, телефон, город, люди (имя, slug, дизайн, навыки, соцсети), проекты | `data/site.ts` |
-| Все тексты: общая страница, личные страницы (`personal`), описания проектов, FAQ | `data/locales/sk.ts`, `cs.ts`, `uk.ts` |
-| Скриншоты проектов | `public/img/projects/*.jpg` (1200×750) |
-| Цвета и анимации общей страницы | `app/assets/css/main.css` |
-| Дизайн личных страниц | `app/components/ProfileDev.vue`, `ProfileCreative.vue` |
+| Domain, e-mail, phone, cities, people (name, slug, design, skills, links), projects | `data/site.ts` |
+| All texts: studio page, personal pages (`personal`), project descriptions, FAQ | `data/locales/sk.ts`, `cs.ts`, `uk.ts` |
+| Project screenshots | `public/img/projects/*.jpg` (1200×750) |
+| Colors and animations of the studio page | `app/assets/css/main.css` |
+| Personal page designs | `app/components/ProfileDev.vue`, `ProfileCreative.vue` |
 
-**Перед публикацией:** замените `domain` в `data/site.ts` и `https://duostudio.sk` в `public/index.html`, впишите данные друга (имя, `slug`, тексты в `personal.people.p2`) и замените его проекты-заглушки (`placeholder: true`).
+**Before going live:** replace `domain` in `data/site.ts` and `https://duostudio.sk` in `public/index.html` and the short-link pages, and fill in Roman's details (surname, texts in `personal.people.p2`, real projects instead of the `placeholder: true` concepts).
 
-### Новый проект в портфолио
-1. Добавьте объект в `projects` в `data/site.ts` (`author: 'p1'` или `'p2'`, ссылки `url` / `repo`).
-2. Добавьте описание `work.projects['id'].desc` во все три файла `data/locales/*`.
-3. Скриншот: `public/img/projects/<id>.jpg`, путь в поле `image`. Без скриншота рисуется CSS-макет (`layout: 4` — макет «код/API»).
+### Adding a portfolio project
+1. Add an object to `projects` in `data/site.ts` (`author: 'p1'` or `'p2'`, links `url` / `repo`).
+2. Add `work.projects['id'].desc` to all three `data/locales/*` files.
+3. Screenshot: `public/img/projects/<id>.jpg`, path in `image`. Without a screenshot a CSS mock is drawn (`layout: 4` — "code/API" mock).
 
-## SEO и GEO
-
-- Отдельная серверно-отрендеренная страница для каждого языка и человека: title, description, canonical, `hreflang` + x-default, Open Graph
-- Geo-теги (Nitra) и schema.org (JSON-LD): ProfessionalService, Person, ProfilePage, услуги + AI-услуги, FAQPage, портфолио со ссылками на сайты и GitHub
-- `/sitemap.xml` (все языки и личные страницы с hreflang), `/robots.txt` с доступом для AI-ботов, `/llms.txt` для AI-ассистентов
-
-## Структура
+## Structure
 
 ```
 app/
-  pages/index.vue            общая страница
-  pages/[slug].vue           личные страницы
-  components/                секции, ProfileDev, ProfileCreative, GeoLangHint, ProjectCard…
-  composables/useSite.ts     тексты текущего языка
-  composables/useSiteSeo.ts  meta-теги и JSON-LD
-  composables/useGeoLang.ts  определение страны и выбор языка
-  plugins/motion.ts          анимации: v-reveal, v-tilt, v-magnetic, v-spot
-data/                        контент и настройки
+  pages/index.vue            studio page
+  pages/[slug]/index.vue     personal pages
+  pages/[slug]/cv.vue        résumé pages
+  pages/lab/[id].vue         Lab concepts
+  components/                sections, ProfileDev, ProfileCreative, Concept*, Proto*, DesignModal, GeoLangHint…
+  composables/useSite.ts     texts for the current language
+  composables/useSiteSeo.ts  meta tags and JSON-LD
+  composables/useGeoLang.ts  visitor country and language choice
+  plugins/motion.ts          animations: v-reveal, v-tilt, v-magnetic, v-spot
+data/                        content and settings
 server/routes/               sitemap.xml, robots.txt, llms.txt, site.webmanifest
-public/                      картинки, корневой index.html (выбор языка по стране)
+public/                      images, root index.html and short links (language by country)
 ```

@@ -73,7 +73,7 @@ onBeforeUnmount(() => {
 .dm-stage { margin: 0 20px; border-radius: 20px; overflow: hidden; display: grid; place-items: center; padding: 24px; min-height: 420px; }
 .dm-fit { position: relative; width: 100%; }
 .dm-fit.wide { max-width: 900px; aspect-ratio: 900 / 560; }
-.dm-fit.tall { width: auto; height: min(640px, calc(100vh - 300px)); aspect-ratio: 320 / 640; }
+.dm-fit.tall { width: auto; height: min(640px, calc(100vh - 340px)); aspect-ratio: 320 / 640; }
 .dm-stage--nordic { background: linear-gradient(135deg, #E9EDF2, #F7F4EE); }
 .dm-stage--byty { background: linear-gradient(135deg, #FEF3C7, #FDE68A); }
 .dm-stage--fitflow { background: linear-gradient(135deg, #FFE4DC, #E0E7FF); }
