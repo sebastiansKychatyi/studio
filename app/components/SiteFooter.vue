@@ -12,7 +12,7 @@ const year = new Date().getFullYear()
         <LangSwitch />
       </div>
       <div class="footer-row small">
-        <p>© {{ year }} {{ cfg.brand }} · {{ cfg.location.city }}. {{ t.footer.rights }}</p>
+        <p>© {{ year }} {{ cfg.brand }} · {{ cfg.cities.slice(0, 2).map((c) => c.name).join(' · ') }}. {{ t.footer.rights }}</p>
         <a href="#top" class="to-top">{{ t.footer.top }} ↑</a>
       </div>
     </div>

@@ -6,10 +6,10 @@ export default {
   short: 'SK',
 
   meta: {
-    title: 'Duo Studio — tvorba webov, AI automatizácia, SEO a GEO | Nitra',
+    title: 'Duo Studio — AI automatizácia, tvorba webov a aplikácií | Bratislava, Nitra',
     description:
-      'Dvaja freelanceri z Nitry: tvorba webových stránok a aplikácií, automatizácia procesov pomocou AI a programovania, UI/UX dizajn, SEO a GEO optimalizácia. Slovensko, Česko, Ukrajina.',
-    ogTitle: 'Duo Studio — weby a AI automatizácie, ktoré pracujú za vás',
+      'AI automatizácia, tvorba webových stránok, aplikácií a mini hier a integrácia umelej inteligencie pre firmy v Bratislave a Nitre. Pracujeme aj pre klientov v Prahe, Kyjeve a Užhorode.',
+    ogTitle: 'Duo Studio — AI automatizácia, weby a aplikácie | Bratislava · Nitra',
   },
 
   // Zobrazí sa návštevníkovi zo Slovenska, ak je na inej jazykovej verzii
@@ -20,26 +20,26 @@ export default {
 
   hero: {
     badge: 'Prijímame nové projekty',
-    title: 'Robíme weby a *automatizácie*, ktoré pracujú za vás.',
+    title: 'Automatizujeme biznis pomocou *AI* a kódu.',
     subtitle:
-      'Sme dvojica freelancerov z Nitry. Navrhujeme a programujeme rýchle weby a aplikácie, prepájame vaše nástroje s umelou inteligenciou a staráme sa o SEO a GEO, aby vás našli Google aj AI asistenti.',
+      'Vývojársky tím z Bratislavy a Nitry. Robíme AI automatizácie, weby, aplikácie a mini hry na mieru, integrujeme umelú inteligenciu do vašich systémov a zrýchľujeme procesy automatizáciou kódu.',
     ctaPrimary: 'Chcem projekt',
     ctaSecondary: 'Pozrieť portfólio',
     stats: [
-      { value: 6, suffix: '+', label: 'projektov v portfóliu' },
+      { value: 7, suffix: '+', label: 'projektov v portfóliu' },
       { value: 3, suffix: '', label: 'jazyky: SK · CZ · UA' },
       { value: 24, suffix: 'h', label: 'odpoveď na dopyt' },
     ],
     visual: { url: 'vasfirma.sk', chip1: 'SEO 100/100', chip2: 'LCP 0.8 s', chip3: 'AI odporúča' },
   },
 
-  marquee: ['Webové stránky', 'AI automatizácia', 'Chatboty', 'UI/UX dizajn', 'SEO', 'GEO', 'Integrácie API', 'Python', 'Nuxt'],
+  marquee: ['AI automatizácia', 'Tvorba webov', 'Aplikácie', 'Mini hry', 'Integrácia AI', 'Chatboty', 'Automatizácia kódu', 'Bratislava', 'Nitra', 'Praha', 'Kyjev'],
 
   about: {
     eyebrow: 'O nás',
-    title: 'Dvaja kamaráti, jedno štúdio.',
+    title: 'AI, kód a dizajn v jednom tíme.',
     text:
-      'Duo Studio je freelance tím dvoch ľudí. Jeden sa stará o kód, backend a automatizácie, druhý o dizajn a používateľský zážitok. Každý z nás má aj vlastnú stránku — pozrite si, kto na vašom projekte bude pracovať.',
+      'Duo Studio je vývojársky tím z Bratislavy a Nitry. Zameriavame sa na AI automatizáciu, tvorbu webov, webových a mobilných aplikácií a mini hier, integráciu umelej inteligencie do firemných systémov a optimalizáciu procesov pomocou automatizácie kódu. Pracujeme pre klientov na Slovensku, v Česku a na Ukrajine.',
     profile: 'Otvoriť profil',
     people: {
       p1: {
@@ -55,15 +55,15 @@ export default {
 
   services: {
     eyebrow: 'Služby',
-    title: 'Všetko, čo potrebujete online.',
-    text: 'Od prvého návrhu až po automatizované procesy a zákazníkov z vyhľadávania.',
+    title: 'Čo pre vás robíme.',
+    text: 'AI, weby, aplikácie a hry — od nápadu po spustenie a ďalší rozvoj.',
     items: [
-      { icon: 'web', title: 'Tvorba webových stránok', text: 'Firemné a prezentačné weby na mieru — rýchle, responzívne, viacjazyčné a pripravené na SEO.' },
-      { icon: 'code', title: 'Webové aplikácie', text: 'Aplikácie a interné nástroje na Nuxte a FastAPI — s databázou, prihlásením a API.' },
-      { icon: 'spark', title: 'AI automatizácia', text: 'Chatboty, spracovanie dokumentov a automatické workflowy, ktoré šetria hodiny práce.' },
-      { icon: 'pen', title: 'UI/UX dizajn', text: 'Návrh vo Figme, prototypy a dizajn systémy, ktoré vedú zákazníka k cieľu.' },
-      { icon: 'search', title: 'SEO a GEO', text: 'Technické SEO, štruktúrované dáta a optimalizácia pre ChatGPT, Perplexity a Google AI Overviews.' },
-      { icon: 'shield', title: 'Správa a podpora', text: 'Hosting, aktualizácie, zálohy, úpravy obsahu a mesačné reporty.' },
+      { icon: 'spark', title: 'AI automatizácia', text: 'Automatizujeme opakujúce sa úlohy: spracovanie dopytov, dokumentov, objednávok a reportov — procesy bežia samé 24/7.' },
+      { icon: 'web', title: 'Tvorba webových stránok', text: 'Rýchle firemné weby a e-shopy s SEO a GEO optimalizáciou, aby vás našli Google aj AI asistenti v Bratislave, Nitre a okolí.' },
+      { icon: 'code', title: 'Webové a mobilné aplikácie', text: 'SaaS, interné systémy a ERP riešenia na FastAPI, Odoo a Nuxte — s databázou, prihlásením a API.' },
+      { icon: 'game', title: 'Mini hry', text: 'Webové a mobilné mini hry, hry pre Telegram a gamifikácia pre marketingové kampane a vernostné programy.' },
+      { icon: 'flow', title: 'Optimalizácia automatizáciou kódu', text: 'CI/CD, automatické testy, refaktoring a skripty, ktoré zrýchlia vývoj a znížia chyby aj náklady.' },
+      { icon: 'bot', title: 'Integrácia AI', text: 'Napojíme ChatGPT, Claude a ďalšie modely na váš web, CRM či e-shop — chatboty, asistenti a inteligentné vyhľadávanie.' },
     ],
   },
 
@@ -100,6 +100,7 @@ export default {
     proto: { open: 'Otvoriť prototyp', hint: 'Klikateľný prototyp — skúste klikať', close: 'Zavrieť' },
     projects: {
       'e-drivebook': { desc: 'Môj SaaS pre autoškoly: online rezervácie jázd 24/7, rozvrhy inštruktorov, vozidlá, evidencia žiakov a testy na skúšku. V produkcii — denne ho používajú 3 platiace autoškoly.' },
+      expertsk: { desc: 'Katalóg overených majstrov na Slovensku: elektrikári, inštalatéri, upratovanie a ďalšie služby — vyhľadávanie podľa mesta, hodnotenia, ceny a registrácia pre profesionálov.' },
       brtc: { desc: 'Firemný web technickej spoločnosti s katalógom kompresorových riešení pre priemysel.' },
       onyx: { desc: 'Prezentácia nových kancelárskych priestorov v Zlatých Moravciach s mapou a kontaktom.' },
       'hodinovy-manzel': { desc: 'Landing page pre údržbára v Nitre — služby po miestnostiach, cenník, referencie a formulár bez backendu.' },
@@ -143,11 +144,13 @@ export default {
     eyebrow: 'FAQ',
     title: 'Časté otázky.',
     items: [
-      { q: 'Koľko stojí tvorba webovej stránky?', a: 'Cena závisí od rozsahu — počtu stránok, funkcií a jazykov. Po bezplatnej konzultácii vám pošleme pevnú cenovú ponuku bez skrytých poplatkov.' },
+      { q: 'Koľko stojí tvorba webu alebo aplikácie?', a: 'Cena závisí od rozsahu — počtu stránok, funkcií a integrácií. Po bezplatnej konzultácii vám pošleme pevnú cenovú ponuku bez skrytých poplatkov.' },
       { q: 'Čo všetko viete zautomatizovať pomocou AI?', a: 'Najčastejšie odpovedanie na otázky zákazníkov (chatbot), triedenie e-mailov a dopytov, vyčítanie dát z faktúr a dokumentov, prepájanie systémov cez API a automatické reporty. Na konzultácii spolu nájdeme úlohy, ktoré vám berú najviac času.' },
+      { q: 'Kde pôsobíte?', a: 'Sídlime v Bratislave a Nitre, kde sa vieme stretnúť aj osobne. Na diaľku pracujeme pre klientov v Prahe a celom Česku, v Kyjeve, Užhorode a na celej Ukrajine.' },
+      { q: 'Robíte aj mini hry?', a: 'Áno. Vytvárame webové a mobilné mini hry, hry pre Telegram a herné prvky do marketingových kampaní — napríklad súťaže, kolesá šťastia či vernostné výzvy.' },
+      { q: 'Čo je optimalizácia automatizáciou kódu?', a: 'Nastavíme CI/CD, automatické testy a nasadzovanie, zrefaktorujeme pomalé časti a napíšeme skripty na rutinné úlohy. Vývoj je rýchlejší a v produkcii je menej chýb.' },
       { q: 'Ako dlho trvá vytvorenie webu?', a: 'Landing page alebo prezentačný web zvyčajne 2–3 týždne, väčší web alebo aplikácia 4–8 týždňov. Jednoduchú automatizáciu vieme nasadiť aj za pár dní.' },
       { q: 'Čo je GEO optimalizácia?', a: 'GEO (Generative Engine Optimization) je optimalizácia webu pre AI vyhľadávače a asistentov ako ChatGPT, Perplexity či Google AI Overviews. Pomocou štruktúrovaných dát, jasného obsahu a súboru llms.txt zvyšujeme šancu, že AI odporučí práve vás.' },
-      { q: 'Pracujete aj pre klientov z Česka a Ukrajiny?', a: 'Áno. Pracujeme na diaľku pre klientov zo Slovenska, Česka aj Ukrajiny a komunikujeme po slovensky, česky aj ukrajinsky.' },
       { q: 'Postaráte sa aj o doménu a hosting?', a: 'Áno, pomôžeme vybrať a nastaviť doménu, hosting, SSL certifikát aj firemné e-maily.' },
     ],
   },
@@ -161,7 +164,7 @@ export default {
       name: 'Meno',
       email: 'E-mail',
       type: 'Čo potrebujete?',
-      types: ['Webová stránka', 'AI automatizácia', 'Aplikácia', 'Dizajn', 'SEO / GEO', 'Iné'],
+      types: ['AI automatizácia', 'Webová stránka', 'Aplikácia', 'Mini hra', 'Integrácia AI', 'Iné'],
       message: 'Správa',
       send: 'Odoslať správu',
       sent: 'Ďakujeme! Ozveme sa čoskoro.',
@@ -171,7 +174,7 @@ export default {
   },
 
   footer: {
-    tagline: 'Weby, aplikácie, AI automatizácia, SEO a GEO pre Slovensko, Česko a Ukrajinu.',
+    tagline: 'AI automatizácia, weby, aplikácie a mini hry · Bratislava · Nitra · Praha · Kyjev · Užhorod',
     rights: 'Všetky práva vyhradené.',
     top: 'Hore',
   },

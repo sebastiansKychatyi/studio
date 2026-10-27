@@ -11,11 +11,20 @@ const href = computed(() => props.project.url || props.project.repo || '')
 
 <template>
   <div class="project-link" :style="{ '--c1': project.colors[0], '--c2': project.colors[1] }">
-    <!-- Дизайн с прототипом — открывается в окне -->
-    <button v-if="project.prototype" type="button" class="project-cover is-proto" :aria-label="`${t.work.proto.open}: ${project.title}`" @click="show(project.id)">
+    <!-- Дизайн с прототипом — открывается в окне. Не <button>: внутри превью есть свои кнопки,
+         а кнопка в кнопке — невалидный HTML (браузер перестраивает DOM и ломается гидратация) -->
+    <div
+      v-if="project.prototype"
+      role="button"
+      tabindex="0"
+      class="project-cover is-proto"
+      :aria-label="`${t.work.proto.open}: ${project.title}`"
+      @click="show(project.id)"
+      @keydown.enter.space.prevent="show(project.id)"
+    >
       <ProjectMock :title="project.title" :layout="project.layout" :prototype="project.prototype" :data-hint="`${t.work.proto.open} ↗`" />
       <span class="project-arrow" aria-hidden="true"><AppIcon name="arrow" /></span>
-    </button>
+    </div>
     <a v-else-if="href" class="project-cover" :href="href" target="_blank" rel="noopener" :aria-label="project.title">
       <ProjectMock :image="project.image" :title="project.title" :layout="project.layout" :tags="project.tags" />
       <span class="project-arrow" aria-hidden="true"><AppIcon name="arrow" /></span>

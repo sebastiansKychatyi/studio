@@ -92,7 +92,15 @@ export function useSiteSeo(person?: Ref<PersonView | undefined>, opts: { cv?: bo
     priceRange: '€€',
     address: { '@type': 'PostalAddress', addressLocality: cfg.location.city, addressCountry: cfg.location.country },
     geo: { '@type': 'GeoCoordinates', latitude: cfg.location.lat, longitude: cfg.location.lng },
-    areaServed: cfg.areaServed.map((c) => ({ '@type': 'Country', name: countryNames[c] || c })),
+    // Сначала города по приоритету (Bratislava, Nitra, Prague, Kyiv, Uzhhorod), затем страны целиком
+    areaServed: [
+      ...cfg.cities.map((ct) => ({
+        '@type': 'City',
+        name: ct.name,
+        containedInPlace: { '@type': 'Country', name: countryNames[ct.country] || ct.country },
+      })),
+      ...cfg.areaServed.map((c) => ({ '@type': 'Country', name: countryNames[c] || c })),
+    ],
     knowsLanguage: cfg.languages,
     founder: people.value.map((p) => ({ '@id': `${cfg.domain}/#${p.id}` })),
     hasOfferCatalog: {
@@ -168,7 +176,7 @@ export function useSiteSeo(person?: Ref<PersonView | undefined>, opts: { cv?: bo
     meta: [
       ...(i18nHead.value.meta || []),
       { name: 'geo.region', content: cfg.location.region },
-      { name: 'geo.placename', content: cfg.location.city },
+      { name: 'geo.placename', content: cfg.cities.slice(0, 2).map((c) => c.name).join(', ') },
       { name: 'geo.position', content: `${cfg.location.lat};${cfg.location.lng}` },
       { name: 'ICBM', content: `${cfg.location.lat}, ${cfg.location.lng}` },
     ],

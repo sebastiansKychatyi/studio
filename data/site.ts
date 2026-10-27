@@ -37,6 +37,14 @@ const site = {
   },
   // Страны, для которых вы работаете (ISO) — schema.org areaServed
   areaServed: ['SK', 'CZ', 'UA'],
+  // Города для локального SEO — в порядке приоритета (schema.org areaServed, llms.txt, тексты)
+  cities: [
+    { name: 'Bratislava', country: 'SK' },
+    { name: 'Nitra', country: 'SK' },
+    { name: 'Prague', country: 'CZ' },
+    { name: 'Kyiv', country: 'UA' },
+    { name: 'Uzhhorod', country: 'UA' },
+  ],
 
   // Определение языка по стране посетителя (по IP): страна -> язык сайта
   geoLanguages: { SK: 'sk', CZ: 'cs', UA: 'uk' } as Record<string, string>,
@@ -104,6 +112,12 @@ const site = {
       url: 'https://e-drivebook.com', image: '/img/projects/e-drivebook.jpg',
       colors: ['#2563EB', '#BFDBFE'], layout: 1,
       tags: ['FastAPI', 'PostgreSQL', 'OAuth2 / JWT', 'Nuxt 3', 'Pinia', 'Docker', 'GitHub Actions'],
+    },
+    {
+      id: 'expertsk', title: 'Expert SK', author: 'p1', category: 'app', year: 2026,
+      url: 'https://expertsk.k2drive.com/', image: '/img/projects/expertsk.jpg',
+      colors: ['#1D4ED8', '#BFDBFE'], layout: 1,
+      tags: ['Nuxt', 'Tailwind CSS', 'i18n SK · EN · RU', 'Marketplace'],
     },
     {
       id: 'brtc', title: 'Bratislava Technical Company', author: 'p1', category: 'web', year: 2026,

@@ -120,10 +120,11 @@ async function copyEmail() {
             :style="{ '--d': `${(i % 2) * 120}ms`, '--rot': `${i % 2 ? 2 : -2}deg`, '--tag': palette[i % palette.length] }"
           >
             <component
-              :is="pr.prototype ? 'button' : pr.url || pr.repo ? 'a' : 'div'"
-              v-bind="pr.prototype ? { type: 'button', 'aria-label': `${t.work.proto.open}: ${pr.title}` } : pr.url || pr.repo ? { href: pr.url || pr.repo, target: '_blank', rel: 'noopener' } : {}"
+              :is="pr.url || pr.repo ? 'a' : 'div'"
+              v-bind="pr.prototype ? { role: 'button', tabindex: 0, 'aria-label': `${t.work.proto.open}: ${pr.title}` } : pr.url || pr.repo ? { href: pr.url || pr.repo, target: '_blank', rel: 'noopener' } : {}"
               class="pc-project-inner"
               @click="pr.prototype && show(pr.id)"
+              @keydown.enter.space="pr.prototype && ($event.preventDefault(), show(pr.id))"
             >
               <div class="pc-cover" :style="{ '--c1': pr.colors[0], '--c2': pr.colors[1] }">
                 <ProjectMock :image="pr.image" :title="pr.title" :layout="pr.layout" :tags="pr.tags" :prototype="pr.prototype" />
