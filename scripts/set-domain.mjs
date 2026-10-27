@@ -48,4 +48,3 @@ for (const file of files) {
   }
 }
 console.log(`\n${current} → ${next} (${changed} files). Rebuild the site to apply.`)
-console.log('Note: the domain text drawn inside public/og-*.png images is not changed.')
