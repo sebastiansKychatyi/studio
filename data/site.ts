@@ -21,7 +21,7 @@ export interface Project {
 
 const site = {
   // TODO: замените на реальный домен (без слеша в конце) — нужен для canonical, hreflang и sitemap
-  domain: 'https://duostudio.sk',
+  domain: 'https://studio.k2drive.com',
   brand: 'Duo Studio',
   email: 'kichatyisebastian@gmail.com', // контакты студии (главная страница, форма, schema.org)
   phone: '+421 951 508 228',
@@ -56,7 +56,7 @@ const site = {
   // Аналитика без cookies — заполните одну (пусто = выключено)
   analytics: {
     umami: { src: '', websiteId: '' }, // например src: 'https://cloud.umami.is/script.js'
-    plausible: { domain: '', src: 'https://plausible.io/js/script.js' }, // domain: 'duostudio.sk'
+    plausible: { domain: '', src: 'https://plausible.io/js/script.js' }, // domain: 'studio.k2drive.com'
   },
   // Подтверждение владения сайтом: Google Search Console («HTML-тег» → content) и Bing Webmaster Tools
   verification: { google: '', bing: '' },
