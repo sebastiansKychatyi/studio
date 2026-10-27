@@ -23,8 +23,8 @@ const site = {
   // TODO: замените на реальный домен (без слеша в конце) — нужен для canonical, hreflang и sitemap
   domain: 'https://duostudio.sk',
   brand: 'Duo Studio',
-  email: 'hello@duostudio.sk', // TODO
-  phone: '+421 900 000 000', // TODO
+  email: 'kichatyisebastian@gmail.com', // контакты студии (главная страница, форма, schema.org)
+  phone: '+421 951 508 228',
   telegram: '', // например 'https://t.me/username'
 
   // Где вы находитесь — Geo meta-теги и schema.org
@@ -133,7 +133,7 @@ const site = {
     },
     {
       id: 'hodinovy-manzel', title: 'Hodinový manžel Nitra', author: 'p1', category: 'web', year: 2026,
-      repo: 'https://github.com/sebastiansKychatyi/Landing',
+      url: 'https://hodinovy-manzel.k2drive.com/', repo: 'https://github.com/sebastiansKychatyi/Landing',
       image: '/img/projects/hodinovy-manzel.jpg', colors: ['#1E3A5F', '#2563EB'], layout: 1,
       tags: ['Landing page', 'Local SEO', 'Web3Forms'],
     },

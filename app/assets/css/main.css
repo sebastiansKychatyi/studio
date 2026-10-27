@@ -552,8 +552,10 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
 
 /* ===== Footer ===== */
 .site-footer { padding: 40px 0 32px; overflow: hidden; }
+.site-footer .container { container-type: inline-size; }
+/* Размер от ширины контейнера (cqw), а не окна — надпись всегда помещается по ширине */
 .footer-big {
-  font-family: var(--font-display); font-weight: 700; font-size: clamp(3rem, 15vw, 13rem); line-height: .9; letter-spacing: -.06em;
+  font-family: var(--font-display); font-weight: 700; font-size: 14.6cqw; line-height: .95; letter-spacing: -.06em; padding-bottom: .04em;
   background: linear-gradient(180deg, var(--ink) 30%, rgba(18, 18, 22, .08)); -webkit-background-clip: text; background-clip: text; color: transparent;
   white-space: nowrap; margin-bottom: 32px;
 }
