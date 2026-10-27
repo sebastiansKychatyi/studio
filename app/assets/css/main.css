@@ -596,3 +596,16 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
   .js .word > span, .js .fade-in, .js [data-reveal] { transform: none !important; opacity: 1 !important; }
 }
+
+/* Обложка с живым прототипом (дизайн-проекты) */
+.mock-proto { padding: 0; }
+.mock-proto-inner { width: 100%; height: 100%; display: grid; place-items: center; }
+.project-cover.is-proto { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; text-align: left; }
+.project-cover.is-proto .mock::before {
+  content: attr(data-hint); position: absolute; left: 50%; bottom: 14px; z-index: 2; translate: -50% 10px; opacity: 0;
+  padding: 8px 14px; border-radius: 999px; background: rgba(18, 18, 22, .85); color: #fff; font-size: .8rem; font-weight: 700; white-space: nowrap;
+  transition: opacity .3s, translate .3s var(--ease);
+}
+.project-cover.is-proto:hover .mock::before { opacity: 1; translate: -50% 0; }
+.project-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: #fff; font-weight: 700; font-size: .85rem; cursor: pointer; transition: background .25s; }
+.project-actions button:hover { background: var(--accent); border-color: var(--accent); }

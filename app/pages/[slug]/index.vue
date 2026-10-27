@@ -16,5 +16,6 @@ useSiteSeo(person)
     <ProfileDev v-if="person.theme === 'dev'" :person="person" />
     <ProfileCreative v-else :person="person" />
     <ClientOnly><GeoLangHint /></ClientOnly>
+    <DesignModal />
   </div>
 </template>

@@ -4,13 +4,19 @@ import type { ProjectView } from '~/composables/useSite'
 const props = defineProps<{ project: ProjectView; showAuthor?: boolean }>()
 const { t } = useSite()
 const localePath = useLocalePath()
+const { show } = useDesignModal()
 // Основная ссылка карточки: живой сайт, иначе GitHub
 const href = computed(() => props.project.url || props.project.repo || '')
 </script>
 
 <template>
   <div class="project-link" :style="{ '--c1': project.colors[0], '--c2': project.colors[1] }">
-    <a v-if="href" class="project-cover" :href="href" target="_blank" rel="noopener" :aria-label="project.title">
+    <!-- Дизайн с прототипом — открывается в окне -->
+    <button v-if="project.prototype" type="button" class="project-cover is-proto" :aria-label="`${t.work.proto.open}: ${project.title}`" @click="show(project.id)">
+      <ProjectMock :title="project.title" :layout="project.layout" :prototype="project.prototype" :data-hint="`${t.work.proto.open} ↗`" />
+      <span class="project-arrow" aria-hidden="true"><AppIcon name="arrow" /></span>
+    </button>
+    <a v-else-if="href" class="project-cover" :href="href" target="_blank" rel="noopener" :aria-label="project.title">
       <ProjectMock :image="project.image" :title="project.title" :layout="project.layout" :tags="project.tags" />
       <span class="project-arrow" aria-hidden="true"><AppIcon name="arrow" /></span>
     </a>
@@ -36,7 +42,8 @@ const href = computed(() => props.project.url || props.project.repo || '')
       <ul class="chips">
         <li v-for="tag in project.tags" :key="tag">{{ tag }}</li>
       </ul>
-      <div v-if="project.url || project.repo" class="project-actions">
+      <div v-if="project.url || project.repo || project.prototype" class="project-actions">
+        <button v-if="project.prototype" type="button" @click="show(project.id)">▶ {{ t.work.proto.open }}</button>
         <a v-if="project.url" :href="project.url" target="_blank" rel="noopener">{{ t.work.live }} ↗</a>
         <a v-if="project.repo" :href="project.repo" target="_blank" rel="noopener"><AppIcon name="github" /> {{ t.work.code }}</a>
       </div>

@@ -1,11 +1,17 @@
 <script setup lang="ts">
 // Если у проекта нет скриншота — рисуем абстрактный макет в цветах проекта
-defineProps<{ image?: string; title: string; layout: number; tags?: string[] }>()
+// prototype — вместо картинки показываем живую уменьшенную копию кликабельного прототипа
+defineProps<{ image?: string; title: string; layout: number; tags?: string[]; prototype?: 'nordic' | 'byty' | 'fitflow' }>()
 </script>
 
 <template>
-  <div class="mock">
-    <img v-if="image" :src="image" :alt="title" loading="lazy" decoding="async" width="1200" height="750">
+  <div class="mock" :class="{ 'mock-proto': prototype }">
+    <ScaledBox v-if="prototype" :w="prototype === 'nordic' ? 960 : 400" :h="prototype === 'nordic' ? 620 : 700">
+      <div class="mock-proto-inner">
+        <ProtoView :kind="prototype" preview />
+      </div>
+    </ScaledBox>
+    <img v-else-if="image" :src="image" :alt="title" loading="lazy" decoding="async" width="1200" height="750">
     <div v-else-if="layout === 4" class="mock-window mock-code">
       <div class="mock-bar"><i /><i /><i /><span>{{ title.toLowerCase().replace(/\s+/g, '-') }}</span></div>
       <pre><code><b>$</b> docker compose up

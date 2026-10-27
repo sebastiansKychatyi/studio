@@ -21,5 +21,6 @@ useSiteSeo()
     </main>
     <SiteFooter />
     <ClientOnly><GeoLangHint /></ClientOnly>
+    <DesignModal />
   </div>
 </template>

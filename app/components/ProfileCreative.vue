@@ -6,6 +6,7 @@ const props = defineProps<{ person: PersonView }>()
 const { t, cfg, people, projects } = useSite()
 const localePath = useLocalePath()
 const { $motion } = useNuxtApp()
+const { show } = useDesignModal()
 
 useHead({
   link: [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600;1,800&display=swap' }],
@@ -118,9 +119,15 @@ async function copyEmail() {
             class="pc-project"
             :style="{ '--d': `${(i % 2) * 120}ms`, '--rot': `${i % 2 ? 2 : -2}deg`, '--tag': palette[i % palette.length] }"
           >
-            <component :is="pr.url || pr.repo ? 'a' : 'div'" v-bind="pr.url || pr.repo ? { href: pr.url || pr.repo, target: '_blank', rel: 'noopener' } : {}" class="pc-project-inner">
+            <component
+              :is="pr.prototype ? 'button' : pr.url || pr.repo ? 'a' : 'div'"
+              v-bind="pr.prototype ? { type: 'button', 'aria-label': `${t.work.proto.open}: ${pr.title}` } : pr.url || pr.repo ? { href: pr.url || pr.repo, target: '_blank', rel: 'noopener' } : {}"
+              class="pc-project-inner"
+              @click="pr.prototype && show(pr.id)"
+            >
               <div class="pc-cover" :style="{ '--c1': pr.colors[0], '--c2': pr.colors[1] }">
-                <ProjectMock :image="pr.image" :title="pr.title" :layout="pr.layout" :tags="pr.tags" />
+                <ProjectMock :image="pr.image" :title="pr.title" :layout="pr.layout" :tags="pr.tags" :prototype="pr.prototype" />
+                <span v-if="pr.prototype" class="pc-play">▶ {{ t.work.proto.open }}</span>
                 <span v-if="pr.placeholder" class="pc-demo">{{ t.work.demo }}</span>
               </div>
               <div class="pc-project-info">
@@ -250,6 +257,9 @@ async function copyEmail() {
 .pc-project:nth-child(even) { margin-top: 60px; }
 .pc-cover { position: relative; border-bottom: 2px solid #1B1B1B; }
 .pc-cover .mock { border-radius: 0; }
+.pc-project-inner { width: 100%; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.pc-play { position: absolute; right: 14px; bottom: 14px; padding: 8px 14px; border-radius: 999px; background: #1B1B1B; color: var(--cream); font-weight: 800; font-size: .85rem; transition: background .3s, transform .3s; }
+.pc-project:hover .pc-play { background: var(--coral); transform: scale(1.05); }
 .pc-demo { position: absolute; top: 14px; left: 14px; padding: 4px 12px; border-radius: 999px; background: var(--sun); border: 2px solid #1B1B1B; font-weight: 800; font-size: .75rem; text-transform: uppercase; }
 .pc-project-info { padding: 22px 24px 26px; }
 .pc-year { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--tag); border: 1.5px solid #1B1B1B; font-weight: 800; font-size: .8rem; }
