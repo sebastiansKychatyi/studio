@@ -46,6 +46,7 @@ const print = () => window.print()
           <h2>{{ cv.contact }}</h2>
           <ul class="cv-list">
             <li><AppIcon name="mail" /><a :href="`mailto:${email}`">{{ email }}</a></li>
+            <li v-if="p.phone"><AppIcon name="phone" /><a :href="`tel:${p.phone.replace(/\s/g, '')}`">{{ p.phone }}</a></li>
             <li><AppIcon name="web" /><a :href="localePath(`/${p.slug}`)">{{ profileUrl }}</a></li>
             <li v-for="l in links" :key="l.k"><AppIcon :name="l.k" /><a :href="l.href" target="_blank" rel="noopener">{{ l.label }}</a></li>
           </ul>
@@ -60,14 +61,27 @@ const print = () => window.print()
 
         <section>
           <h2>{{ cv.skills }}</h2>
-          <ul class="cv-skills"><li v-for="s in p.skills" :key="s">{{ s }}</li></ul>
+          <template v-if="p.skillGroups.length">
+            <div v-for="g in p.skillGroups" :key="g.k" class="cv-group">
+              <h3>{{ g.k }}</h3>
+              <ul class="cv-skills"><li v-for="s in g.v" :key="s">{{ s }}</li></ul>
+            </div>
+          </template>
+          <ul v-else class="cv-skills"><li v-for="s in p.skills" :key="s">{{ s }}</li></ul>
+        </section>
+
+        <section v-if="p.page.languages.length">
+          <h2>{{ cv.languages }}</h2>
+          <dl class="cv-facts cv-langs">
+            <div v-for="l in p.page.languages" :key="l.k"><dt>{{ l.k }}</dt><dd>{{ l.v }}</dd></div>
+          </dl>
         </section>
       </aside>
 
       <div class="cv-main">
         <header class="cv-head">
           <p class="cv-kicker">{{ cv.title }}</p>
-          <h1>{{ p.name }}</h1>
+          <h1>{{ p.degree ? `${p.degree} ` : '' }}{{ p.name }}</h1>
           <p class="cv-role">{{ p.role }}</p>
         </header>
 
@@ -83,6 +97,16 @@ const print = () => window.print()
             <li v-for="(item, i) in p.page.timeline" :key="i">
               <span>{{ item.year }}</span>
               <div><h3>{{ item.title }}</h3><p>{{ item.text }}</p></div>
+            </li>
+          </ol>
+        </section>
+
+        <section v-if="p.page.education.length">
+          <h2>{{ cv.education }}</h2>
+          <ol class="cv-timeline">
+            <li v-for="(e, i) in p.page.education" :key="i">
+              <span>{{ e.year }}</span>
+              <div><h3>{{ e.title }}</h3><p>{{ e.text }}</p></div>
             </li>
           </ol>
         </section>
@@ -148,7 +172,12 @@ const print = () => window.print()
 .cv-main p + p { margin-top: 6px; }
 .cv-lead { font-weight: 700; }
 .cv-timeline { display: grid; gap: 12px; }
-.cv-timeline li { display: grid; grid-template-columns: 52px 1fr; gap: 12px; }
+.cv-timeline li { display: grid; grid-template-columns: 86px 1fr; gap: 12px; }
+.cv-group + .cv-group { margin-top: 10px; }
+.cv-group h3 { font-size: 8.5pt; font-weight: 800; color: #44444E; margin-bottom: 5px; }
+.cv-langs div { display: flex; justify-content: space-between; gap: 8px; }
+.cv-langs dt { font-size: 9pt; color: #1D1D22; }
+.cv-langs dd { color: var(--cv-accent); }
 .cv-timeline li > span { font-weight: 800; color: var(--cv-accent); font-size: 9.5pt; }
 .cv-timeline h3, .cv-projects h3 { font-size: 10.5pt; font-weight: 800; }
 .cv-timeline p, .cv-projects p { color: #44444E; }

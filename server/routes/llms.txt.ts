@@ -13,7 +13,7 @@ export default defineEventHandler((event) => {
   setHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
   return `# ${site.brand}
 
-> ${site.brand} is a two-person freelance studio based in ${site.location.city}, Slovakia. We build fast websites and web applications (Nuxt, FastAPI), automate business processes with AI and programming (chatbots, document processing, API integrations, automatic reports), do UI/UX design, SEO and GEO (generative engine optimization). Clients in Slovakia, Czech Republic, Ukraine and Hungary. We work in Slovak, Czech and Ukrainian.
+> ${site.brand} is a two-person freelance studio based in ${site.location.city}, Slovakia. We build fast websites and web applications (Nuxt, FastAPI), automate business processes with AI and programming (chatbots, document processing, API integrations, automatic reports), do UI/UX design, SEO and GEO (generative engine optimization). Clients in Slovakia, Czech Republic and Ukraine. We work in Slovak, Czech and Ukrainian.
 
 ## Team
 ${site.people

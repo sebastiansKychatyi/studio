@@ -48,7 +48,11 @@ export function useSiteSeo(person?: Ref<PersonView | undefined>, opts: { cv?: bo
     url: `${home.value}/${p.slug}`,
     jobTitle: p.role,
     description: p.bio,
-    knowsAbout: p.skills,
+    knowsAbout: p.skillGroups.length ? p.skillGroups.flatMap((g) => g.v) : p.skills,
+    ...(p.degree ? { honorificPrefix: p.degree } : {}),
+    ...(p.page.education.length
+      ? { alumniOf: { '@type': 'CollegeOrUniversity', name: 'Constantine the Philosopher University in Nitra' } }
+      : {}),
     knowsLanguage: cfg.languages,
     homeLocation: { '@type': 'Place', name: p.page.facts[0]?.v },
     worksFor: { '@id': `${cfg.domain}/#org` },

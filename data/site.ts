@@ -54,26 +54,43 @@ const site = {
       slug: 'sebastian',
       theme: 'dev' as const,
       name: 'Sebastian Kychatyi',
+      degree: 'Bc.', // титул в резюме
       shortName: 'Sebastian',
       initials: 'SK',
       photo: '', // например '/img/sebastian.jpg' (файл положить в public/img/)
-      email: '', // личный e-mail для страницы; пусто — используется общий email выше
+      // Контакты из резюме — видны на личной странице и в CV. Пусто — используется общий email студии
+      email: 'kichatyisebastian@gmail.com',
+      phone: '+421 951 508 228',
       colors: ['#5B4BFF', '#9F8CFF'] as [string, string],
-      skills: ['HTML/CSS', 'JavaScript', 'Vue / Nuxt', 'Python', 'FastAPI', 'PostgreSQL', 'Docker', 'SEO', 'AI automation', 'n8n'],
-      terminal: ['whoami', 'Sebastian Kychatyi', 'location', 'Nitra, Slovakia', 'stack', 'Nuxt · Python · FastAPI · AI', 'status', 'open to work ✓'],
-      links: { github: 'https://github.com/sebastiansKychatyi', linkedin: '', instagram: '' },
+      // Короткий список (карточка на главной, чипы)
+      skills: ['Python', 'FastAPI', 'Odoo 18', 'PostgreSQL', 'Vue.js / Nuxt 3', 'TypeScript', 'Docker', 'AI automation'],
+      // Полный стек по группам (личная страница и резюме)
+      skillGroups: [
+        { k: 'Backend', v: ['Python', 'FastAPI', 'Odoo 18 (ERP, ORM, OWL)', 'SQLAlchemy', 'Alembic', 'REST API', 'API integrations', 'OAuth2 / JWT', 'Laravel (PHP)'] },
+        { k: 'Frontend', v: ['Vue.js', 'Nuxt 3', 'TypeScript', 'JavaScript', 'Pinia', 'HTML / CSS'] },
+        { k: 'Data & DevOps', v: ['PostgreSQL', 'MySQL', 'Docker / Compose', 'Linux (Ubuntu)', 'Caddy', 'GitHub Actions (CI/CD)', 'Git', 'pytest'] },
+      ],
+      terminal: ['whoami', 'Bc. Sebastian Kychatyi', 'role', 'Python Backend / Full-Stack', 'stack', 'FastAPI · Odoo 18 · PostgreSQL · Nuxt 3', 'status', 'open to work ✓'],
+      links: {
+        github: 'https://github.com/sebastiansKychatyi',
+        linkedin: 'https://www.linkedin.com/in/sebastian-kychatyi-16aa7a272/',
+        instagram: '',
+      },
     },
     {
       id: 'p2' as const,
       slug: 'roman',
       theme: 'creative' as const,
       name: 'Roman', // TODO: фамилия Романа
+      degree: '',
       shortName: 'Roman',
       initials: 'R',
       photo: '',
       email: '',
+      phone: '',
       colors: ['#FF7A59', '#FFB199'] as [string, string],
       skills: ['Figma', 'UI/UX', 'Branding', 'Webflow', 'WordPress', 'Illustrator'],
+      skillGroups: [] as { k: string; v: string[] }[],
       terminal: [] as string[],
       links: { github: '', linkedin: '', instagram: '' },
     },
@@ -82,22 +99,16 @@ const site = {
   // Портфолио. Описание каждого проекта на каждом языке — data/locales/<lang>.ts -> work.projects[id]
   projects: [
     {
-      id: 'fscommerce', title: 'F.S. Commerce', author: 'p1', category: 'web', year: 2026,
-      url: 'https://fscommerce.tech', repo: 'https://github.com/sebastiansKychatyi/fscommerse',
-      image: '/img/projects/fscommerce.jpg', colors: ['#1E4E9A', '#7FC241'], layout: 1,
-      tags: ['HTML', 'CSS', 'JavaScript', 'SEO'],
+      id: 'e-drivebook', title: 'e-Drivebook', author: 'p1', category: 'app', year: 2025,
+      url: 'https://e-drivebook.com', image: '/img/projects/e-drivebook.jpg',
+      colors: ['#2563EB', '#BFDBFE'], layout: 1,
+      tags: ['FastAPI', 'PostgreSQL', 'OAuth2 / JWT', 'Nuxt 3', 'Pinia', 'Docker', 'GitHub Actions'],
     },
     {
       id: 'brtc', title: 'Bratislava Technical Company', author: 'p1', category: 'web', year: 2026,
       url: 'https://brtc.tech', repo: 'https://github.com/sebastiansKychatyi/brtc',
       image: '/img/projects/brtc.jpg', colors: ['#111827', '#3B82F6'], layout: 1,
       tags: ['HTML', 'CSS', 'JavaScript', 'B2B'],
-    },
-    {
-      id: 'azs', title: 'AZS Engineering', author: 'p1', category: 'web', year: 2026,
-      url: 'https://azs-engineering.com', repo: 'https://github.com/sebastiansKychatyi/azs',
-      image: '/img/projects/azs.jpg', colors: ['#1F2937', '#D4A35A'], layout: 1,
-      tags: ['HTML', 'CSS', 'JavaScript', 'HU'],
     },
     {
       id: 'onyx', title: 'ONYX Business Residence', author: 'p1', category: 'web', year: 2026,

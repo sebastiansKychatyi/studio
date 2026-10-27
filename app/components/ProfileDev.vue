@@ -163,18 +163,36 @@ onBeforeUnmount(() => clearTimeout(timer))
           <div class="pd-bio">
             <p v-for="(b, i) in page.bio" :key="i" v-reveal :style="{ '--d': `${i * 100}ms` }">{{ b }}</p>
           </div>
-          <dl v-reveal class="pd-facts" style="--d: 150ms">
-            <div v-for="f in page.facts" :key="f.k">
-              <dt>{{ f.k }}</dt>
-              <dd>{{ f.v }}</dd>
-            </div>
-          </dl>
+          <div class="pd-side">
+            <dl v-reveal class="pd-facts" style="--d: 150ms">
+              <div v-for="f in page.facts" :key="f.k">
+                <dt>{{ f.k }}</dt>
+                <dd>{{ f.v }}</dd>
+              </div>
+            </dl>
+            <dl v-if="page.languages.length" v-reveal class="pd-facts" style="--d: 250ms">
+              <div class="pd-facts-title"><dt>// {{ t.personal.languages }}</dt></div>
+              <div v-for="l in page.languages" :key="l.k">
+                <dt>{{ l.k }}</dt>
+                <dd>{{ l.v }}</dd>
+              </div>
+            </dl>
+          </div>
         </div>
       </section>
 
       <section class="container pd-section">
         <h2 v-reveal class="pd-h2"><span>02.</span> {{ t.personal.stack }}</h2>
-        <ul class="pd-stack">
+        <div v-if="p.skillGroups.length" class="pd-groups">
+          <div v-for="(g, gi) in p.skillGroups" :key="g.k" v-reveal class="pd-group" :style="{ '--d': `${gi * 120}ms` }">
+            <p class="pd-label">{{ g.k.toLowerCase().replace(/[^a-z]+/g, '_') }} = [</p>
+            <ul class="pd-stack">
+              <li v-for="(s, i) in g.v" :key="s"><span>{{ String(i + 1).padStart(2, '0') }}</span>{{ s }}</li>
+            </ul>
+            <p class="pd-label">]</p>
+          </div>
+        </div>
+        <ul v-else class="pd-stack">
           <li v-for="(s, i) in p.skills" :key="s" v-reveal :style="{ '--d': `${i * 50}ms` }">
             <span>{{ String(i + 1).padStart(2, '0') }}</span>{{ s }}
           </li>
@@ -221,6 +239,17 @@ onBeforeUnmount(() => clearTimeout(timer))
         </ol>
       </section>
 
+      <section v-if="page.education.length" class="container pd-section">
+        <h2 v-reveal class="pd-h2"><span>05.</span> {{ t.personal.education }}</h2>
+        <div class="pd-edu">
+          <article v-for="(e, i) in page.education" :key="i" v-reveal :style="{ '--d': `${i * 120}ms` }">
+            <span class="pd-when">{{ e.year }}</span>
+            <h3>{{ e.title }}</h3>
+            <p>{{ e.text }}</p>
+          </article>
+        </div>
+      </section>
+
       <section id="pd-contact" class="container pd-section pd-contact">
         <div v-reveal class="pd-contact-card">
           <p class="pd-label">$ mail --to {{ p.shortName.toLowerCase() }}</p>
@@ -231,6 +260,11 @@ onBeforeUnmount(() => clearTimeout(timer))
             <button type="button" class="btn btn-ghost btn-sm" @click="copyEmail">
               <AppIcon name="copy" /> {{ copied ? t.personal.copied : t.personal.copy }}
             </button>
+          </div>
+          <div class="pd-mail-more">
+            <a v-if="p.phone" :href="`tel:${p.phone.replace(/\s/g, '')}`"><AppIcon name="phone" /> {{ p.phone }}</a>
+            <a v-if="p.links.linkedin" :href="p.links.linkedin" target="_blank" rel="noopener"><AppIcon name="linkedin" /> LinkedIn</a>
+            <a v-if="p.links.github" :href="p.links.github" target="_blank" rel="noopener"><AppIcon name="github" /> GitHub</a>
           </div>
         </div>
       </section>
@@ -330,6 +364,19 @@ onBeforeUnmount(() => clearTimeout(timer))
 .pd-facts dt { color: var(--muted); }
 .pd-facts dd { font-weight: 600; }
 
+.pd-side { display: grid; gap: 16px; }
+.pd-facts-title { background: #F7F8FB; }
+.pd-facts-title dt { color: var(--pd-accent); font-weight: 700; }
+.pd-groups { display: grid; gap: 26px; }
+.pd-group .pd-label { margin: 0; }
+.pd-group .pd-stack { margin: 10px 0 10px 22px; }
+.pd-edu { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.pd-edu article { padding: 22px; border-radius: 18px; background: #fff; border: 1px solid var(--line); }
+.pd-edu h3 { margin: 6px 0 4px; }
+.pd-edu p { color: var(--ink-2); }
+.pd-mail-more { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.pd-mail-more a { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line-2); font-weight: 700; transition: background .25s, color .25s; }
+.pd-mail-more a:hover { background: var(--ink); color: #fff; }
 .pd-stack { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .pd-stack li {
   display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-radius: 14px; background: #fff; border: 1px solid var(--line);
