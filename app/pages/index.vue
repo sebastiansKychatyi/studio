@@ -14,6 +14,7 @@ useSiteSeo()
       <AiSection />
       <ServicesSection />
       <WorkSection />
+      <LabSection />
       <ProcessSection />
       <FaqSection />
       <ContactSection />

@@ -1,23 +1,32 @@
 import type { PersonView } from './useSite'
 
 // SEO + GEO: meta-теги, hreflang, Open Graph, Geo-теги и schema.org (JSON-LD).
-// Без аргумента — общая страница студии; с person — личная страница.
-export function useSiteSeo(person?: Ref<PersonView | undefined>) {
+// Без аргумента — общая страница студии; с person — личная страница; cv: true — страница-резюме человека.
+export function useSiteSeo(person?: Ref<PersonView | undefined>, opts: { cv?: boolean } = {}) {
   const { t, cfg, all, people, projects } = useSite()
   const { locale } = useI18n()
   const i18nHead = useLocaleHead({ seo: true })
 
   const home = computed(() => `${cfg.domain}/${locale.value}`)
-  const url = computed(() => (person?.value ? `${home.value}/${person.value.slug}` : home.value))
-  const title = computed(() => person?.value?.page.metaTitle ?? t.value.meta.title)
+  const url = computed(() =>
+    person?.value ? `${home.value}/${person.value.slug}${opts.cv ? '/cv' : ''}` : home.value
+  )
+  const title = computed(() => {
+    const p = person?.value
+    if (!p) return t.value.meta.title
+    return opts.cv ? `${t.value.personal.cv.metaTitle} — ${p.name}, ${p.role}` : p.page.metaTitle
+  })
   const description = computed(() => person?.value?.page.metaDescription ?? t.value.meta.description)
-  const ogTitle = computed(() => person?.value?.page.metaTitle ?? t.value.meta.ogTitle)
-  const ogImage = `${cfg.domain}/og-image.png`
+  const ogTitle = computed(() => (person?.value ? title.value : t.value.meta.ogTitle))
+  // У каждого человека своя картинка-превью для соцсетей: public/og-<slug>.png
+  const ogImage = computed(() => `${cfg.domain}/${person?.value ? `og-${person.value.slug}` : 'og-image'}.png`)
   const countryNames: Record<string, string> = { SK: 'Slovakia', CZ: 'Czech Republic', UA: 'Ukraine' }
 
   useSeoMeta({
     title,
     description,
+    // Резюме дублирует личную страницу — не индексируем, чтобы не конкурировать с ней в поиске
+    robots: opts.cv ? 'noindex, follow' : undefined,
     author: () => person?.value?.name ?? people.value.map((p) => p.name).join(', '),
     ogType: () => (person?.value ? 'profile' : 'website'),
     ogSiteName: cfg.brand,
@@ -72,7 +81,7 @@ export function useSiteSeo(person?: Ref<PersonView | undefined>) {
     name: cfg.brand,
     url: `${cfg.domain}/`,
     logo: `${cfg.domain}/favicon.svg`,
-    image: ogImage,
+    image: `${cfg.domain}/og-image.png`,
     description: t.value.meta.description,
     email: cfg.email,
     telephone: cfg.phone,

@@ -132,6 +132,7 @@ onBeforeUnmount(() => clearTimeout(timer))
           <p class="pd-intro fade-in" style="--d: 450ms">{{ page.intro }}</p>
           <div class="pd-cta fade-in" style="--d: 550ms">
             <a v-magnetic class="btn btn-primary" href="#pd-contact">{{ t.personal.contact }} <AppIcon name="arrow" /></a>
+            <NuxtLink v-magnetic class="btn btn-ghost" :to="localePath(`/${p.slug}/cv`)"><AppIcon name="doc" /> {{ t.personal.cv.open }}</NuxtLink>
             <a v-if="p.links.github" v-magnetic class="btn btn-ghost" :href="p.links.github" target="_blank" rel="noopener">
               <AppIcon name="github" /> GitHub
             </a>

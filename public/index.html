@@ -13,46 +13,8 @@
   <link rel="alternate" hreflang="x-default" href="https://duostudio.sk/sk">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <meta name="theme-color" content="#F6F5F1">
-  <!--
-    Корень сайта выбирает язык:
-    1) язык, который посетитель выбрал сам (cookie "lang")
-    2) страна по IP: SK -> sk, CZ -> cs, UA -> uk  (api.country.is)
-    3) язык браузера
-    4) словацкий по умолчанию
-  -->
-  <script>
-    (function () {
-      var langs = ['sk', 'cs', 'uk'];
-      var byCountry = { SK: 'sk', CZ: 'cs', UA: 'uk' };
-      var done = false;
-      function go(lang) {
-        if (done) return;
-        done = true;
-        location.replace('/' + (langs.indexOf(lang) > -1 ? lang : 'sk') + location.hash);
-      }
-      function byBrowser() {
-        var nav = navigator.languages || [navigator.language || ''];
-        for (var i = 0; i < nav.length; i++) {
-          var c = String(nav[i]).slice(0, 2).toLowerCase();
-          if (c === 'cs') return 'cs';
-          if (c === 'uk' || c === 'ru') return 'uk';
-          if (c === 'sk') return 'sk';
-        }
-        return 'sk';
-      }
-      var m = document.cookie.match(/(?:^|; )lang=([a-z]+)/);
-      if (m && langs.indexOf(m[1]) > -1) return go(m[1]);
-
-      setTimeout(function () { go(byBrowser()); }, 2000); // если геосервис не ответил
-      fetch('https://api.country.is/')
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          try { sessionStorage.setItem('geo_country', d.country || ''); } catch (e) {}
-          go(byCountry[d.country] || byBrowser());
-        })
-        .catch(function () { go(byBrowser()); });
-    })();
-  </script>
+  <!-- Выбор языка по стране посетителя: см. /go.js -->
+  <script src="/go.js" data-path=""></script>
   <style>
     body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #F6F5F1; color: #121216; font-family: system-ui, sans-serif; }
     nav { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; padding: 16px; }

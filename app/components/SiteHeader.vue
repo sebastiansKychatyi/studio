@@ -2,7 +2,7 @@
 const { t, cfg } = useSite()
 const localePath = useLocalePath()
 
-const navItems = ['about', 'ai', 'services', 'work', 'faq'] as const
+const navItems = ['about', 'ai', 'work', 'lab', 'faq'] as const
 const open = ref(false)
 const scrolled = ref(false)
 const progress = ref(0)

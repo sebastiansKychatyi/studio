@@ -68,6 +68,7 @@ async function copyEmail() {
           <span v-for="(ch, i) in letters" :key="i" class="pc-letter" :style="{ '--i': i }" aria-hidden="true">{{ ch }}</span>
         </h1>
         <p class="pc-headline fade-in" style="--d: 500ms">{{ page.headline }}</p>
+        <NuxtLink class="pc-cv fade-in" style="--d: 650ms" :to="localePath(`/${p.slug}/cv`)"><AppIcon name="doc" /> {{ t.personal.cv.open }}</NuxtLink>
 
         <a href="#pc-contact" class="pc-sticker fade-in" style="--d: 700ms" :aria-label="t.personal.sayHi">
           <svg viewBox="0 0 200 200" aria-hidden="true">
@@ -170,7 +171,7 @@ async function copyEmail() {
 .pc {
   --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --cream: #FFF7EE; --coral: #FF7A59; --sun: #FFC94A; --lilac: #B9A8FF; --mint: #9BE7C4;
-  min-height: 100vh; background: var(--cream); color: #1B1B1B; overflow-x: hidden; position: relative;
+  min-height: 100vh; background: var(--cream); color: #1B1B1B; overflow-x: clip; position: relative;
 }
 .pc-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; position: relative; z-index: 5; }
 .pc-back { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; padding: 8px 16px 8px 12px; border-radius: 999px; border: 1.5px solid #1B1B1B; transition: background .25s, color .25s; }
@@ -194,6 +195,12 @@ async function copyEmail() {
 @keyframes wiggle { 30% { transform: rotate(-10deg) scale(1.1); } 60% { transform: rotate(6deg); } }
 .pc-headline { font-family: var(--serif); font-size: clamp(1.4rem, 3vw, 2.4rem); line-height: 1.2; max-width: 760px; position: relative; z-index: 2; }
 
+.pc-cv {
+  position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; padding: 14px 24px;
+  border-radius: 999px; background: #fff; border: 2px solid #1B1B1B; box-shadow: 4px 4px 0 #1B1B1B; font-weight: 800;
+  transition: transform .3s cubic-bezier(.34, 1.56, .64, 1), box-shadow .3s, background .3s;
+}
+.pc-cv:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #1B1B1B; background: var(--sun); }
 .pc-shapes { position: absolute; inset: 0; pointer-events: none; }
 .pc-shape { position: absolute; transition: translate .6s cubic-bezier(.2, .8, .2, 1); }
 .s-circle { width: clamp(120px, 18vw, 240px); aspect-ratio: 1; border-radius: 50%; background: var(--sun); right: 6%; top: 8%; animation: spinSlow 30s linear infinite; }

@@ -5,7 +5,8 @@ const route = useRoute()
 const localePath = useLocalePath()
 const { remember } = useLangChoice()
 // Переключение на ту же страницу в другом языке (без #якоря — иначе SSR и клиент дают разные ссылки)
-const target = (l: (typeof cfg.languages)[number]) => localePath(route.params.slug ? `/${route.params.slug}` : '/', l)
+const rest = computed(() => route.path.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '/')
+const target = (l: (typeof cfg.languages)[number]) => localePath(rest.value, l)
 </script>
 
 <template>

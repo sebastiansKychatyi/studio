@@ -1,9 +1,10 @@
 import site from '../../data/site'
+import { concepts } from '../../data/concepts'
 
 // sitemap.xml с hreflang-альтернативами: общая страница + личные страницы на каждом языке
 export default defineEventHandler((event) => {
   const today = new Date().toISOString().slice(0, 10)
-  const paths = ['', ...site.people.map((p) => `/${p.slug}`)]
+  const paths = ['', ...site.people.map((p) => `/${p.slug}`), ...concepts.map((c) => `/lab/${c.id}`)]
 
   const entries = paths.flatMap((path) => {
     const alternates = site.languages

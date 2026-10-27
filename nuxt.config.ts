@@ -1,4 +1,5 @@
 import site from './data/site'
+import { concepts } from './data/concepts'
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-01',
@@ -46,7 +47,11 @@ export default defineNuxtConfig({
     prerender: {
       crawlLinks: true,
       routes: [
-        ...site.languages.flatMap((l) => [`/${l}`, ...site.people.map((p) => `/${l}/${p.slug}`)]),
+        ...site.languages.flatMap((l) => [
+          `/${l}`,
+          ...site.people.flatMap((p) => [`/${l}/${p.slug}`, `/${l}/${p.slug}/cv`]),
+          ...concepts.map((c) => `/${l}/lab/${c.id}`),
+        ]),
         '/sitemap.xml',
         '/robots.txt',
         '/llms.txt',

@@ -59,21 +59,21 @@ const site = {
       photo: '', // например '/img/sebastian.jpg' (файл положить в public/img/)
       email: '', // личный e-mail для страницы; пусто — используется общий email выше
       colors: ['#5B4BFF', '#9F8CFF'] as [string, string],
-      skills: ['HTML/CSS', 'JavaScript', 'Vue / Nuxt', 'Python', 'FastAPI', 'PostgreSQL', 'Docker', 'SEO', 'AI automatizácia'],
+      skills: ['HTML/CSS', 'JavaScript', 'Vue / Nuxt', 'Python', 'FastAPI', 'PostgreSQL', 'Docker', 'SEO', 'AI automation', 'n8n'],
       terminal: ['whoami', 'Sebastian Kychatyi', 'location', 'Nitra, Slovakia', 'stack', 'Nuxt · Python · FastAPI · AI', 'status', 'open to work ✓'],
       links: { github: 'https://github.com/sebastiansKychatyi', linkedin: '', instagram: '' },
     },
     {
       id: 'p2' as const,
-      slug: 'daniel', // TODO: имя друга латиницей
+      slug: 'roman',
       theme: 'creative' as const,
-      name: 'Daniel', // TODO: имя и фамилия друга
-      shortName: 'Daniel',
-      initials: 'D',
+      name: 'Roman', // TODO: фамилия Романа
+      shortName: 'Roman',
+      initials: 'R',
       photo: '',
       email: '',
       colors: ['#FF7A59', '#FFB199'] as [string, string],
-      skills: ['Figma', 'UI/UX', 'Branding', 'Webflow', 'WordPress', 'Ilustrácia'],
+      skills: ['Figma', 'UI/UX', 'Branding', 'Webflow', 'WordPress', 'Illustrator'],
       terminal: [] as string[],
       links: { github: '', linkedin: '', instagram: '' },
     },

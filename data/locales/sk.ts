@@ -16,7 +16,7 @@ export default {
   geoHint: { text: 'Vyzerá to, že ste zo Slovenska.', action: 'Prepnúť na slovenčinu', close: 'Zavrieť' },
 
   skip: 'Preskočiť na obsah',
-  nav: { about: 'O nás', services: 'Služby', ai: 'AI automatizácia', work: 'Portfólio', process: 'Proces', faq: 'FAQ', contact: 'Kontakt', cta: 'Napíšte nám', menu: 'Menu' },
+  nav: { about: 'O nás', services: 'Služby', ai: 'AI automatizácia', work: 'Portfólio', lab: 'Lab', process: 'Proces', faq: 'FAQ', contact: 'Kontakt', cta: 'Napíšte nám', menu: 'Menu' },
 
   hero: {
     badge: 'Prijímame nové projekty',
@@ -110,6 +110,23 @@ export default {
     },
   },
 
+  lab: {
+    eyebrow: 'Lab · Koncepty',
+    title: 'Na čo sme schopní.',
+    text: 'Koncepty webov pre fiktívne značky v úplne odlišných štýloch. Klikajte, skúšajte — všetko je interaktívne.',
+    open: 'Otvoriť koncept',
+    badge: 'Koncept — fiktívna značka',
+    back: 'Späť na Duo Studio',
+    next: 'Ďalší koncept',
+    cta: 'Chcem podobný web',
+    items: {
+      noir: { type: 'Reštaurácia · fine dining', desc: 'Tmavý elegantný web s kreslenými animáciami, menu s náhľadom za kurzorom a rezerváciou stola.' },
+      pulse: { type: 'SaaS · AI analytika', desc: 'Svetlý startup web so živým dashboardom, AI chatom a prepínačom cien.' },
+      kinetic: { type: 'E-shop · streetwear', desc: 'Brutalistický e-shop s funkčným košíkom, výberom veľkosti a odvážnou typografiou.' },
+      verde: { type: 'Reality · eko bývanie', desc: 'Prírodný web developerského projektu s parallaxou a interaktívnym výberom bytov.' },
+    },
+  },
+
   process: {
     eyebrow: 'Proces',
     title: 'Ako spolu pracujeme.',
@@ -158,7 +175,7 @@ export default {
     top: 'Hore',
   },
 
-  // Osobné stránky (/sk/sebastian, /sk/daniel)
+  // Osobné stránky (/sk/sebastian, /sk/roman)
   personal: {
     back: 'Späť na štúdio',
     hello: 'Ahoj, som',
@@ -174,6 +191,20 @@ export default {
     copied: 'Skopírované ✓',
     sayHi: 'Povedzme si ahoj',
     sticker: 'UI/UX • BRANDING • WEB • DIZAJN • ',
+    cv: {
+      open: 'Životopis (CV)',
+      title: 'Životopis',
+      download: 'Stiahnuť PDF',
+      fullProfile: 'Celý profil',
+      summary: 'Profil',
+      skills: 'Zručnosti',
+      experience: 'Skúsenosti a projekty',
+      projects: 'Vybrané projekty',
+      info: 'Informácie',
+      contact: 'Kontakt',
+      web: 'Web',
+      metaTitle: 'Životopis',
+    },
     people: {
       p1: {
         metaTitle: 'Sebastian Kychatyi — web developer a AI automatizácia | Nitra',
@@ -196,8 +227,8 @@ export default {
         ],
       },
       p2: {
-        metaTitle: 'Daniel — UI/UX dizajnér | Duo Studio',
-        metaDescription: 'Daniel, UI/UX dizajnér v Duo Studio: návrh webov a aplikácií, branding a prototypy vo Figme. Portfólio a kontakt.',
+        metaTitle: 'Roman — UI/UX dizajnér | Duo Studio',
+        metaDescription: 'Roman, UI/UX dizajnér v Duo Studio: návrh webov a aplikácií, branding a prototypy vo Figme. Portfólio a kontakt.',
         headline: 'Navrhujem rozhrania, ktoré si ľudia zapamätajú.',
         intro: 'UI/UX dizajnér, ktorý verí, že dobrý dizajn je ten, ktorý si nevšimnete — proste funguje. (Doplňte vlastný text.)',
         bio: [
