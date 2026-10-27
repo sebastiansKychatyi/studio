@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Duo Studio — weby, AI automatizácia, SEO a GEO</title>
+  <meta name="description" content="Duo Studio — tvorba webov a aplikácií, AI automatizácia, UI/UX dizajn, SEO a GEO. Slovenčina · Čeština · Українська.">
+  <meta name="robots" content="noindex, follow">
+  <link rel="canonical" href="https://duostudio.sk/sk">
+  <link rel="alternate" hreflang="sk" href="https://duostudio.sk/sk">
+  <link rel="alternate" hreflang="cs" href="https://duostudio.sk/cs">
+  <link rel="alternate" hreflang="uk" href="https://duostudio.sk/uk">
+  <link rel="alternate" hreflang="x-default" href="https://duostudio.sk/sk">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#F6F5F1">
+  <!--
+    Корень сайта выбирает язык:
+    1) язык, который посетитель выбрал сам (cookie "lang")
+    2) страна по IP: SK -> sk, CZ -> cs, UA -> uk  (api.country.is)
+    3) язык браузера
+    4) словацкий по умолчанию
+  -->
+  <script>
+    (function () {
+      var langs = ['sk', 'cs', 'uk'];
+      var byCountry = { SK: 'sk', CZ: 'cs', UA: 'uk' };
+      var done = false;
+      function go(lang) {
+        if (done) return;
+        done = true;
+        location.replace('/' + (langs.indexOf(lang) > -1 ? lang : 'sk') + location.hash);
+      }
+      function byBrowser() {
+        var nav = navigator.languages || [navigator.language || ''];
+        for (var i = 0; i < nav.length; i++) {
+          var c = String(nav[i]).slice(0, 2).toLowerCase();
+          if (c === 'cs') return 'cs';
+          if (c === 'uk' || c === 'ru') return 'uk';
+          if (c === 'sk') return 'sk';
+        }
+        return 'sk';
+      }
+      var m = document.cookie.match(/(?:^|; )lang=([a-z]+)/);
+      if (m && langs.indexOf(m[1]) > -1) return go(m[1]);
+
+      setTimeout(function () { go(byBrowser()); }, 2000); // если геосервис не ответил
+      fetch('https://api.country.is/')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          try { sessionStorage.setItem('geo_country', d.country || ''); } catch (e) {}
+          go(byCountry[d.country] || byBrowser());
+        })
+        .catch(function () { go(byBrowser()); });
+    })();
+  </script>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #F6F5F1; color: #121216; font-family: system-ui, sans-serif; }
+    nav { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; padding: 16px; }
+    a { padding: 14px 22px; border-radius: 999px; background: #fff; border: 1px solid rgba(0, 0, 0, .1); color: inherit; text-decoration: none; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <nav aria-label="Language">
+    <a href="/sk" hreflang="sk" lang="sk">Slovenčina</a>
+    <a href="/cs" hreflang="cs" lang="cs">Čeština</a>
+    <a href="/uk" hreflang="uk" lang="uk">Українська</a>
+  </nav>
+</body>
+</html>
