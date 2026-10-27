@@ -98,6 +98,7 @@ const cs: typeof sk = {
     live: 'Web',
     code: 'GitHub',
     demo: 'Ukázka',
+    proto: { open: 'Otevřít prototyp', hint: 'Klikací prototyp — zkuste klikat', close: 'Zavřít' },
     projects: {
       'e-drivebook': { desc: 'Můj SaaS pro autoškoly: online rezervace jízd 24/7, rozvrhy instruktorů, vozidla, evidence žáků a testy na zkoušku. V produkci — denně ho používají 3 platící autoškoly.' },
       brtc: { desc: 'Firemní web technické společnosti s katalogem kompresorových řešení pro průmysl.' },
@@ -105,8 +106,9 @@ const cs: typeof sk = {
       'hodinovy-manzel': { desc: 'Landing page pro údržbáře v Nitře — služby po místnostech, ceník, reference a formulář bez backendu.' },
       amstars: { desc: 'Bakalářská práce: platforma pro amatérský fotbal — týmy, výzvy k zápasům, ELO rating a turnaje.' },
       'travel-planner': { desc: 'REST API pro plánování cest po uměleckých dílech, ověřované přes živé API Art Institute of Chicago.' },
-      'nordic-living': { desc: 'Vizuální identita a UI kit pro značku skandinávského nábytku.' },
-      'slnecne-byty': { desc: 'UX návrh a prototyp webu pro developerský projekt s výběrem bytů.' },
+      'nordic-living': { desc: 'Koncept e-shopu se skandinávským nábytkem: katalog, detail produktu s výběrem barvy, košík a UI kit.' },
+      'slnecne-byty': { desc: 'Mobilní aplikace developerského projektu: výběr bytu, galerie, půdorys a rezervace prohlídky.' },
+      fitflow: { desc: 'Fitness aplikace s kroužky aktivity, tréninkovým časovačem a tmavým režimem.' },
     },
   },
 

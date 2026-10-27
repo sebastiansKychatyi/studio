@@ -97,6 +97,7 @@ export default {
     live: 'Web',
     code: 'GitHub',
     demo: 'Ukážka',
+    proto: { open: 'Otvoriť prototyp', hint: 'Klikateľný prototyp — skúste klikať', close: 'Zavrieť' },
     projects: {
       'e-drivebook': { desc: 'Môj SaaS pre autoškoly: online rezervácie jázd 24/7, rozvrhy inštruktorov, vozidlá, evidencia žiakov a testy na skúšku. V produkcii — denne ho používajú 3 platiace autoškoly.' },
       brtc: { desc: 'Firemný web technickej spoločnosti s katalógom kompresorových riešení pre priemysel.' },
@@ -104,8 +105,9 @@ export default {
       'hodinovy-manzel': { desc: 'Landing page pre údržbára v Nitre — služby po miestnostiach, cenník, referencie a formulár bez backendu.' },
       amstars: { desc: 'Bakalárska práca: platforma pre amatérsky futbal — tímy, výzvy na zápasy, ELO rating a turnaje.' },
       'travel-planner': { desc: 'REST API na plánovanie ciest po umeleckých dielach, overované cez živé API Art Institute of Chicago.' },
-      'nordic-living': { desc: 'Vizuálna identita a UI kit pre značku škandinávskeho nábytku.' },
-      'slnecne-byty': { desc: 'UX návrh a prototyp webu pre developerský projekt s výberom bytov.' },
+      'nordic-living': { desc: 'Koncept e-shopu so škandinávskym nábytkom: katalóg, detail produktu s výberom farby, košík a UI kit.' },
+      'slnecne-byty': { desc: 'Mobilná aplikácia developerského projektu: výber bytu, galéria, pôdorys a rezervácia obhliadky.' },
+      fitflow: { desc: 'Fitness aplikácia s krúžkami aktivity, tréningovým časovačom a tmavým režimom.' },
     },
   },
 

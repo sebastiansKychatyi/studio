@@ -16,6 +16,7 @@ export interface Project {
   layout: 1 | 2 | 3 | 4 // 4 = «код/API»-макет
   tags: string[]
   placeholder?: boolean // заглушка — показывается с пометкой «Ukážka»
+  prototype?: 'nordic' | 'byty' | 'fitflow' // кликабельный прототип в окне (app/components/Proto*.vue)
 }
 
 const site = {
@@ -134,14 +135,18 @@ const site = {
       colors: ['#0EA5E9', '#BAE6FD'], layout: 4,
       tags: ['FastAPI', 'SQLAlchemy', 'Pydantic', 'httpx'],
     },
-    // TODO: проекты друга — замените заглушки на реальные
+    // Дизайн-концепты Романа с кликабельными прототипами (окно по клику). TODO: замените на реальные работы
     {
       id: 'nordic-living', title: 'Nordic Living', author: 'p2', category: 'design', year: 2026,
-      colors: ['#64748B', '#E2E8F0'], layout: 2, tags: ['Figma', 'UI Kit', 'Branding'], placeholder: true,
+      colors: ['#64748B', '#E2E8F0'], layout: 2, tags: ['Figma', 'UI Kit', 'E-shop'], placeholder: true, prototype: 'nordic',
     },
     {
       id: 'slnecne-byty', title: 'Slnečné Byty', author: 'p2', category: 'design', year: 2026,
-      colors: ['#EAB308', '#FEF3C7'], layout: 3, tags: ['UI/UX', 'Prototyp', 'Webflow'], placeholder: true,
+      colors: ['#EAB308', '#FEF3C7'], layout: 3, tags: ['Mobile app', 'UX', 'Prototyp'], placeholder: true, prototype: 'byty',
+    },
+    {
+      id: 'fitflow', title: 'FitFlow', author: 'p2', category: 'design', year: 2026,
+      colors: ['#FF5A36', '#FFD3C7'], layout: 3, tags: ['Mobile app', 'Dark mode', 'Motion'], placeholder: true, prototype: 'fitflow',
     },
   ] as Project[],
 }
