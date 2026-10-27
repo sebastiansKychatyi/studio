@@ -38,9 +38,9 @@ Target cities in priority order: **Bratislava, Nitra → Prague → Kyiv, Uzhhor
 
 | For | Link | Opens |
 |---|---|---|
-| Clients / social media | `duostudio.sk/roman` | Roman's personal page in the visitor's language |
-| Employers | `duostudio.sk/roman/cv` | Roman's résumé (downloadable as PDF) |
-| Same for Sebastian | `duostudio.sk/sebastian`, `/sebastian/cv` | |
+| Clients / social media | `studio.k2drive.com/roman` | Roman's personal page in the visitor's language |
+| Employers | `studio.k2drive.com/roman/cv` | Roman's résumé (downloadable as PDF) |
+| Same for Sebastian | `studio.k2drive.com/sebastian`, `/sebastian/cv` | |
 
 - Short links are files `public/<slug>/index.html` and `public/<slug>/cv/index.html` (they pick the language via `public/go.js`). If you change a person's `slug`, rename these folders too.
 - Link previews (Telegram, LinkedIn, Messenger) show the person's name and role: `public/og-sebastian.png`, `public/og-roman.png`.
