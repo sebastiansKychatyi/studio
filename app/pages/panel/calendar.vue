@@ -1,11 +1,13 @@
 <script setup lang="ts">
 // Personal planner: week (hour grid) and month views, weekly repeating events, kanban deadlines.
-import type { EventDraft, TeamDue, TeamEvent } from '~/composables/useTeam'
+// Calendars other people shared with you can be overlaid (read-only).
+import { eventOccursOn as occursOn, type EventDraft, type TeamDue, type TeamEvent, type TeamUser } from '~/composables/useTeam'
 
 const { t } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
-const { api } = useTeam()
+const { api, events } = useTeam() // own events are shared with the reminder ringer
+const { pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
 const c = computed(() => t.value.panel.calendar)
@@ -28,29 +30,49 @@ const now = ref(new Date())
 const today = computed(() => ymd(now.value))
 let clock: ReturnType<typeof setInterval> | undefined
 
-// View + anchor day, view remembered per browser
-const VIEW = 'team-calendar-view'
-const view = ref<'week' | 'month'>('week')
+// View (account setting) + anchor day
+const view = pref<'week' | 'month'>('calendarView', 'week')
+const openBoards = pref<number[]>('kanbanBoards', [])
 const anchor = ref(ymd(new Date()))
-watch(view, (v) => {
-  try { localStorage.setItem(VIEW, v) } catch { /* private mode */ }
-})
 
-const events = ref<TeamEvent[]>([])
+// Shared calendars: who let me see theirs, which ones are overlaid (account setting)
+const sharedToMe = ref<TeamUser[]>([])
+const overlay = pref<number[]>('calendarOverlay', [])
+const othersEvents = ref<Record<number, TeamEvent[]>>({})
+async function loadOthers() {
+  const ids = overlay.value.filter((id) => sharedToMe.value.some((u) => u.id === id))
+  const lists = await Promise.all(ids.map((id) => api<TeamEvent[]>('/events', { query: { user: id } }).catch(() => [])))
+  othersEvents.value = Object.fromEntries(ids.map((id, i) => [id, lists[i]!]))
+}
+function toggleOverlay(id: number) {
+  overlay.value = overlay.value.includes(id) ? overlay.value.filter((x) => x !== id) : [...overlay.value, id]
+  loadOthers().catch(fail)
+}
+const ownerOf = (id: number) => sharedToMe.value.find((u) => u.id === id)
+const initial = (u?: TeamUser) => (u?.name || u?.username || '?').charAt(0).toUpperCase()
+
 const due = ref<TeamDue[]>([])
 const loading = ref(true)
 const failed = ref(false)
 
 // Visible range
-const weekStart = computed(() => mondayOf(anchor.value))
-const weekDays = computed(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart.value, i)))
+// Phones show 3 days from the anchor instead of the whole week
+const phone = ref(false)
+onMounted(() => {
+  const mq = matchMedia('(max-width: 640px)')
+  phone.value = mq.matches
+  mq.addEventListener('change', (e) => (phone.value = e.matches))
+})
+const span = computed(() => (phone.value ? 3 : 7))
+const weekStart = computed(() => (phone.value ? anchor.value : mondayOf(anchor.value)))
+const weekDays = computed(() => Array.from({ length: span.value }, (_, i) => addDays(weekStart.value, i)))
 const monthStart = computed(() => `${anchor.value.slice(0, 7)}-01`)
 const monthDays = computed(() => {
   const first = mondayOf(monthStart.value)
   return Array.from({ length: 42 }, (_, i) => addDays(first, i))
 })
 const range = computed(() =>
-  view.value === 'week' ? [weekDays.value[0]!, weekDays.value[6]!] : [monthDays.value[0]!, monthDays.value[41]!]
+  view.value === 'week' ? [weekDays.value[0]!, weekDays.value.at(-1)!] : [monthDays.value[0]!, monthDays.value[41]!]
 )
 
 function fail(err: unknown) {
@@ -64,8 +86,14 @@ async function loadDue() {
 }
 async function load() {
   try {
-    const [list] = await Promise.all([api<TeamEvent[]>('/events'), loadDue()])
+    const [list, access] = await Promise.all([
+      api<TeamEvent[]>('/events'),
+      api<{ shared_to_me: TeamUser[] }>('/calendar/access'),
+      loadDue(),
+    ])
     events.value = list
+    sharedToMe.value = access.shared_to_me
+    await loadOthers()
   } catch (err) {
     fail(err)
   } finally {
@@ -75,18 +103,18 @@ async function load() {
 watch(range, () => loadDue().catch(fail))
 
 // Occurrences of events on one day
-interface Occ { ev: TeamEvent; date: string; start: number; end: number; lane: number; lanes: number }
-function occursOn(e: TeamEvent, day: string) {
-  if (e.repeat === 'none') return e.date === day
-  return day >= e.date && (!e.until || day <= e.until) && e.days.includes(asDate(day).getDay()) && !e.skip.includes(day)
-}
+interface Occ { ev: TeamEvent; date: string; start: number; end: number; lane: number; lanes: number; owner: number | null }
 const byDay = computed(() => {
   const map = new Map<string, Occ[]>()
   const days = view.value === 'week' ? weekDays.value : monthDays.value
   for (const day of days) {
-    const list = events.value
-      .filter((e) => occursOn(e, day))
-      .map((ev) => ({ ev, date: day, start: toMin(ev.start), end: toMin(ev.end), lane: 0, lanes: 1 }))
+    const all: [TeamEvent, number | null][] = [
+      ...events.value.map((e): [TeamEvent, null] => [e, null]),
+      ...Object.entries(othersEvents.value).flatMap(([id, list]) => list.map((e): [TeamEvent, number] => [e, Number(id)])),
+    ]
+    const list = all
+      .filter(([e]) => occursOn(e, day))
+      .map(([ev, owner]) => ({ ev, date: day, start: toMin(ev.start), end: toMin(ev.end), lane: 0, lanes: 1, owner }))
       .sort((a, b) => a.start - b.start || b.end - a.end)
     // Overlapping events share the width: lanes inside each overlap group
     let group: Occ[] = []
@@ -113,21 +141,22 @@ const dueByDay = computed(() => {
   for (const d of due.value) map.set(d.due_date, [...(map.get(d.due_date) ?? []), d])
   return map
 })
-const busy = (day: string) => (byDay.value.get(day) ?? []).reduce((s, o) => s + (o.end - o.start), 0)
+const busy = (day: string) => (byDay.value.get(day) ?? []).filter((o) => o.owner === null).reduce((s, o) => s + (o.end - o.start), 0)
 
 // Labels
 const title = computed(() => {
   if (view.value === 'month') return asDate(monthStart.value).toLocaleDateString(locale.value, { month: 'long', year: 'numeric' })
   const a = asDate(weekDays.value[0]!)
-  const b = asDate(weekDays.value[6]!)
+  const b = asDate(weekDays.value.at(-1)!)
   const sameMonth = a.getMonth() === b.getMonth()
   return `${a.toLocaleDateString(locale.value, sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'short' })} – ${b.toLocaleDateString(locale.value, { day: 'numeric', month: 'short', year: 'numeric' })}`
 })
 const weekdayShort = (day: string) => asDate(day).toLocaleDateString(locale.value, { weekday: 'short' })
 const weekLabels = computed(() => weekDays.value.map(weekdayShort))
+const monthLabels = computed(() => monthDays.value.slice(0, 7).map(weekdayShort))
 
 function shift(n: number) {
-  anchor.value = view.value === 'week' ? addDays(anchor.value, n * 7) : (() => {
+  anchor.value = view.value === 'week' ? addDays(anchor.value, n * span.value) : (() => {
     const d = asDate(monthStart.value)
     d.setMonth(d.getMonth() + n)
     return ymd(d)
@@ -146,7 +175,7 @@ function scrollToMorning() {
 const editing = ref<{ event: TeamEvent | null; draft: EventDraft; occurrence: string | null } | null>(null)
 const baseDraft = (date: string, start: number): EventDraft => ({
   title: '', date, start: toTime(start), end: toTime(Math.min(start + 60, 23 * 60 + 59)),
-  repeat: 'none', days: [], until: null, color: '#5B4BFF', note: '',
+  repeat: 'none', days: [], until: null, color: '#5B4BFF', note: '', remind: null,
 })
 function newAt(date: string, start = 9 * 60) {
   editing.value = { event: null, draft: baseDraft(date, start), occurrence: null }
@@ -155,7 +184,8 @@ function onGridClick(e: MouseEvent, day: string) {
   const top = e.clientY - (e.currentTarget as HTMLElement).getBoundingClientRect().top
   newAt(day, Math.min(Math.floor(top / HOUR * 2) * 30, 23 * 60))
 }
-function open(o: { ev: TeamEvent; date: string }) {
+function open(o: { ev: TeamEvent; date: string; owner: number | null }) {
+  if (o.owner !== null) return // someone else's event: read-only
   const { id: _id, skip: _skip, ...draft } = o.ev
   editing.value = { event: o.ev, draft: { ...draft }, occurrence: o.date }
 }
@@ -192,12 +222,11 @@ async function remove() {
 
 // Deadline → open its board
 function openCard(d: TeamDue) {
-  try { localStorage.setItem('team-board', String(d.board_id)) } catch { /* private mode */ }
+  openBoards.value = [d.board_id]
   navigateTo(localePath('/panel'))
 }
 
 onMounted(() => {
-  try { if (localStorage.getItem(VIEW) === 'month') view.value = 'month' } catch { /* private mode */ }
   clock = setInterval(() => (now.value = new Date()), 30000)
   load().then(scrollToMorning)
 })
@@ -231,10 +260,25 @@ onBeforeUnmount(() => clearInterval(clock))
       </div>
     </header>
 
+    <div v-if="sharedToMe.length" class="cal-people">
+      <span>{{ c.overlay }}:</span>
+      <button
+        v-for="u in sharedToMe"
+        :key="u.id"
+        type="button"
+        class="cal-person"
+        :class="{ on: overlay.includes(u.id) }"
+        :aria-pressed="overlay.includes(u.id)"
+        @click="toggleOverlay(u.id)"
+      >
+        <span class="tp-avatar sm" :data-c="u.id % 3">{{ initial(u) }}</span>{{ u.name || u.username }}
+      </button>
+    </div>
+
     <div v-if="loading" class="kb-loading"><span class="spinner" /></div>
 
     <!-- Week: hour grid -->
-    <section v-else-if="view === 'week'" ref="gridEl" class="cal-week cal-scroll">
+    <section v-else-if="view === 'week'" ref="gridEl" class="cal-week cal-scroll" :style="{ '--days': span }">
       <div class="cal-week-head">
         <span />
         <div v-for="(day, i) in weekDays" :key="day" class="cal-dayhead" :class="{ today: day === today, past: day < today }">
@@ -273,7 +317,8 @@ onBeforeUnmount(() => clearInterval(clock))
               :key="`${o.ev.id}-${day}`"
               type="button"
               class="cal-ev"
-              :class="{ short: o.end - o.start < 45, past: day < today || (day === today && o.end < nowMin) }"
+              :class="{ short: o.end - o.start < 45, past: day < today || (day === today && o.end < nowMin), other: o.owner !== null }"
+              :title="o.owner !== null ? `${ownerOf(o.owner)?.name || ownerOf(o.owner)?.username}: ${o.ev.title}` : undefined"
               :style="{
                 '--c': o.ev.color,
                 top: `${(o.start / 60) * HOUR}px`,
@@ -283,8 +328,8 @@ onBeforeUnmount(() => clearInterval(clock))
               }"
               @click="open(o)"
             >
-              <b>{{ o.ev.title }}</b>
-              <small>{{ o.ev.start }}–{{ o.ev.end }}<AppIcon v-if="o.ev.repeat === 'weekly'" name="repeat" /></small>
+              <b><span v-if="o.owner !== null" class="tp-avatar sm cal-ev-who" :data-c="o.owner % 3">{{ initial(ownerOf(o.owner)) }}</span>{{ o.ev.title }}</b>
+              <small>{{ o.ev.start }}–{{ o.ev.end }}<AppIcon v-if="o.ev.repeat === 'weekly'" name="repeat" /><AppIcon v-if="o.ev.remind !== null && o.owner === null" name="bell" /></small>
             </button>
             <i v-if="day === today" class="cal-now" :style="{ top: `${(nowMin / 60) * HOUR}px` }" />
           </div>
@@ -294,7 +339,7 @@ onBeforeUnmount(() => clearInterval(clock))
     <!-- Month -->
     <section v-else class="cal-month">
       <div class="cal-month-head">
-        <span v-for="(w, i) in weekLabels" :key="i">{{ w }}</span>
+        <span v-for="(w, i) in monthLabels" :key="i">{{ w }}</span>
       </div>
       <div class="cal-month-grid">
         <div
@@ -321,6 +366,7 @@ onBeforeUnmount(() => clearInterval(clock))
             :key="`${o.ev.id}-${day}`"
             type="button"
             class="cal-pill"
+            :class="{ other: o.owner !== null }"
             :style="{ '--c': o.ev.color }"
             @click="open(o)"
           >
@@ -354,7 +400,7 @@ onBeforeUnmount(() => clearInterval(clock))
 .cal-range { min-width: 190px; }
 
 .cal-week { border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); overflow: hidden; animation: tpUp .6s var(--ease) both; }
-.cal-week-head, .cal-grid { display: grid; grid-template-columns: 56px repeat(7, minmax(110px, 1fr)); }
+.cal-week-head, .cal-grid { display: grid; grid-template-columns: 56px repeat(var(--days, 7), minmax(110px, 1fr)); }
 .cal-week-head { position: sticky; top: 0; z-index: 5; min-width: max-content; width: 100%; border-bottom: 1px solid var(--line); background: var(--surface); }
 .cal-grid { min-width: max-content; width: 100%; }
 .cal-dayhead { display: grid; align-content: start; gap: 2px; padding: 10px 8px 8px; border-left: 1px solid var(--line); min-width: 0; }
@@ -396,6 +442,20 @@ onBeforeUnmount(() => clearInterval(clock))
 .cal-ev small .ico { width: 11px; height: 11px; }
 .cal-ev.short { grid-auto-flow: column; justify-content: start; gap: 6px; align-items: center; padding-block: 1px; }
 .cal-ev.past { opacity: .55; }
+/* Someone else's calendar: hatched, read-only */
+.cal-ev.other, .cal-pill.other {
+  cursor: default; background-image: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(0, 0, 0, .05) 6px 12px);
+  border-left-style: dashed;
+}
+.cal-ev.other:hover { transform: none; }
+.cal-ev-who { display: inline-grid !important; width: 16px !important; height: 16px !important; margin-right: 4px; font-size: .55rem !important; vertical-align: -2px; }
+.cal-people { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -8px 0 16px; font-size: .85rem; font-weight: 700; color: var(--muted); }
+.cal-person {
+  display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 5px; border-radius: 999px; cursor: pointer;
+  border: 1px dashed var(--line-2); background: none; color: var(--ink-2); font-weight: 700; font-size: .85rem; transition: background .2s, border-color .2s;
+}
+.cal-person:hover { border-color: var(--accent); }
+.cal-person.on { border-style: solid; border-color: var(--accent); background: rgba(91, 75, 255, .08); color: var(--ink); }
 .cal-now { position: absolute; left: -1px; right: 0; height: 2px; background: #E5484D; z-index: 3; pointer-events: none; }
 .cal-now::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: #E5484D; }
 
@@ -418,6 +478,17 @@ onBeforeUnmount(() => clearInterval(clock))
 .cal-pill:hover { background: color-mix(in srgb, var(--c) 22%, #fff); }
 .cal-more { justify-self: start; padding: 0 6px; border: 0; background: none; color: var(--muted); font-size: .72rem; font-weight: 800; cursor: pointer; }
 
+@media (max-width: 640px) {
+  .cal-week-head, .cal-grid { grid-template-columns: 40px repeat(var(--days, 3), minmax(0, 1fr)); min-width: 0; }
+  .cal-dayhead { padding: 8px 6px 6px; }
+  .cal-dn { font-size: 1.15rem; }
+  .cal-hours span { right: 4px; font-size: .62rem; }
+  .cal-ev { padding: 3px 5px; }
+  .cal-ev b { font-size: .74rem; }
+  .cal-actions { gap: 8px; }
+  .cal-range { min-width: 0; font-size: .85rem; }
+  .cal-scroll { max-height: calc(100svh - 300px); }
+}
 @media (max-width: 720px) {
   .cal-cell { min-height: 74px; padding: 4px; }
   .cal-pill { font-size: .66rem; }

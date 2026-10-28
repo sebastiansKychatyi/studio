@@ -1,9 +1,12 @@
 <script setup lang="ts">
-// Rings team alarms while the panel is open.
+// Rings alarms and calendar reminders while the panel is open.
 // setInterval (not rAF) so it keeps ticking in background tabs.
+import { eventOccursOn } from '~/composables/useTeam'
+
 const { t } = useSite()
-const { alarms, api } = useTeam()
+const { alarms, events, api } = useTeam()
 const a = computed(() => t.value.panel.alarms)
+const c = computed(() => t.value.panel.calendar)
 
 const ringing = ref<{ time: string; label: string } | null>(null)
 const snoozes: { at: number; time: string; label: string }[] = []
@@ -32,10 +35,34 @@ function tick() {
       api(`/alarms/${al.id}`, { method: 'PATCH', body: { enabled: false } }).catch(() => {})
     }
   }
+  remindEvents(now)
   const due = snoozes.findIndex((s) => s.at <= now.getTime())
   if (due >= 0) {
     const [s] = snoozes.splice(due, 1)
     ring(s!.time, s!.label)
+  }
+}
+
+// Calendar reminders: occurrence start minus `remind` minutes falls on this minute
+const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+function remindEvents(now: Date) {
+  const minute = Math.floor(now.getTime() / 60000)
+  for (const e of events.value) {
+    if (e.remind === null) continue
+    // The occurrence may be up to `remind` minutes ahead (also on a later day)
+    for (let k = 0; k <= Math.ceil(e.remind / 1440) + 1; k++) {
+      const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k)
+      const date = ymd(day)
+      if (!eventOccursOn(e, date)) continue
+      const [h, m] = e.start.split(':').map(Number)
+      const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m)
+      if (Math.floor(start.getTime() / 60000) - e.remind !== minute) continue
+      const key = `ev${e.id}|${date}|${e.start}|${e.remind}`
+      if (fired.has(key)) continue
+      fired.add(key)
+      const when = k === 0 ? '' : ` · ${start.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}`
+      ring(e.start, `${c.value.reminder}: ${e.title}${when}`)
+    }
   }
 }
 
@@ -151,4 +178,5 @@ onBeforeUnmount(() => {
 .ring-enter-active .ring-card { animation: ringIn .45s var(--ease) both; }
 @keyframes ringIn { from { opacity: 0; transform: translateY(20px) scale(.97); } }
 .ring-enter-from, .ring-leave-to { opacity: 0; }
+.tp.dark .ring-overlay { background: rgba(14, 14, 19, .75); }
 </style>

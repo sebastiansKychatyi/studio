@@ -16,6 +16,20 @@ const c = computed(() => t.value.panel.calendar)
 const WEEK = [1, 2, 3, 4, 5, 6, 0] // Monday first, JS weekday numbers
 
 const form = reactive<EventDraft>({ ...props.draft, days: [...props.draft.days] })
+
+// Reminder: presets or own number of minutes
+const PRESETS = [5, 10, 15, 30, 60, 1440]
+const custom = ref(form.remind !== null && !PRESETS.includes(form.remind))
+const remindLabel = (m: number) =>
+  m % 1440 === 0 ? `${m / 1440} ${c.value.d}` : m % 60 === 0 ? `${m / 60} ${c.value.h}` : `${m} ${c.value.m}`
+function pickRemind(m: number | null) {
+  custom.value = false
+  form.remind = m
+}
+function pickCustom() {
+  custom.value = true
+  if (form.remind === null || PRESETS.includes(form.remind)) form.remind = 20
+}
 const error = ref(false)
 const sure = ref<'one' | 'all' | null>(null)
 
@@ -38,6 +52,7 @@ function save() {
     title: form.title.trim(),
     days: form.repeat === 'weekly' ? [...form.days].sort() : [],
     until: form.repeat === 'weekly' ? form.until || null : null,
+    remind: form.remind === null ? null : Math.min(Math.max(Math.round(Number(form.remind) || 0), 0), 10080),
   })
 }
 
@@ -113,6 +128,30 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
       </label>
 
       <div class="tp-field">
+        <span>{{ c.remind }}</span>
+        <div class="ev-remind" role="radiogroup" :aria-label="c.remind">
+          <button type="button" role="radio" :aria-checked="form.remind === null" :class="{ on: form.remind === null }" @click="pickRemind(null)">{{ c.remindNone }}</button>
+          <button
+            v-for="m in PRESETS"
+            :key="m"
+            type="button"
+            role="radio"
+            :aria-checked="!custom && form.remind === m"
+            :class="{ on: !custom && form.remind === m }"
+            @click="pickRemind(m)"
+          >
+            <AppIcon name="bell" />{{ remindLabel(m) }}
+          </button>
+          <button type="button" role="radio" :aria-checked="custom" :class="{ on: custom }" @click="pickCustom">{{ c.remindCustom }}</button>
+        </div>
+        <label v-if="custom" class="ev-remind-custom">
+          <input v-model.number="form.remind" type="number" min="0" max="10080" step="1" inputmode="numeric">
+          <span>{{ c.remindMinutes }}</span>
+        </label>
+        <small v-if="form.remind !== null" class="rc-hint">{{ c.remindHint }}</small>
+      </div>
+
+      <div class="tp-field">
         <span>{{ c.color }}</span>
         <div class="ex-catform-colors">
           <button
@@ -160,5 +199,17 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
 .ev-days .al-day.on { background: var(--c); border-color: var(--c); }
 .ev textarea { resize: vertical; font: inherit; }
 .ev-del { display: flex; flex-wrap: wrap; gap: 6px; }
+.ev-remind { display: flex; flex-wrap: wrap; gap: 6px; }
+.ev-remind button {
+  display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-2); background: var(--field, #fff); color: var(--ink-2); font-weight: 700; font-size: .8rem;
+  transition: background .2s, color .2s, border-color .2s;
+}
+.ev-remind button .ico { width: 13px; height: 13px; }
+.ev-remind button:hover { border-color: var(--c); }
+.ev-remind button.on { background: var(--c); border-color: var(--c); color: #fff; }
+.ev-remind-custom { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.ev-remind-custom input { width: 110px; }
+.ev-remind-custom span { color: var(--muted); font-weight: 700; font-size: .85rem; }
 @media (max-width: 520px) { .ev-row { grid-template-columns: 1fr 1fr; } .ev-row .tp-field:first-child { grid-column: 1 / -1; } }
 </style>

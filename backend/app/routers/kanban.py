@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..db import get_db
-from ..models import Board, BoardColumn, Card, User
+from ..models import Board, BoardColumn, BoardMember, Card, User
 from ..schemas import (
     BoardFull,
     BoardIn,
@@ -20,16 +20,35 @@ from ..schemas import (
     ColumnIn,
     ColumnOut,
     ColumnPatch,
+    MembersIn,
     MentionOut,
 )
 from ..security import current_user
 
-# Team boards are shared; private boards and private cards are visible only to their creator
+# A board is visible to its creator and to the people they shared it with;
+# private cards are visible only to their author
 router = APIRouter(tags=["kanban"])
 
 
+def board_people(board: Board) -> set[int]:
+    return {board.created_by, *board.member_ids} - {None}
+
+
 def can_see_board(board: Board, user: User) -> bool:
-    return not board.is_private or board.created_by in (user.id, None)
+    # A board whose creator was deleted stays with its members (or everyone if none)
+    if board.created_by is None and not board.member_ids:
+        return True
+    return user.id in board_people(board)
+
+
+async def _member_ids(db: AsyncSession, ids: list[int], owner: User) -> list[int]:
+    """Existing users other than the owner, deduplicated."""
+    ids = sorted(set(ids) - {owner.id})
+    if ids:
+        found = set((await db.scalars(select(User.id).where(User.id.in_(ids)))).all())
+        if found != set(ids):
+            raise HTTPException(404, "User not found")
+    return ids
 
 
 def can_see_card(card: Card, user: User) -> bool:
@@ -38,7 +57,7 @@ def can_see_card(card: Card, user: User) -> bool:
 
 def _owner_only(item: Board | Card, user: User) -> None:
     if item.created_by not in (user.id, None):
-        raise HTTPException(403, "Only the creator can change visibility")
+        raise HTTPException(403, "Only the creator can change access")
 
 
 async def _board(db: AsyncSession, board_id: int, user: User) -> Board:
@@ -98,8 +117,9 @@ async def list_boards(user: User = Depends(current_user), db: AsyncSession = Dep
 @router.post("/boards", response_model=BoardOut, status_code=201)
 async def create_board(body: BoardIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
     position = await _next_position(db, Board, Board.id.isnot(None))
-    board = Board(title=body.title.strip(), created_by=user.id, position=position, is_private=body.is_private)
+    board = Board(title=body.title.strip(), created_by=user.id, position=position)
     board.columns = [BoardColumn(title=t.strip()[:120], position=i) for i, t in enumerate(body.columns) if t.strip()]
+    board.members = [BoardMember(user_id=uid) for uid in await _member_ids(db, body.member_ids, user)]
     db.add(board)
     await db.commit()
     return board
@@ -124,19 +144,22 @@ async def update_board(board_id: int, body: BoardPatch, user: User = Depends(cur
     board = await _board(db, board_id, user)
     if body.title is not None:
         board.title = body.title.strip()
-    if body.is_private is not None and body.is_private != board.is_private:
-        _owner_only(board, user)
-        if body.is_private:
-            # Board becomes invisible to the teammate together with all their cards
-            await _no_hidden_cards(db, user, BoardColumn.board_id == board.id)
-            others = await db.scalar(
-                select(func.count()).select_from(Card).join(BoardColumn).where(BoardColumn.board_id == board.id, Card.created_by != user.id)
-            )
-            if others:
-                raise HTTPException(409, "Board has cards of another user")
-        board.is_private = body.is_private
     if body.position is not None:
         await _place(db, Board, Board.id.isnot(None), board, body.position, lambda b: can_see_board(b, user))
+    await db.commit()
+    return board
+
+
+@router.put("/boards/{board_id}/members", response_model=BoardOut)
+async def set_members(board_id: int, body: MembersIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    """Who besides the creator can see and edit the board (creator only)."""
+    board = await _board(db, board_id, user)
+    _owner_only(board, user)
+    owner = await db.get(User, board.created_by) if board.created_by else user
+    ids = await _member_ids(db, body.user_ids, owner)
+    board.members = [m for m in board.members if m.user_id in ids] + [
+        BoardMember(user_id=uid) for uid in ids if uid not in board.member_ids
+    ]
     await db.commit()
     return board
 
@@ -183,7 +206,9 @@ async def delete_column(column_id: int, user: User = Depends(current_user), db: 
 # Cards
 @router.post("/columns/{column_id}/cards", response_model=CardOut, status_code=201)
 async def create_card(column_id: int, body: CardIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    await _column(db, column_id, user)
+    column = await _column(db, column_id, user)
+    if body.assignee_id is not None and body.assignee_id not in board_people(await db.get(Board, column.board_id)):
+        raise HTTPException(422, "Assignee has no access to the board")
     card = Card(
         column_id=column_id,
         title=body.title.strip(),
@@ -209,8 +234,10 @@ async def update_card(card_id: int, body: CardPatch, user: User = Depends(curren
     if body.description is not None:
         card.description = body.description
     if "assignee_id" in sent:
-        if body.assignee_id is not None and await db.get(User, body.assignee_id) is None:
-            raise HTTPException(404, "User not found")
+        # Only someone who can see the board
+        column = await db.get(BoardColumn, card.column_id)
+        if body.assignee_id is not None and body.assignee_id not in board_people(await db.get(Board, column.board_id)):
+            raise HTTPException(422, "Assignee has no access to the board")
         card.assignee_id = body.assignee_id
     if "due_date" in sent:
         card.due_date = body.due_date
@@ -221,8 +248,8 @@ async def update_card(card_id: int, body: CardPatch, user: User = Depends(curren
     if body.column_id is not None and body.column_id != card.column_id:
         target = await _column(db, body.column_id, user)
         board = await db.get(Board, target.board_id)
-        if board.is_private and card.created_by not in (user.id, None):
-            raise HTTPException(409, "Card of another user cannot go to a private board")
+        if card.created_by is not None and card.created_by not in board_people(board):
+            raise HTTPException(409, "The card's author has no access to that board")
         card.column_id = target.id
         if body.position is None:
             card.position = await _next_position(db, Card, Card.column_id == target.id)

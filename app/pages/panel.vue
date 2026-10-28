@@ -6,7 +6,8 @@ const { t, cfg } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { user, mentions, logout, loadUsers, loadAlarms, loadMentions } = useTeam()
+const { user, mentions, logout, loadUsers, loadAlarms, loadMentions, loadEvents } = useTeam()
+const { ready, loadPrefs, pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
 const nav = computed(() => [
@@ -15,32 +16,37 @@ const nav = computed(() => [
   { to: localePath('/panel/alarms'), icon: 'alarm', label: p.value.nav.alarms },
   { to: localePath('/panel/expenses'), icon: 'wallet', label: p.value.nav.expenses },
   { to: localePath('/panel/income'), icon: 'income', label: p.value.nav.income },
+  { to: localePath('/panel/settings'), icon: 'gear', label: p.value.nav.settings },
 ])
 const current = computed(() => nav.value.find((n) => n.to === route.path)?.label ?? '')
 
 useSeoMeta({ title: () => `${current.value} | ${cfg.brand}`, robots: 'noindex, nofollow' })
-// Theme: saved choice, else the system setting
-const THEME = 'team-theme'
-const dark = ref(false)
+// Theme (account setting): light | dark | system
+const theme = pref<'light' | 'dark' | 'system'>('theme', 'system')
+const systemDark = ref(false)
 onMounted(() => {
-  let saved: string | null = null
-  try { saved = localStorage.getItem(THEME) } catch { /* private mode */ }
-  dark.value = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+  const mq = matchMedia('(prefers-color-scheme: dark)')
+  systemDark.value = mq.matches
+  mq.addEventListener('change', (e) => (systemDark.value = e.matches))
 })
-function toggleTheme() {
-  dark.value = !dark.value
-  try { localStorage.setItem(THEME, dark.value ? 'dark' : 'light') } catch { /* private mode */ }
-}
+const dark = computed(() => (theme.value === 'system' ? systemDark.value : theme.value === 'dark'))
+const toggleTheme = () => (theme.value = dark.value ? 'light' : 'dark')
 
 useHead(() => ({ htmlAttrs: { lang: locale.value, class: dark.value ? 'tp-dark' : '' } }))
 
 // Badge with open mentions; refreshed every minute
 let poll: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
+  loadPrefs().catch(() => {})
   loadUsers().catch(() => {})
   loadAlarms().catch(() => {})
   loadMentions().catch(() => {})
-  poll = setInterval(() => document.visibilityState === 'visible' && loadMentions().catch(() => {}), 60000)
+  loadEvents().catch(() => {})
+  // Mentions badge + events for reminders (changes from other devices)
+  poll = setInterval(() => {
+    loadMentions().catch(() => {})
+    loadEvents().catch(() => {})
+  }, 60000)
 })
 onBeforeUnmount(() => clearInterval(poll))
 
@@ -50,11 +56,24 @@ async function out() {
 }
 
 const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
+
+// Phone: bottom tab bar with the main sections; "More" opens the sidebar as a sheet
+const TABS = 4
+const sheet = ref(false)
+const moreActive = computed(() => nav.value.slice(TABS).some((n) => n.to === route.path))
+watch(() => route.path, () => (sheet.value = false))
 </script>
 
 <template>
   <div class="tp" :class="{ dark }">
-    <aside class="tp-side">
+    <!-- Phone top bar -->
+    <header class="tp-top">
+      <NuxtLink class="logo" :to="localePath('/')" :aria-label="cfg.brand"><span class="logo-mark" aria-hidden="true">D</span></NuxtLink>
+      <b class="tp-top-title">{{ current }}</b>
+      <span v-if="user" class="tp-avatar sm" :data-c="user.id % 3" :title="user.name || user.username">{{ initial(user.name || user.username) }}</span>
+    </header>
+
+    <aside class="tp-side" :class="{ open: sheet }">
       <NuxtLink class="logo" :to="localePath('/')">
         <span class="logo-mark" aria-hidden="true">D</span>
         <span class="logo-text">{{ cfg.brand }}</span>
@@ -90,8 +109,21 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
     </aside>
 
     <main class="tp-main">
-      <NuxtPage />
+      <NuxtPage v-if="ready" />
+      <div v-else class="kb-loading"><span class="spinner" /></div>
     </main>
+
+    <!-- Phone tab bar -->
+    <nav class="tp-tabbar" :aria-label="p.menu">
+      <NuxtLink v-for="n in nav.slice(0, TABS)" :key="n.to" :to="n.to" class="tp-tab" :class="{ active: route.path === n.to }">
+        <AppIcon :name="n.icon" /><span>{{ n.label }}</span>
+        <b v-if="n.icon === 'tasks' && mentions.length" class="tp-badge">{{ mentions.length }}</b>
+      </NuxtLink>
+      <button type="button" class="tp-tab" :class="{ active: sheet || moreActive }" :aria-expanded="sheet" @click="sheet = !sheet">
+        <AppIcon :name="sheet ? 'close' : 'more'" /><span>{{ p.more }}</span>
+      </button>
+    </nav>
+    <Transition name="toast-fade"><div v-if="sheet" class="tp-scrim" @click="sheet = false" /></Transition>
 
     <TeamAlarmRinger />
   </div>
@@ -164,22 +196,57 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
 }
 .tp-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(91, 75, 255, .14); }
 
+/* Phone-only parts */
+.tp-top, .tp-tabbar, .tp-scrim { display: none; }
+
 @media (max-width: 860px) {
-  .tp { grid-template-columns: 1fr; }
-  .tp-side {
-    position: sticky; z-index: 40; height: auto; flex-direction: row; align-items: center; gap: 10px; padding: 10px 16px;
-    border-right: 0; border-bottom: 1px solid var(--line); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  .tp { grid-template-columns: minmax(0, 1fr); }
+  .tp-top {
+    position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 12px;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px; border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   }
-  .tp-side .logo-text, .tp-nav span, .tp-me-name { display: none; }
-  .tp-nav { display: flex; gap: 4px; }
-  .tp-nav a { padding: 10px 12px; }
-  .tp-side-foot { margin: 0 0 0 auto; display: flex; align-items: center; gap: 8px; }
-  .tp-me { padding: 0; border: 0; background: none; }
-  .tp-side-actions { gap: 8px; }
-  /* Top bar: open downwards, aligned right */
-  .tp-side-actions .lang-dd.up .lang-dd-menu { top: calc(100% + 8px); bottom: auto; left: auto; right: 0; transform-origin: top right; }
-  .tp-main { padding-top: 22px; }
+  .tp-top .logo-mark { width: 32px; height: 32px; }
+  .tp-top-title { flex: 1; min-width: 0; font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Sidebar becomes a sheet above the tab bar */
+  .tp-side {
+    position: fixed; left: 10px; right: 10px; top: auto; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 60;
+    height: auto; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 24px;
+    background: var(--surface); box-shadow: var(--shadow-lg);
+    opacity: 0; visibility: hidden; transform: translateY(16px) scale(.98); transform-origin: bottom center;
+    transition: opacity .25s, transform .35s var(--ease), visibility .25s;
+  }
+  .tp-side.open { opacity: 1; visibility: visible; transform: none; }
+  .tp-side .logo { display: none; }
+  .tp-nav { grid-template-columns: 1fr 1fr; }
+  .tp-nav a { padding: 12px; }
+  .tp-side-foot { margin-top: 0; }
+  .tp.dark .tp-side { background: var(--surface); }
+
+  .tp-tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; display: flex; gap: 2px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line);
+    background: color-mix(in srgb, var(--surface) 90%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  }
+  .tp-tab {
+    position: relative; flex: 1; min-width: 0; display: grid; justify-items: center; gap: 3px; padding: 7px 2px 5px; border: 0; border-radius: 14px;
+    background: none; cursor: pointer; color: var(--muted); font-family: inherit; font-size: .66rem; font-weight: 700; line-height: 1.1;
+    transition: color .2s, background .2s; -webkit-tap-highlight-color: transparent;
+  }
+  .tp-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tp-tab .ico { width: 22px; height: 22px; transition: transform .3s var(--ease); }
+  .tp-tab.active { color: var(--accent); background: rgba(91, 75, 255, .09); }
+  .tp-tab.active .ico { transform: translateY(-1px) scale(1.06); }
+  .tp-tab .tp-badge { position: absolute; top: 2px; left: calc(50% + 6px); margin: 0; min-width: 17px; height: 17px; font-size: .62rem; padding: 0 4px; }
+  .tp-scrim { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(18, 18, 22, .32); }
+
+  .tp-main { padding: 18px 16px calc(96px + env(safe-area-inset-bottom)); }
+  .tp-head { margin-bottom: 18px; }
+  .tp-toast { bottom: calc(88px + env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); text-align: center; }
 }
+.toast-fade-enter-active, .toast-fade-leave-active { transition: opacity .25s; }
+.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; }
 
 /* ===== Dark theme (panel only) ===== */
 html.tp-dark { background: #0E0E13; color-scheme: dark; }

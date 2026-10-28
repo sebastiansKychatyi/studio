@@ -85,20 +85,29 @@ class ColumnOut(Orm):
 class BoardIn(BaseModel):
     title: str = Title
     columns: list[str] = Field(default_factory=list, max_length=12)
-    is_private: bool = False
+    member_ids: list[int] = Field(default_factory=list, max_length=50)
 
 
 class BoardPatch(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=120)
-    is_private: bool | None = None
     position: int | None = Field(None, ge=0)
+
+
+class MembersIn(BaseModel):
+    user_ids: list[int] = Field(default_factory=list, max_length=50)
 
 
 class BoardOut(Orm):
     id: int
     title: str
-    is_private: bool
     created_by: int | None
+    member_ids: list[int]
+
+    @computed_field
+    @property
+    def is_private(self) -> bool:
+        """Shared with nobody."""
+        return not self.member_ids
 
 
 class ColumnRef(Orm):
@@ -273,6 +282,7 @@ class EventIn(BaseModel):
     until: dt.date | None = None
     color: str = Field("#5B4BFF", pattern=r"^#[0-9A-Fa-f]{6}$")
     note: str = Field("", max_length=5000)
+    remind: int | None = Field(None, ge=0, le=10080)  # minutes before, up to a week
 
     _days = field_validator("days")(_check_days)
 
@@ -287,6 +297,7 @@ class EventPatch(BaseModel):
     until: dt.date | None = None
     color: str | None = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
     note: str | None = Field(None, max_length=5000)
+    remind: int | None = Field(None, ge=0, le=10080)
 
     _days = field_validator("days")(_check_days)
 
@@ -303,6 +314,7 @@ class EventOut(BaseModel):
     skip: list[dt.date]
     color: str
     note: str
+    remind: int | None
 
 
 class SkipIn(BaseModel):
@@ -317,3 +329,13 @@ class DueCard(BaseModel):
     board_title: str
     column_title: str
     done: bool  # in the last column
+
+
+# Calendar access
+class CalendarAccessOut(BaseModel):
+    shared_with: list[int]  # who can see my calendar
+    shared_to_me: list[UserOut]  # whose calendars I can see
+
+
+class SettingsIn(BaseModel):
+    data: dict = Field(default_factory=dict)

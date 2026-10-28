@@ -155,24 +155,6 @@ const site = {
       tags: ['HTML', 'CSS', 'Google Maps'],
     },
     {
-      id: 'hodinovy-manzel', title: 'Hodinový manžel Nitra', author: 'p1', category: 'web', year: 2026,
-      url: 'https://hodinovy-manzel.k2drive.com/', repo: 'https://github.com/sebastiansKychatyi/Landing',
-      image: '/img/projects/hodinovy-manzel.jpg', colors: ['#1E3A5F', '#2563EB'], layout: 1,
-      tags: ['Landing page', 'Local SEO', 'Web3Forms'],
-    },
-    {
-      id: 'amstars', title: 'AmStars', author: 'p1', category: 'app', year: 2026,
-      repo: 'https://github.com/sebastiansKychatyi/ukf-bp-amstar',
-      colors: ['#16A34A', '#BBF7D0'], layout: 4,
-      tags: ['FastAPI', 'Nuxt 3', 'PostgreSQL', 'Redis', 'Docker'],
-    },
-    {
-      id: 'travel-planner', title: 'Travel Planner API', author: 'p1', category: 'app', year: 2026,
-      repo: 'https://github.com/sebastiansKychatyi/travel-planner-api',
-      colors: ['#0EA5E9', '#BAE6FD'], layout: 4,
-      tags: ['FastAPI', 'SQLAlchemy', 'Pydantic', 'httpx'],
-    },
-    {
       id: 'sharkrise', title: 'Sharkrise Studio', author: 'p2', category: 'web', year: 2025,
       url: 'https://www.sharkrise.com/',
       image: '/img/projects/sharkrise.jpg', colors: ['#0A0A0A', '#E8B33F'], layout: 1,

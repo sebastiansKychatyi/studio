@@ -113,18 +113,9 @@ const failed = ref(false)
 // 1 EUR in each currency (from backend config)
 const rates = ref<Record<Currency, number>>({ EUR: 1, UAH: 51.5, USD: 1.16 })
 
-// Display currency, remembered per browser
-const CUR_KEY = 'team-currency'
-const view = ref<Currency>('EUR')
-onMounted(() => {
-  try {
-    const saved = localStorage.getItem(CUR_KEY) as Currency | null
-    if (saved && CURRENCIES.includes(saved)) view.value = form.currency = saved
-  } catch { /* private mode */ }
-})
-watch(view, (c) => {
-  try { localStorage.setItem(CUR_KEY, c) } catch { /* private mode */ }
-})
+// Display currency (account setting); new entries start in it
+const view = usePrefs().pref<Currency>('currency', 'EUR')
+onMounted(() => (form.currency = view.value))
 
 const fmtIn = (n: number, currency: Currency) =>
   new Intl.NumberFormat(locale.value, { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).format(n)

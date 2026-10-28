@@ -37,13 +37,26 @@ class Board(Base):
     title: Mapped[str] = mapped_column(String(120))
     position: Mapped[int] = mapped_column(Integer, server_default="0")
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
-    # Private boards are visible only to created_by
+    # Legacy flag (before per-person access); kept for the one-time migration only
     is_private: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     columns: Mapped[list["BoardColumn"]] = relationship(
         back_populates="board", order_by="BoardColumn.position", cascade="all, delete-orphan", passive_deletes=True
     )
+    # People the creator shared the board with
+    members: Mapped[list["BoardMember"]] = relationship(lazy="selectin", cascade="all, delete-orphan", passive_deletes=True)
+
+    @property
+    def member_ids(self) -> list[int]:
+        return sorted(m.user_id for m in self.members)
+
+
+class BoardMember(Base):
+    __tablename__ = "board_members"
+
+    board_id: Mapped[int] = mapped_column(ForeignKey("boards.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
 
 
 class BoardColumn(Base):
@@ -129,7 +142,26 @@ class CalEvent(Base):
     skip: Mapped[str] = mapped_column(Text, server_default="")
     color: Mapped[str] = mapped_column(String(7), server_default="#5B4BFF")
     note: Mapped[str] = mapped_column(Text, server_default="")
+    remind: Mapped[int | None] = mapped_column(Integer)  # minutes before start; None = no reminder
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CalendarShare(Base):
+    """owner lets viewer see (read-only) their calendar."""
+
+    __tablename__ = "calendar_shares"
+
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    viewer_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
+
+
+class UserSettings(Base):
+    """Per-account UI settings (theme, layouts, currency…) as JSON."""
+
+    __tablename__ = "user_settings"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    data: Mapped[str] = mapped_column(Text, server_default="{}")
 
 
 class Recurring(Base):

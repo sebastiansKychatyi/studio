@@ -85,7 +85,7 @@ const base: (Omit<City, 'text'> & { text: Omit<City['text'], 'en'> })[] = [
     country: 'SK',
     geo: { lat: 48.3069, lng: 18.0864 },
     inPerson: true,
-    projects: ['hodinovy-manzel', 'e-drivebook', 'amstars'],
+    projects: ['e-drivebook', 'expertsk', 'brtc'],
     text: {
       sk: {
         name: 'Nitra', loc: 'v Nitre',
@@ -96,7 +96,7 @@ const base: (Omit<City, 'text'> & { text: Omit<City['text'], 'en'> })[] = [
         points: [
           ['Sme z Nitry', 'Stretneme sa osobne v Nitre a okolí — na Zobore, Klokočine, Chrenovej či priamo u vás vo firme.'],
           ['Lokálne SEO pre Nitru', 'Pomôžeme vám, aby vás zákazníci našli, keď v Google hľadajú vaše služby v Nitre a okolí.'],
-          ['Nitrianske projekty', 'Pre nitrianskych podnikateľov sme už robili weby, napríklad landing page Hodinový manžel Nitra, a študujeme na UKF v Nitre.'],
+          ['Nitrianske projekty', 'Robíme weby a aplikácie pre nitrianske firmy a živnostníkov a študujeme na UKF v Nitre — poznáme miestny trh.'],
         ],
         faq: [
           ['Robíte weby pre firmy v Nitre?', 'Áno, sme z Nitry. Robíme weby, e-shopy, aplikácie aj AI automatizácie pre firmy v Nitre a v celom Nitrianskom kraji a radi sa stretneme osobne.'],
@@ -112,7 +112,7 @@ const base: (Omit<City, 'text'> & { text: Omit<City['text'], 'en'> })[] = [
         points: [
           ['Jsme z Nitry', 'Sejdeme se osobně v Nitře a okolí — na Zoboru, Klokočině, Chrenové nebo přímo u vás ve firmě.'],
           ['Lokální SEO pro Nitru', 'Pomůžeme vám, aby vás zákazníci našli, když v Googlu hledají vaše služby v Nitře a okolí.'],
-          ['Projekty z Nitry', 'Pro podnikatele z Nitry jsme už dělali weby, například landing page Hodinový manžel Nitra, a studujeme na UKF v Nitře.'],
+          ['Projekty z Nitry', 'Děláme weby a aplikace pro firmy a živnostníky z Nitry a studujeme na UKF v Nitře — známe místní trh.'],
         ],
         faq: [
           ['Děláte weby pro firmy v Nitře?', 'Ano, jsme z Nitry. Děláme weby, e-shopy, aplikace i AI automatizace pro firmy v Nitře a v celém Nitranském kraji a rádi se sejdeme osobně.'],
@@ -128,7 +128,7 @@ const base: (Omit<City, 'text'> & { text: Omit<City['text'], 'en'> })[] = [
         points: [
           ['Ми з Нітри', 'Зустрінемося особисто в Нітрі та околицях — на Зоборі, Клокочині, Хреновій або просто у вашому офісі.'],
           ['Локальне SEO для Нітри', 'Допоможемо, щоб вас знаходили клієнти, які шукають ваші послуги в Нітрі та околицях.'],
-          ['Проєкти в Нітрі', 'Ми вже робили сайти для підприємців із Нітри, зокрема лендинг Hodinový manžel Nitra, і навчаємося в UKF у Нітрі.'],
+          ['Проєкти в Нітрі', 'Робимо сайти й застосунки для компаній і підприємців із Нітри та навчаємося в UKF у Нітрі — знаємо місцевий ринок.'],
         ],
         faq: [
           ['Ви робите сайти для компаній у Нітрі?', 'Так, ми з Нітри. Робимо сайти, інтернет-магазини, застосунки та AI-автоматизацію для бізнесу в Нітрі й усьому Нітранському краї, охоче зустрінемося особисто.'],
@@ -199,7 +199,7 @@ const base: (Omit<City, 'text'> & { text: Omit<City['text'], 'en'> })[] = [
     country: 'UA',
     geo: { lat: 50.4501, lng: 30.5234 },
     inPerson: false,
-    projects: ['e-drivebook', 'expertsk', 'amstars'],
+    projects: ['e-drivebook', 'expertsk', 'brtc'],
     text: {
       sk: {
         name: 'Kyjev', loc: 'v Kyjeve',
@@ -256,7 +256,7 @@ const base: (Omit<City, 'text'> & { text: Omit<City['text'], 'en'> })[] = [
     country: 'UA',
     geo: { lat: 48.6208, lng: 22.2879 },
     inPerson: false,
-    projects: ['hodinovy-manzel', 'e-drivebook', 'expertsk'],
+    projects: ['brtc', 'e-drivebook', 'expertsk'],
     text: {
       sk: {
         name: 'Užhorod', loc: 'v Užhorode',
@@ -337,7 +337,7 @@ const en: Record<string, CityText> = {
     points: [
       ['We are from Nitra', 'We meet in person in Nitra and nearby — in Zobor, Klokočina, Chrenová or right at your office.'],
       ['Local SEO for Nitra', 'We help customers find you when they search Google for your services in Nitra and the region.'],
-      ['Projects in Nitra', 'We have already built websites for Nitra businesses, such as the Hodinový manžel Nitra landing page, and we study at the university in Nitra.'],
+      ['Projects in Nitra', 'We build websites and apps for Nitra companies and sole traders and study at the university in Nitra, so we know the local market.'],
     ],
     faq: [
       ['Do you build websites for companies in Nitra?', 'Yes, we are from Nitra. We build websites, e-shops, apps and AI automations for businesses in Nitra and the whole Nitra region and are happy to meet in person.'],

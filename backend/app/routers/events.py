@@ -1,17 +1,17 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..db import get_db
-from ..models import Board, BoardColumn, CalEvent, User
-from ..schemas import DueCard, EventIn, EventOut, EventPatch, SkipIn
+from ..models import Board, BoardColumn, CalendarShare, CalEvent, User
+from ..schemas import CalendarAccessOut, DueCard, EventIn, EventOut, EventPatch, MembersIn, SkipIn, UserOut
 from ..security import current_user
 from .kanban import can_see_board, can_see_card
 
-# Personal calendar: events are visible only to their owner.
+# Personal calendar: events belong to their owner; the owner can let chosen people see them (read-only).
 # Repeats are expanded on the client (few events, any range).
 router = APIRouter(tags=["calendar"])
 
@@ -29,6 +29,7 @@ def _out(e: CalEvent) -> EventOut:
         skip=[date.fromisoformat(d) for d in e.skip.split(",") if d],
         color=e.color,
         note=e.note,
+        remind=e.remind,
     )
 
 
@@ -50,9 +51,37 @@ async def _own(db: AsyncSession, event_id: int, user: User) -> CalEvent:
 
 
 @router.get("/events", response_model=list[EventOut])
-async def list_events(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    rows = await db.scalars(select(CalEvent).where(CalEvent.user_id == user.id).order_by(CalEvent.date, CalEvent.start))
+async def list_events(
+    owner: int | None = Query(None, alias="user", description="Another user's calendar (needs their permission)"),
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    owner_id = owner or user.id
+    if owner_id != user.id and await db.get(CalendarShare, (owner_id, user.id)) is None:
+        raise HTTPException(404, "Calendar not shared with you")
+    rows = await db.scalars(select(CalEvent).where(CalEvent.user_id == owner_id).order_by(CalEvent.date, CalEvent.start))
     return [_out(e) for e in rows.all()]
+
+
+@router.get("/calendar/access", response_model=CalendarAccessOut)
+async def calendar_access(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    mine = await db.scalars(select(CalendarShare.viewer_id).where(CalendarShare.owner_id == user.id))
+    theirs = await db.scalars(
+        select(User).join(CalendarShare, CalendarShare.owner_id == User.id).where(CalendarShare.viewer_id == user.id).order_by(User.name)
+    )
+    return CalendarAccessOut(shared_with=sorted(mine.all()), shared_to_me=[UserOut.model_validate(u) for u in theirs.all()])
+
+
+@router.put("/calendar/access", response_model=CalendarAccessOut)
+async def set_calendar_access(body: MembersIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    """Who may see my calendar (read-only)."""
+    ids = sorted(set(body.user_ids) - {user.id})
+    if ids and len((await db.scalars(select(User.id).where(User.id.in_(ids)))).all()) != len(ids):
+        raise HTTPException(404, "User not found")
+    await db.execute(delete(CalendarShare).where(CalendarShare.owner_id == user.id))
+    db.add_all(CalendarShare(owner_id=user.id, viewer_id=uid) for uid in ids)
+    await db.commit()
+    return await calendar_access(user, db)
 
 
 @router.post("/events", response_model=EventOut, status_code=201)
@@ -74,8 +103,8 @@ async def update_event(event_id: int, body: EventPatch, user: User = Depends(cur
         value = getattr(body, field)
         if field == "days":
             e.days = ",".join(map(str, value or []))
-        elif field == "until":
-            e.until = value  # may be cleared
+        elif field in ("until", "remind"):
+            setattr(e, field, value)  # may be cleared
         elif value is not None:
             setattr(e, field, value.strip() if field == "title" else value)
     if e.repeat != "weekly":
