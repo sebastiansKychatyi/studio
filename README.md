@@ -50,7 +50,7 @@ Target cities in priority order: **Bratislava, Nitra → Prague → Kyiv, Uzhhor
 ## Portfolio
 
 - Real projects with screenshots and links: e-Drivebook (e-drivebook.com), Expert SK, Bratislava Technical Company, ONYX Business Residence, Hodinový manžel Nitra, AmStars, Travel Planner API.
-- Roman's real projects: Restaurant Reservation System (FastAPI + React, bachelor thesis), Orbit Portfolio, Calibre Watches and a GTM platform homepage UI concept.
+- Roman's real projects: Restaurant Reservation System (FastAPI + React, bachelor thesis), the Sharkrise Studio website and a GTM platform homepage UI concept.
 - **Clickable product prototypes** (Roman's production work rebuilt with demo data, no proprietary code or real data): Classifieds Platform (listings, VIP and bump, crypto top-up with signed-webhook confirmation and idempotent replay), Subscription Billing (plans, crypto invoices, licenses, MRR), Team CRM (role-based desktop CRM) and Leads Workspace (lead enrichment table). Clicking a card or the "Open prototype" button opens a dialog with the interactive prototype; the card cover is a live scaled-down copy. Sizes: `data/prototypes.ts`. Code: `app/components/Proto*.vue`, `DesignModal.vue`. Screenshots: `docs/roman-profile/`.
 
 ## Lab — design concepts

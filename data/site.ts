@@ -199,16 +199,10 @@ const site = {
       tags: ['Lead enrichment', 'Scoring', 'UI prototype'],
     },
     {
-      id: 'orbit-portfolio', title: 'Orbit Portfolio', author: 'p2', category: 'web', year: 2026,
-      url: 'https://portfolio-azure-alpha-83.vercel.app', repo: 'https://github.com/wwtanji/portfolio',
-      image: '/img/projects/orbit-portfolio.jpg', colors: ['#020617', '#38BDF8'], layout: 1,
-      tags: ['JavaScript', 'WebGL', 'GSAP', 'Vite'],
-    },
-    {
-      id: 'calibre-watches', title: 'Calibre Watches', author: 'p2', category: 'web', year: 2026,
-      url: 'https://calibre-watches-three.vercel.app', repo: 'https://github.com/wwtanji/calibre-watches',
-      image: '/img/projects/calibre-watches.jpg', colors: ['#0A0A0A', '#C9A15A'], layout: 1,
-      tags: ['JavaScript', 'SVG', 'GSAP', 'Vite'],
+      id: 'sharkrise', title: 'Sharkrise Studio', author: 'p2', category: 'web', year: 2025,
+      url: 'https://www.sharkrise.com/',
+      image: '/img/projects/sharkrise.jpg', colors: ['#0A0A0A', '#E8B33F'], layout: 1,
+      tags: ['WordPress', 'Elementor', 'Contact Form 7'],
     },
     {
       id: 'clay-gtm', title: 'GTM Platform Homepage', author: 'p2', category: 'web', year: 2025,
