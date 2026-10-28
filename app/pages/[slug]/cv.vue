@@ -96,7 +96,10 @@ const print = () => window.print()
           <ol class="cv-timeline">
             <li v-for="(item, i) in p.page.timeline" :key="i">
               <span>{{ item.year }}</span>
-              <div><h3>{{ item.title }}</h3><p>{{ item.text }}</p></div>
+              <div>
+                <h3>{{ item.title }}</h3>
+                <p v-for="(line, lineIndex) in splitLines(item.text)" :key="lineIndex">{{ line }}</p>
+              </div>
             </li>
           </ol>
         </section>

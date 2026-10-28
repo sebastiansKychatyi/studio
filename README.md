@@ -9,7 +9,7 @@ Available in three languages: **Slovak** (`/sk`), **Czech** (`/cs`) and **Ukrain
 |---|---|---|
 | Studio page (services, AI automation, portfolio, Lab, FAQ) | `/sk` | light, gradients |
 | Sebastian's personal page | `/sk/sebastian` | "developer": terminal, monospace, activity grid |
-| Roman's personal page | `/sk/roman` | "creative": serif type, stickers, shapes, blob cursor |
+| Roman's personal page | `/sk/roman` | "developer": terminal, monospace, activity grid (same theme as Sebastian, blue accent) |
 | Résumé (A4 sheet, "Download PDF" button) | `/sk/sebastian/cv`, `/sk/roman/cv` | clean, for employers |
 | Lab concepts | `/sk/lab/noir`, `/pulse`, `/kinetic`, `/verde` | four different styles |
 | City pages (local SEO) | `/sk/bratislava`, `/sk/nitra`, `/cs/praha`, `/uk/kyiv`, `/uk/uzhhorod` (every city in all 3 languages) | studio style + map pin |
@@ -50,7 +50,8 @@ Target cities in priority order: **Bratislava, Nitra → Prague → Kyiv, Uzhhor
 ## Portfolio
 
 - Real projects with screenshots and links: e-Drivebook (e-drivebook.com), Expert SK, Bratislava Technical Company, ONYX Business Residence, Hodinový manžel Nitra, AmStars, Travel Planner API.
-- **Clickable design prototypes** (Roman's design concepts): Nordic Living (furniture e-shop + UI kit), Slnečné Byty (real-estate mobile app), FitFlow (fitness app with dark mode). Clicking a card opens a dialog with an interactive prototype; the card cover is a live scaled-down copy. Code: `app/components/Proto*.vue`, `DesignModal.vue`.
+- Roman's real projects: Restaurant Reservation System (FastAPI + React, bachelor thesis), the Sharkrise Studio website and a GTM platform homepage UI concept.
+- **Clickable product prototypes** (Roman's work rebuilt with demo data, no customer data or proprietary code): Classifieds Platform (listings, VIP and bump, crypto top-up with signed-webhook confirmation and idempotent replay), Subscription Billing (themed crypto checkout that settles an invoice and activates slots) and ReserveIt on the Restaurant Reservation System card (customer, owner and admin roles, dark and light theme, desktop and mobile preview). Team CRM and Leads Workspace prototypes are hidden for now: their components stay in `app/components/` and can be restored by re-adding the entries in `data/site.ts`. Clicking a card or the "Open prototype" button opens a dialog with the interactive prototype; the card cover is a live scaled-down copy. Sizes: `data/prototypes.ts`. Code: `app/components/Proto*.vue`, `DesignModal.vue`. Screenshots: `docs/roman-profile/`.
 
 ## Lab — design concepts
 
@@ -129,7 +130,7 @@ studio.k2drive.com {
 | Colors and animations of the studio page | `app/assets/css/main.css` |
 | Personal page designs | `app/components/ProfileDev.vue`, `ProfileCreative.vue` |
 
-**Before going live:** fill in `.env`, analytics and verification (see above), set the main domain with `npm run set-domain -- https://your-domain` (updates `data/site.ts` and the static pages in `public/`), and fill in Roman's details (surname, texts in `personal.people.p2`, real projects instead of the `placeholder: true` concepts).
+**Before going live:** fill in `.env`, analytics and verification (see above), set the main domain with `npm run set-domain -- https://your-domain` (updates `data/site.ts` and the static pages in `public/`), and add Roman's photo and phone number if wanted (`data/site.ts`, `people[1]`).
 
 ### Adding a portfolio project
 1. Add an object to `projects` in `data/site.ts` (`author: 'p1'` or `'p2'`, links `url` / `repo`).
