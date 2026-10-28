@@ -173,6 +173,17 @@ const site = {
       tags: ['FastAPI', 'SQLAlchemy', 'Pydantic', 'httpx'],
     },
     {
+      id: 'sharkrise', title: 'Sharkrise Studio', author: 'p2', category: 'web', year: 2025,
+      url: 'https://www.sharkrise.com/',
+      image: '/img/projects/sharkrise.jpg', colors: ['#0A0A0A', '#E8B33F'], layout: 1,
+      tags: ['WordPress', 'Elementor', 'Contact Form 7'],
+    },
+    {
+      id: 'billing', title: 'Subscription Billing', author: 'p2', category: 'app', year: 2026,
+      colors: ['#7C3AED', '#DDD6FE'], layout: 1, prototype: 'billing',
+      tags: ['Laravel', 'Filament', 'PostgreSQL', 'Redis', 'Crypto payments'],
+    },
+    {
       id: 'classifieds', title: 'Classifieds Platform', author: 'p2', category: 'app', year: 2025,
       colors: ['#2F5BEA', '#BFD0FF'], layout: 1, prototype: 'classifieds',
       tags: ['Next.js 16', 'React 19', 'Laravel', 'PostgreSQL', 'Redis', 'Docker'],
@@ -182,27 +193,6 @@ const site = {
       repo: 'https://github.com/wwtanji/bp-restaurant-reservation-system',
       colors: ['#0F766E', '#99F6E4'], layout: 4, prototype: 'reservations',
       tags: ['FastAPI', 'SQLAlchemy', 'MySQL', 'React 19', 'TypeScript', 'Stripe', 'pytest'],
-    },
-    {
-      id: 'billing', title: 'Subscription Billing', author: 'p2', category: 'app', year: 2026,
-      colors: ['#7C3AED', '#DDD6FE'], layout: 1, prototype: 'billing',
-      tags: ['Laravel', 'Filament', 'PostgreSQL', 'Redis', 'Crypto payments'],
-    },
-    {
-      id: 'team-crm', title: 'Team CRM', author: 'p2', category: 'app', year: 2025,
-      colors: ['#0EA5E9', '#BAE6FD'], layout: 1, prototype: 'crm',
-      tags: ['Electron', 'Express', 'MySQL', 'JWT'],
-    },
-    {
-      id: 'leads-workspace', title: 'Leads Workspace', author: 'p2', category: 'app', year: 2026,
-      colors: ['#F97316', '#FED7AA'], layout: 1, prototype: 'leads',
-      tags: ['Lead enrichment', 'Scoring', 'UI prototype'],
-    },
-    {
-      id: 'sharkrise', title: 'Sharkrise Studio', author: 'p2', category: 'web', year: 2025,
-      url: 'https://www.sharkrise.com/',
-      image: '/img/projects/sharkrise.jpg', colors: ['#0A0A0A', '#E8B33F'], layout: 1,
-      tags: ['WordPress', 'Elementor', 'Contact Form 7'],
     },
     {
       id: 'clay-gtm', title: 'GTM Platform Homepage', author: 'p2', category: 'web', year: 2025,
