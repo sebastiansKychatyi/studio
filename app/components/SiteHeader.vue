@@ -56,6 +56,7 @@ onBeforeUnmount(() => {
 
       <div class="nav-right">
         <LangSwitch />
+        <NuxtLink class="nav-login" :to="localePath('/login')" :title="t.panel.login" :aria-label="t.panel.login"><AppIcon name="user" /></NuxtLink>
         <a v-magnetic class="btn btn-primary btn-sm hide-sm" :href="anchor('contact')">{{ t.nav.cta }}</a>
         <button
           class="menu-toggle"
@@ -73,6 +74,7 @@ onBeforeUnmount(() => {
       <nav class="container" aria-label="Mobile">
         <a v-for="k in navItems" :key="k" :href="anchor(k)" @click="open = false">{{ t.nav[k] }}</a>
         <a :href="anchor('contact')" @click="open = false">{{ t.nav.contact }}</a>
+        <NuxtLink :to="localePath('/login')" @click="open = false">{{ t.panel.login }}</NuxtLink>
       </nav>
     </div>
   </header>

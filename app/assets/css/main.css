@@ -99,6 +99,12 @@ ul, ol { list-style: none; }
 }
 .nav-links a:hover, .nav-links a.active { background: var(--bg-2); color: var(--ink); }
 .nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-login {
+  display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--bg-2); color: var(--ink-2);
+  transition: background .25s, color .25s, transform .4s var(--ease);
+}
+.nav-login:hover { background: var(--ink); color: #fff; transform: rotate(-8deg); }
+.nav-login .ico { width: 17px; height: 17px; }
 
 
 .menu-toggle {
@@ -619,3 +625,15 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
 .footer-links a:hover { color: var(--accent); }
 .project-actions .case-link { background: var(--accent); border-color: var(--accent); color: #fff; }
 .project-actions .case-link:hover { background: var(--ink); border-color: var(--ink); }
+
+/* ===== Team panel (shared by login + panel) ===== */
+.tp-field { display: grid; gap: 6px; margin-bottom: 14px; font-size: .85rem; font-weight: 700; color: var(--ink-2); }
+.tp-field input, .tp-field textarea, .tp-field select {
+  width: 100%; padding: 13px 16px; border-radius: 14px; border: 1px solid var(--line-2); background: #fff;
+  font-size: 1rem; font-weight: 500; transition: border-color .2s, box-shadow .2s;
+}
+.tp-field input:focus, .tp-field textarea:focus, .tp-field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(91, 75, 255, .14); }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .35); border-top-color: #fff; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes tpUp { from { opacity: 0; transform: translateY(14px); } }
+@keyframes tpFade { from { opacity: 0; } }

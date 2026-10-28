@@ -48,7 +48,18 @@ export default defineNuxtConfig({
     telegramBotToken: '',
     telegramChatId: '',
     web3formsKey: '',
+    // FastAPI backend of the team panel (backend/)
+    teamApiUrl: 'http://127.0.0.1:8000',
   },
+
+  // Private team panel: client-only, never indexed
+  routeRules: Object.fromEntries(
+    site.languages.flatMap((l) => [
+      [`/${l}/panel`, { ssr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } }],
+      [`/${l}/panel/**`, { ssr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } }],
+      [`/${l}/login`, { headers: { 'x-robots-tag': 'noindex, nofollow' } }],
+    ])
+  ),
 
   i18n: {
     baseUrl: site.domain,

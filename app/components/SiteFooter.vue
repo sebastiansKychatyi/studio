@@ -26,6 +26,7 @@ const lang = computed(() => locale.value as Lang)
         <p>© {{ year }} {{ cfg.brand }} · {{ cfg.cities.slice(0, 2).map((c) => c.name).join(' · ') }}. {{ t.footer.rights }}</p>
         <div class="footer-links">
           <NuxtLink :to="localePath('/privacy')">{{ t.footer.privacy }}</NuxtLink>
+          <NuxtLink :to="localePath('/login')" rel="nofollow">{{ t.panel.login }}</NuxtLink>
           <a href="#top" class="to-top">{{ t.footer.top }} ↑</a>
         </div>
       </div>
