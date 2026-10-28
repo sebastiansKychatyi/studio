@@ -6,7 +6,7 @@ const { t, cfg } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { user, logout, loadUsers, loadAlarms } = useTeam()
+const { user, mentions, logout, loadUsers, loadAlarms, loadMentions } = useTeam()
 
 const p = computed(() => t.value.panel)
 const nav = computed(() => [
@@ -20,10 +20,15 @@ const current = computed(() => nav.value.find((n) => n.to === route.path)?.label
 useSeoMeta({ title: () => `${current.value} | ${cfg.brand}`, robots: 'noindex, nofollow' })
 useHead(() => ({ htmlAttrs: { lang: locale.value } }))
 
+// Badge with open mentions; refreshed every minute
+let poll: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
   loadUsers().catch(() => {})
   loadAlarms().catch(() => {})
+  loadMentions().catch(() => {})
+  poll = setInterval(() => document.visibilityState === 'visible' && loadMentions().catch(() => {}), 60000)
 })
+onBeforeUnmount(() => clearInterval(poll))
 
 async function out() {
   await logout()
@@ -44,6 +49,7 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
       <nav class="tp-nav" :aria-label="p.menu">
         <NuxtLink v-for="n in nav" :key="n.to" :to="n.to" :class="{ active: route.path === n.to }">
           <AppIcon :name="n.icon" /><span>{{ n.label }}</span>
+          <b v-if="n.icon === 'tasks' && mentions.length" class="tp-badge" :title="p.kanban.forMe">{{ mentions.length }}</b>
         </NuxtLink>
       </nav>
 
@@ -83,12 +89,18 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
 .tp-nav a:hover { background: var(--bg-2); color: var(--ink); }
 .tp-nav a.active { background: var(--ink); color: #fff; box-shadow: 0 10px 24px -12px rgba(18, 18, 22, .6); }
 .tp-nav a.active .ico { color: #B9B1FF; }
+.tp-badge {
+  margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--accent); color: #fff; font-size: .72rem; font-weight: 800; animation: tpUp .4s var(--ease) both;
+}
 .tp-side-foot { margin-top: auto; display: grid; gap: 14px; }
 .tp-me { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
 .tp-me-name { display: grid; line-height: 1.25; min-width: 0; }
 .tp-me-name b { font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tp-me-name small { color: var(--muted); font-size: .78rem; }
 .tp-side-actions { display: flex; justify-content: space-between; align-items: center; }
+/* Sidebar sits at the left edge: open the language menu to the right */
+.tp-side-actions .lang-dd-menu { right: auto; left: 0; transform-origin: bottom left; }
 
 .tp-avatar {
   flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
@@ -136,6 +148,8 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
   .tp-side-foot { margin: 0 0 0 auto; display: flex; align-items: center; gap: 8px; }
   .tp-me { padding: 0; border: 0; background: none; }
   .tp-side-actions { gap: 8px; }
+  /* Top bar: open downwards, aligned right */
+  .tp-side-actions .lang-dd.up .lang-dd-menu { top: calc(100% + 8px); bottom: auto; left: auto; right: 0; transform-origin: top right; }
   .tp-main { padding-top: 22px; }
 }
 </style>

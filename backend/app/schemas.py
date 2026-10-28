@@ -32,6 +32,7 @@ class CardIn(BaseModel):
     title: str = Field(min_length=1, max_length=300)
     description: str = Field("", max_length=10000)
     assignee_id: int | None = None
+    due_date: date | None = None
 
 
 class CardPatch(BaseModel):
@@ -40,6 +41,7 @@ class CardPatch(BaseModel):
     assignee_id: int | None = None
     column_id: int | None = None
     position: int | None = Field(None, ge=0)
+    due_date: date | None = None
 
 
 class CardOut(Orm):
@@ -50,7 +52,14 @@ class CardOut(Orm):
     assignee_id: int | None
     created_by: int | None
     position: int
+    due_date: date | None
     updated_at: datetime
+
+
+class MentionOut(CardOut):
+    board_id: int
+    board_title: str
+    column_title: str
 
 
 class ColumnIn(BaseModel):

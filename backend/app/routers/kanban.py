@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +15,7 @@ from ..schemas import (
     CardIn,
     CardOut,
     CardPatch,
+    MentionOut,
     ColumnIn,
     ColumnOut,
     ColumnPatch,
@@ -122,6 +125,7 @@ async def create_card(column_id: int, body: CardIn, user: User = Depends(current
         title=body.title.strip(),
         description=body.description,
         assignee_id=body.assignee_id,
+        due_date=body.due_date,
         created_by=user.id,
         position=await _next_position(db, Card, Card.column_id, column_id),
     )
@@ -143,6 +147,8 @@ async def update_card(card_id: int, body: CardPatch, db: AsyncSession = Depends(
         if body.assignee_id is not None:
             await _get(db, User, body.assignee_id)
         card.assignee_id = body.assignee_id
+    if "due_date" in sent:
+        card.due_date = body.due_date
     if body.column_id is not None and body.column_id != card.column_id:
         target = await _get(db, BoardColumn, body.column_id)
         source = await _get(db, BoardColumn, card.column_id)
@@ -162,3 +168,26 @@ async def update_card(card_id: int, body: CardPatch, db: AsyncSession = Depends(
 async def delete_card(card_id: int, db: AsyncSession = Depends(get_db)):
     await db.delete(await _get(db, Card, card_id))
     await db.commit()
+
+
+# Mentions: open cards (not in the last column) that @mention the user or are assigned to them
+@router.get("/mentions", response_model=list[MentionOut])
+async def mentions(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    tag = re.compile(rf"@{re.escape(user.username)}(?![\w.-])", re.IGNORECASE)
+    boards = (await db.scalars(select(Board).options(selectinload(Board.columns).selectinload(BoardColumn.cards)))).all()
+    out = []
+    for board in boards:
+        for column in board.columns[:-1]:
+            for card in column.cards:
+                if card.assignee_id == user.id or tag.search(f"{card.title}\n{card.description}"):
+                    out.append(
+                        MentionOut(
+                            **CardOut.model_validate(card).model_dump(),
+                            board_id=board.id,
+                            board_title=board.title,
+                            column_title=column.title,
+                        )
+                    )
+    # Nearest deadline first, then newest
+    out.sort(key=lambda c: (c.due_date is None, c.due_date or c.updated_at.date(), -c.id))
+    return out

@@ -6,6 +6,7 @@ Nuxt proxies /api/team/** to this app (see server/api/team/[...path].ts).
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import inspect, text
 
 from .config import settings
 from .db import engine
@@ -14,12 +15,23 @@ from .routers import alarms, auth, kanban, money
 
 PREFIX = "/api/team"
 
+# Columns added after the first release: (table, column, SQL type)
+ADDED_COLUMNS = [("cards", "due_date", "DATE")]
+
+
+def _upgrade(conn) -> None:
+    """Create missing tables and add new nullable columns to existing ones (no migrations yet)."""
+    Base.metadata.create_all(conn)
+    insp = inspect(conn)
+    for table, column, sql_type in ADDED_COLUMNS:
+        if column not in {c["name"] for c in insp.get_columns(table)}:
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}"))
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Create missing tables (no migrations yet)
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_upgrade)
     yield
     await engine.dispose()
 

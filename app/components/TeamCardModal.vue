@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Kanban card editor: title, description, assignee, column, delete
+// Kanban card editor: title, description with @mentions, deadline, assignee, column, delete
 import type { TeamCard, TeamColumn, TeamUser } from '~/composables/useTeam'
 
 const props = defineProps<{ card: TeamCard; columns: TeamColumn[]; users: TeamUser[] }>()
@@ -14,7 +14,22 @@ const form = reactive({
   description: props.card.description,
   assignee_id: props.card.assignee_id,
   column_id: props.card.column_id,
+  due_date: props.card.due_date ?? '',
 })
+
+// Insert "@username " at the cursor of the description
+const descEl = ref<HTMLTextAreaElement>()
+function mention(u: TeamUser) {
+  const el = descEl.value
+  const at = el?.selectionStart ?? form.description.length
+  const before = form.description.slice(0, at)
+  const tag = `${before && !/\s$/.test(before) ? ' ' : ''}@${u.username} `
+  form.description = before + tag + form.description.slice(at)
+  nextTick(() => {
+    el?.focus()
+    el?.setSelectionRange(at + tag.length, at + tag.length)
+  })
+}
 const sure = ref(false)
 
 function save() {
@@ -25,6 +40,7 @@ function save() {
   if (form.description !== props.card.description) patch.description = form.description
   if (form.assignee_id !== props.card.assignee_id) patch.assignee_id = form.assignee_id
   if (form.column_id !== props.card.column_id) patch.column_id = form.column_id
+  if ((form.due_date || null) !== props.card.due_date) patch.due_date = form.due_date || null
   if (Object.keys(patch).length) emit('save', patch)
   else emit('close')
 }
@@ -54,8 +70,13 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
       </label>
       <label class="tp-field">
         <span>{{ k.description }}</span>
-        <textarea v-model="form.description" rows="5" maxlength="10000" :placeholder="k.descriptionPh" />
+        <textarea ref="descEl" v-model="form.description" rows="5" maxlength="10000" :placeholder="k.descriptionPh" />
       </label>
+      <div class="tm-mention">
+        <span><AppIcon name="at" /> {{ k.mention }}:</span>
+        <button v-for="u in users" :key="u.id" type="button" class="tm-chip" @click="mention(u)">@{{ u.username }}</button>
+        <small>{{ k.mentionHint }}</small>
+      </div>
       <div class="tm-row">
         <label class="tp-field">
           <span>{{ k.column }}</span>
@@ -70,6 +91,13 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
             <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name || u.username }}</option>
           </select>
         </label>
+      </div>
+      <div class="tp-field">
+        <span>{{ k.due }}</span>
+        <div class="tm-due">
+          <input v-model="form.due_date" type="date" :aria-label="k.due">
+          <button v-if="form.due_date" type="button" class="btn btn-ghost btn-sm" @click="form.due_date = ''">{{ k.dueClear }}</button>
+        </div>
       </div>
 
       <footer class="tm-foot">
@@ -101,6 +129,17 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
 .tm-head h2 { font-size: 1.15rem; font-weight: 800; }
 .tm textarea { resize: vertical; min-height: 110px; font: inherit; }
 .tm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tm-mention { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 16px; font-size: .82rem; font-weight: 700; color: var(--muted); }
+.tm-mention > span { display: inline-flex; align-items: center; gap: 5px; }
+.tm-mention .ico { width: 15px; height: 15px; }
+.tm-mention small { flex-basis: 100%; font-weight: 600; }
+.tm-chip {
+  padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line-2); background: #fff; cursor: pointer;
+  font-weight: 700; font-size: .82rem; color: var(--accent); transition: background .2s, color .2s, border-color .2s;
+}
+.tm-chip:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tm-due { display: flex; align-items: center; gap: 8px; }
+.tm-due input { flex: 1; }
 .tm-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
 .tm-foot-right { display: flex; gap: 8px; }
 .tm-delete { background: transparent; color: #C93A3F; padding-inline: 12px; }

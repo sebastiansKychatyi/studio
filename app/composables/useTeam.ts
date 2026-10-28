@@ -10,8 +10,11 @@ export interface TeamCard {
   assignee_id: number | null
   created_by: number | null
   position: number
+  due_date: string | null // YYYY-MM-DD
   updated_at: string
 }
+// Open card that mentions or is assigned to the current user
+export interface TeamMention extends TeamCard { board_id: number; board_title: string; column_title: string }
 export interface TeamColumn { id: number; title: string; position: number; cards: TeamCard[] }
 export interface TeamBoard { id: number; title: string }
 export interface TeamBoardFull extends TeamBoard { columns: TeamColumn[] }
@@ -36,6 +39,30 @@ export interface TeamMoney {
   spent_on: string
 }
 
+// Text split into plain parts and @mentions of known users
+export function mentionParts(text: string, users: TeamUser[]) {
+  const parts: { text: string; user?: TeamUser }[] = []
+  let last = 0
+  for (const m of text.matchAll(/@([\w.-]+)/g)) {
+    const user = users.find((u) => u.username.toLowerCase() === m[1]!.toLowerCase())
+    if (!user) continue
+    if (m.index > last) parts.push({ text: text.slice(last, m.index) })
+    parts.push({ text: m[0], user })
+    last = m.index + m[0].length
+  }
+  if (last < text.length) parts.push({ text: text.slice(last) })
+  return parts
+}
+
+// Deadline state relative to today (local dates)
+export function dueState(due: string | null) {
+  if (!due) return null
+  const d = new Date()
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const days = Math.round((Date.parse(due) - Date.parse(today)) / 86400000)
+  return days < 0 ? 'overdue' : days === 0 ? 'today' : days <= 2 ? 'soon' : 'later'
+}
+
 export const httpStatus = (e: unknown) => (e as { status?: number })?.status ?? 0
 
 export function useTeam() {
@@ -43,6 +70,7 @@ export function useTeam() {
   const user = useState<TeamUser | null | undefined>('team-user', () => undefined)
   const users = useState<TeamUser[]>('team-users', () => [])
   const alarms = useState<TeamAlarm[]>('team-alarms', () => [])
+  const mentions = useState<TeamMention[]>('team-mentions', () => [])
   const api = $fetch.create({ baseURL: '/api/team' })
 
   async function refresh() {
@@ -65,6 +93,7 @@ export function useTeam() {
 
   const loadUsers = async () => (users.value = await api<TeamUser[]>('/users'))
   const loadAlarms = async () => (alarms.value = await api<TeamAlarm[]>('/alarms'))
+  const loadMentions = async () => (mentions.value = await api<TeamMention[]>('/mentions'))
 
-  return { user, users, alarms, api, refresh, login, logout, loadUsers, loadAlarms }
+  return { user, users, alarms, mentions, api, refresh, login, logout, loadUsers, loadAlarms, loadMentions }
 }

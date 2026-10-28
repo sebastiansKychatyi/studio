@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// Team kanban: shared boards, editable columns, cards with drag & drop
-import type { TeamBoard, TeamBoardFull, TeamCard, TeamColumn } from '~/composables/useTeam'
+// Team kanban: shared boards, editable columns, cards with drag & drop, deadlines, @mentions
+import { dueState, mentionParts, type TeamBoard, type TeamBoardFull, type TeamCard, type TeamColumn, type TeamMention } from '~/composables/useTeam'
 
 const { t } = useSite()
 const localePath = useLocalePath()
-const { api, users } = useTeam()
+const { locale } = useI18n()
+const { api, users, user, mentions, loadMentions } = useTeam()
 
 const p = computed(() => t.value.panel)
 const k = computed(() => t.value.panel.kanban)
@@ -37,6 +38,7 @@ async function run(fn: () => Promise<unknown>) {
 
 async function reloadBoard() {
   board.value = activeId.value ? await api<TeamBoardFull>(`/boards/${activeId.value}`) : null
+  loadMentions().catch(() => {})
 }
 
 async function openBoard(id: number) {
@@ -243,6 +245,25 @@ async function deleteCard() {
   await run(() => api(`/cards/${card.id}`, { method: 'DELETE' }))
 }
 
+// Open a card from the "For me" list
+async function openMention(m: TeamMention) {
+  if (activeId.value !== m.board_id) await openBoard(m.board_id)
+  editing.value = board.value?.columns.flatMap((c) => c.cards).find((c) => c.id === m.id) ?? null
+}
+
+// Deadline chip: Today / Tomorrow / short date; cards in the last column count as done
+const isDone = (card: TeamCard) => board.value?.columns.at(-1)?.id === card.column_id
+function dueLabel(due: string) {
+  const state = dueState(due)
+  if (state === 'today') return k.value.today
+  const d = new Date(`${due}T12:00:00`)
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  if (d.toDateString() === tomorrow.toDateString()) return k.value.tomorrow
+  return d.toLocaleDateString(locale.value, { day: 'numeric', month: 'short' })
+}
+const mentionsMe = (text: string) => mentionParts(text, users.value).some((x) => x.user?.id === user.value?.id)
+
 const userById = (id: number | null) => users.value.find((u) => u.id === id)
 const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
 
@@ -269,6 +290,24 @@ onBeforeUnmount(() => {
         <p>{{ k.subtitle }}</p>
       </div>
     </header>
+
+    <!-- For me: open cards that mention me or are assigned to me -->
+    <section v-if="!loading" class="kb-forme">
+      <h2><AppIcon name="at" /> {{ k.forMe }} <span class="kb-count">{{ mentions.length }}</span> <small>{{ k.forMeHint }}</small></h2>
+      <TransitionGroup v-if="mentions.length" tag="ul" name="kb-card" class="kb-forme-list">
+        <li v-for="m in mentions" :key="m.id">
+          <button type="button" class="kb-forme-item" @click="openMention(m)">
+            <b>{{ m.title }}</b>
+            <small>{{ m.board_title }} · {{ m.column_title }}</small>
+            <span class="kb-forme-meta">
+              <span v-if="m.due_date" class="kb-due" :class="dueState(m.due_date)"><AppIcon name="calendar" />{{ dueLabel(m.due_date) }}</span>
+              <span v-if="mentionsMe(`${m.title}\n${m.description}`)" class="kb-at me">@{{ user?.username }}</span>
+            </span>
+          </button>
+        </li>
+      </TransitionGroup>
+      <p v-else class="kb-forme-empty">{{ k.forMeEmpty }}</p>
+    </section>
 
     <!-- Board tabs -->
     <div class="kb-boards" role="tablist" :aria-label="k.boards">
@@ -374,9 +413,27 @@ onBeforeUnmount(() => {
                 @click="editing = it.card"
                 @keydown.enter="editing = it.card"
               >
-                <p class="kb-card-title">{{ it.card.title }}</p>
-                <p v-if="it.card.description" class="kb-card-desc">{{ it.card.description }}</p>
-                <div v-if="it.card.assignee_id || it.card.description" class="kb-card-foot">
+                <p class="kb-card-title">
+                  <template v-for="(part, pi) in mentionParts(it.card.title, users)" :key="pi">
+                    <span v-if="part.user" class="kb-at" :class="{ me: part.user.id === user?.id }">{{ part.text }}</span>
+                    <template v-else>{{ part.text }}</template>
+                  </template>
+                </p>
+                <p v-if="it.card.description" class="kb-card-desc">
+                  <template v-for="(part, pi) in mentionParts(it.card.description, users)" :key="pi">
+                    <span v-if="part.user" class="kb-at" :class="{ me: part.user.id === user?.id }">{{ part.text }}</span>
+                    <template v-else>{{ part.text }}</template>
+                  </template>
+                </p>
+                <div v-if="it.card.assignee_id || it.card.description || it.card.due_date" class="kb-card-foot">
+                  <span
+                    v-if="it.card.due_date"
+                    class="kb-due"
+                    :class="isDone(it.card) ? 'done' : dueState(it.card.due_date)"
+                    :title="`${k.due}: ${it.card.due_date}${!isDone(it.card) && dueState(it.card.due_date) === 'overdue' ? ` · ${k.overdue}` : ''}`"
+                  >
+                    <AppIcon name="calendar" />{{ dueLabel(it.card.due_date) }}
+                  </span>
                   <AppIcon v-if="it.card.description" name="note" />
                   <span
                     v-if="userById(it.card.assignee_id)"
@@ -503,6 +560,38 @@ onBeforeUnmount(() => {
 }
 .kb-card-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; color: var(--muted); }
 .kb-card-foot .ico { width: 15px; height: 15px; margin-right: auto; }
+.kb-at { padding: 0 4px; border-radius: 6px; background: #EEEBFF; color: var(--accent); font-weight: 800; }
+.kb-at.me { background: var(--accent); color: #fff; }
+.kb-due {
+  display: inline-flex; align-items: center; gap: 4px; margin-right: auto; padding: 2px 8px; border-radius: 999px;
+  background: var(--bg-2); color: var(--ink-2); font-size: .75rem; font-weight: 800; white-space: nowrap;
+}
+.kb-card-foot .kb-due .ico, .kb-due .ico { width: 13px; height: 13px; margin: 0; }
+.kb-due + .ico { margin-right: 0; }
+.kb-due.soon { background: #FFF1D6; color: #A15C00; }
+.kb-due.today { background: #FFE2D6; color: #C2410C; }
+.kb-due.overdue { background: #E5484D; color: #fff; animation: kbPulse 2s ease-in-out infinite; }
+.kb-due.done { text-decoration: line-through; opacity: .6; }
+@keyframes kbPulse { 50% { box-shadow: 0 0 0 4px rgba(229, 72, 77, .18); } }
+
+.kb-forme { margin-bottom: 22px; padding: 16px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); animation: tpUp .6s var(--ease) both; }
+.kb-forme h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .95rem; font-weight: 800; }
+.kb-forme h2 .ico { width: 17px; height: 17px; color: var(--accent); }
+.kb-forme h2 .kb-count { background: var(--bg-2); }
+.kb-forme h2 small { color: var(--muted); font-weight: 600; font-size: .8rem; }
+.kb-forme-list { display: flex; gap: 10px; overflow-x: auto; padding: 12px 2px 2px; }
+.kb-forme-list li { flex: none; width: 240px; }
+.kb-forme-item {
+  display: grid; gap: 4px; width: 100%; height: 100%; padding: 12px 14px; border-radius: 16px; text-align: left; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); transition: transform .3s var(--ease), box-shadow .3s, border-color .2s;
+}
+.kb-forme-item:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: rgba(91, 75, 255, .35); }
+.kb-forme-item b { font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-forme-item small { color: var(--muted); font-weight: 600; font-size: .78rem; }
+.kb-forme-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; min-height: 20px; }
+.kb-forme-meta .kb-due { margin-right: 0; }
+.kb-forme-meta .kb-at { font-size: .75rem; }
+.kb-forme-empty { margin-top: 8px; color: var(--muted); font-size: .88rem; }
 .kb-ghost {
   display: grid; place-items: center; height: 46px; border-radius: 16px; border: 2px dashed rgba(91, 75, 255, .45);
   background: rgba(91, 75, 255, .06); color: var(--accent); font-size: .8rem; font-weight: 700;
