@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Team panel shell: sidebar menu, user, alarm ringer. Client-only (routeRules).
+// Team panel shell: sidebar menu, user, light/dark theme, alarm ringer. Client-only (routeRules).
 definePageMeta({ middleware: 'team' })
 
 const { t, cfg } = useSite()
@@ -11,6 +11,7 @@ const { user, mentions, logout, loadUsers, loadAlarms, loadMentions } = useTeam(
 const p = computed(() => t.value.panel)
 const nav = computed(() => [
   { to: localePath('/panel'), icon: 'tasks', label: p.value.nav.tasks },
+  { to: localePath('/panel/calendar'), icon: 'calendar', label: p.value.nav.calendar },
   { to: localePath('/panel/alarms'), icon: 'alarm', label: p.value.nav.alarms },
   { to: localePath('/panel/expenses'), icon: 'wallet', label: p.value.nav.expenses },
   { to: localePath('/panel/income'), icon: 'income', label: p.value.nav.income },
@@ -18,7 +19,20 @@ const nav = computed(() => [
 const current = computed(() => nav.value.find((n) => n.to === route.path)?.label ?? '')
 
 useSeoMeta({ title: () => `${current.value} | ${cfg.brand}`, robots: 'noindex, nofollow' })
-useHead(() => ({ htmlAttrs: { lang: locale.value } }))
+// Theme: saved choice, else the system setting
+const THEME = 'team-theme'
+const dark = ref(false)
+onMounted(() => {
+  let saved: string | null = null
+  try { saved = localStorage.getItem(THEME) } catch { /* private mode */ }
+  dark.value = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+})
+function toggleTheme() {
+  dark.value = !dark.value
+  try { localStorage.setItem(THEME, dark.value ? 'dark' : 'light') } catch { /* private mode */ }
+}
+
+useHead(() => ({ htmlAttrs: { lang: locale.value, class: dark.value ? 'tp-dark' : '' } }))
 
 // Badge with open mentions; refreshed every minute
 let poll: ReturnType<typeof setInterval> | undefined
@@ -39,7 +53,7 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
 </script>
 
 <template>
-  <div class="tp">
+  <div class="tp" :class="{ dark }">
     <aside class="tp-side">
       <NuxtLink class="logo" :to="localePath('/')">
         <span class="logo-mark" aria-hidden="true">D</span>
@@ -60,6 +74,16 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
         </div>
         <div class="tp-side-actions">
           <LangSwitch up />
+          <button
+            type="button"
+            class="tp-icon-btn tp-theme"
+            :title="dark ? p.themeLight : p.themeDark"
+            :aria-label="dark ? p.themeLight : p.themeDark"
+            :aria-pressed="dark"
+            @click="toggleTheme"
+          >
+            <Transition name="tp-spin" mode="out-in"><AppIcon :key="String(dark)" :name="dark ? 'sun' : 'moon'" /></Transition>
+          </button>
           <button type="button" class="tp-icon-btn" :title="p.logout" :aria-label="p.logout" @click="out"><AppIcon name="logout" /></button>
         </div>
       </div>
@@ -98,7 +122,11 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
 .tp-me-name { display: grid; line-height: 1.25; min-width: 0; }
 .tp-me-name b { font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tp-me-name small { color: var(--muted); font-size: .78rem; }
-.tp-side-actions { display: flex; justify-content: space-between; align-items: center; }
+.tp-side-actions { display: flex; align-items: center; gap: 6px; }
+.tp-side-actions .lang-dd { margin-right: auto; }
+.tp-spin-enter-active, .tp-spin-leave-active { transition: opacity .2s, transform .3s var(--ease); }
+.tp-spin-enter-from { opacity: 0; transform: rotate(-90deg) scale(.6); }
+.tp-spin-leave-to { opacity: 0; transform: rotate(90deg) scale(.6); }
 /* Sidebar sits at the left edge: open the language menu to the right */
 .tp-side-actions .lang-dd-menu { right: auto; left: 0; transform-origin: bottom left; }
 
@@ -152,4 +180,75 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
   .tp-side-actions .lang-dd.up .lang-dd-menu { top: calc(100% + 8px); bottom: auto; left: auto; right: 0; transform-origin: top right; }
   .tp-main { padding-top: 22px; }
 }
+
+/* ===== Dark theme (panel only) ===== */
+html.tp-dark { background: #0E0E13; color-scheme: dark; }
+.tp { transition: background .35s, color .35s; }
+.tp.dark {
+  --bg: #0E0E13;
+  --bg-2: #1C1C25;
+  --surface: #16161E;
+  --field: #1E1E28;
+  --solid: #2C2B3B;
+  --ink: #EDEDF2;
+  --ink-2: #C4C4CF;
+  --muted: #8A8A9A;
+  --line: rgba(255, 255, 255, .07);
+  --line-2: rgba(255, 255, 255, .13);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 40px -12px rgba(0, 0, 0, .55);
+  --shadow-lg: 0 2px 4px rgba(0, 0, 0, .3), 0 30px 80px -20px rgba(0, 0, 0, .7);
+  color: var(--ink); color-scheme: dark;
+}
+.tp.dark .tp-side { background: rgba(22, 22, 30, .85); }
+/* Solid dark elements stay dark (ink is light here) */
+.tp.dark .tp-nav a.active, .tp.dark .tp-toast, .tp.dark .kb-tab.active, .tp.dark .kb-lock.on, .tp.dark .ex-seg button.on,
+.tp.dark .ex-stat-main, .tp.dark .rc-pay, .tp.dark .tp-icon-btn:hover, .tp.dark .kb-col-actions .tp-icon-btn:hover:not(:disabled) {
+  background: var(--solid); border-color: var(--solid); color: #fff;
+}
+.tp.dark .tp-nav a.active { box-shadow: inset 0 0 0 1px rgba(139, 127, 255, .35); }
+.tp.dark .ex-stat-main { border-color: rgba(255, 255, 255, .08); }
+.tp.dark .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 10px 30px -10px rgba(91, 75, 255, .6); }
+.tp.dark .btn-primary:hover { background: #7466FF; }
+.tp.dark .rc-pay:hover, .tp.dark .tp-icon-btn.danger:hover, .tp.dark .tp-icon-btn.confirm { color: #fff; }
+.tp.dark .rc-pay:hover { background: var(--accent); }
+.tp.dark .tp-icon-btn.danger:hover, .tp.dark .tp-icon-btn.confirm { background: #E5484D; }
+/* Fields, chips, menus: white → field */
+.tp.dark .tp-input, .tp.dark .tp-field input, .tp.dark .tp-field textarea, .tp.dark .tp-field select,
+.tp.dark .al-day, .tp.dark .tm-chip, .tp.dark .tm-vis button, .tp.dark .ex-cat, .tp.dark .lang-dd-menu, .tp.dark .rc-ask .ex-amount input {
+  background: var(--field); color: var(--ink); border-color: var(--line-2);
+}
+.tp.dark .ex-cat.on { background: var(--c); border-color: var(--c); color: #fff; }
+.tp.dark .al-day.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tp.dark .ev-days .al-day.on { background: var(--c); border-color: var(--c); }
+.tp.dark .tm-vis button.on { background: rgba(91, 75, 255, .18); }
+.tp.dark .lang-dd-btn:hover, .tp.dark .lang-dd.open .lang-dd-btn { background: var(--field); box-shadow: 0 0 0 1px var(--line-2); }
+.tp.dark .lang-dd-menu { border-color: var(--line-2); box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .7); }
+.tp.dark .lang-dd-menu a { color: var(--ink-2); }
+.tp.dark .lang-dd-menu a:hover, .tp.dark .lang-dd-menu a:focus-visible { background: var(--bg-2); color: var(--ink); }
+.tp.dark .lang-dd-menu a.active { color: var(--ink); }
+.tp.dark .lang-dd-menu b { color: var(--muted); }
+.tp.dark .lang-dd-menu i { color: #B9B1FF; }
+.tp.dark .tm-overlay { background: rgba(0, 0, 0, .55); }
+/* Light tints → dark tints */
+.tp.dark .kb-col.over { background: rgba(91, 75, 255, .14); }
+.tp.dark .kb-at { background: rgba(139, 127, 255, .18); color: #B9B1FF; }
+.tp.dark .kb-at.me { background: var(--accent); color: #fff; }
+.tp.dark .kb-empty-icon { background: rgba(91, 75, 255, .18); }
+.tp.dark .kb-due.soon, .tp.dark .cal-due-chip { background: rgba(245, 158, 11, .16); color: #FBBF5A; }
+.tp.dark .kb-due.today { background: rgba(249, 115, 22, .18); color: #FDA668; }
+.tp.dark .cal-due-chip.late { background: #E5484D; color: #fff; }
+.tp.dark .cal-due-chip.done { background: var(--bg-2); color: var(--muted); }
+.tp.dark .rc-item.late { background: rgba(229, 72, 77, .1); }
+.tp.dark .ex-col:hover .ex-col-bar { background: rgba(139, 127, 255, .35); }
+.tp.dark .ex-dot { background: color-mix(in srgb, var(--c) 20%, var(--surface)); }
+.tp.dark .cal-ev { background: color-mix(in srgb, var(--c) 24%, var(--surface)); }
+.tp.dark .cal-ev small { color: color-mix(in srgb, var(--c) 65%, #fff); }
+.tp.dark .cal-pill { background: color-mix(in srgb, var(--c) 18%, var(--surface)); }
+.tp.dark .cal-pill:hover { background: color-mix(in srgb, var(--c) 30%, var(--surface)); }
+.tp.dark .cal-col { background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px); }
+.tp.dark .cal-col.today { background-color: rgba(91, 75, 255, .07); }
+.tp.dark .ex-catform-colors button { border-color: var(--surface); }
+.tp.dark .al-switch i { background: #EDEDF2; }
+.tp.dark .ex-row-amount.ex-plus, .tp.dark .ex-stat-value.pos, .tp.dark .rc-done small { color: #3FD9BC; }
+.tp.dark .kb-ghost { background: rgba(91, 75, 255, .1); }
 </style>

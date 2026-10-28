@@ -59,6 +59,16 @@ onMounted(() =>
   }).finally(() => (loading.value = false))
 )
 
+// Layout: columns in one scrolling row or wrapped into a grid; remembered per browser
+const LAYOUT = 'team-kanban-layout'
+const layout = ref<'grid' | 'row'>('grid')
+onMounted(() => {
+  try { if (localStorage.getItem(LAYOUT) === 'row') layout.value = 'row' } catch { /* private mode */ }
+})
+watch(layout, (v) => {
+  try { localStorage.setItem(LAYOUT, v) } catch { /* private mode */ }
+})
+
 // Inline editing / two-step delete
 const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select?.()) }
 const editKey = ref('')
@@ -450,10 +460,18 @@ onBeforeUnmount(() => {
         >
           <AppIcon :name="board.is_private ? 'lock' : 'users'" />{{ board.is_private ? k.private : k.team }}
         </button>
+        <div class="ex-seg kb-layout" role="radiogroup" :aria-label="k.layout">
+          <button type="button" role="radio" :aria-checked="layout === 'grid'" :class="{ on: layout === 'grid' }" :title="k.grid" @click="layout = 'grid'">
+            <AppIcon name="grid" /><span>{{ k.grid }}</span>
+          </button>
+          <button type="button" role="radio" :aria-checked="layout === 'row'" :class="{ on: layout === 'row' }" :title="k.row" @click="layout = 'row'">
+            <AppIcon name="tasks" /><span>{{ k.row }}</span>
+          </button>
+        </div>
       </div>
 
       <!-- Columns -->
-      <TransitionGroup tag="div" name="kb-col" class="kb-columns">
+      <TransitionGroup tag="div" name="kb-col" class="kb-columns" :class="{ grid: layout === 'grid' }">
         <section
           v-for="(col, ci) in board.columns"
           :key="col.id"
@@ -610,9 +628,6 @@ onBeforeUnmount(() => {
 .kb-inline { display: flex; }
 .kb-inline .tp-input { width: 100%; }
 
-.kb-loading { display: grid; place-items: center; padding: 80px 0; }
-.kb-loading .spinner { width: 28px; height: 28px; border-color: var(--line-2); border-top-color: var(--accent); }
-
 .kb-empty {
   display: grid; justify-items: center; gap: 10px; max-width: 460px; margin: 40px auto; padding: 44px 28px; text-align: center;
   border-radius: var(--radius); background: var(--surface); border: 1px dashed var(--line-2); animation: tpUp .7s var(--ease) both;
@@ -626,13 +641,17 @@ onBeforeUnmount(() => {
 .kb-title { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; margin-right: 6px; cursor: text; }
 .kb-title-input { font-size: 1.1rem; font-weight: 800; }
 .kb-sure { color: #E5484D; font-weight: 700; font-size: .85rem; }
-.fade-x-enter-active, .fade-x-leave-active { transition: opacity .2s, transform .25s var(--ease); }
-.fade-x-enter-from, .fade-x-leave-to { opacity: 0; transform: translateX(-6px); }
 
 .kb-columns {
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(270px, 300px); gap: 16px; align-items: start;
   overflow-x: auto; padding: 4px 4px 20px; margin: 0 -4px; scroll-snap-type: x proximity;
 }
+/* Grid layout: columns wrap into rows */
+.kb-columns.grid { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); overflow-x: visible; scroll-snap-type: none; }
+.kb-layout { margin-left: auto; }
+.kb-layout button { display: inline-flex; align-items: center; gap: 6px; }
+.kb-layout .ico { width: 15px; height: 15px; }
+@media (max-width: 640px) { .kb-layout span { display: none; } }
 .kb-col {
   display: grid; gap: 10px; padding: 12px; border-radius: 22px; background: var(--bg-2); border: 1px solid transparent;
   scroll-snap-align: start; transition: background .25s, border-color .25s, box-shadow .25s;
@@ -718,6 +737,7 @@ onBeforeUnmount(() => {
 .kb-grip { width: 14px; height: 14px; color: var(--muted); opacity: 0; margin-right: -4px; transition: opacity .2s; }
 .kb-col:hover .kb-grip { opacity: 1; }
 .kb-col.moving { opacity: .4; transform: rotate(-1deg); }
+.kb-col.over:not(.moving) { border-style: dashed; }
 .kb-card-lock { display: inline-block; width: 13px; height: 13px; margin: 0 4px 2px 0; vertical-align: middle; color: var(--accent); }
 .kb-ghost {
   display: grid; place-items: center; height: 46px; border-radius: 16px; border: 2px dashed rgba(91, 75, 255, .45);

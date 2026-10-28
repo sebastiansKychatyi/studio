@@ -1,7 +1,10 @@
 <script setup lang="ts">
 // Personal money ledger (expenses or income): entered in EUR/UAH/USD, stored in EUR, shown in any of them.
-// Month view, stats, balance, categories, 6-month chart, CSV export.
-import { CURRENCIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, type Currency, type MoneyKind, type TeamMoney } from '~/composables/useTeam'
+// Month view, stats, balance, monthly templates, own categories, 6-month chart, CSV export.
+import {
+  CATEGORY_COLORS, CATEGORY_ICONS, CURRENCIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES,
+  type Currency, type CustomCategory, type MoneyCat, type MoneyKind, type TeamMoney,
+} from '~/composables/useTeam'
 
 const props = defineProps<{ kind: MoneyKind }>()
 
@@ -15,8 +18,7 @@ const e = computed(() => t.value.panel[props.kind])
 const isIncome = computed(() => props.kind === 'income')
 const other = computed<MoneyKind>(() => (isIncome.value ? 'expenses' : 'income'))
 
-const CATS = computed<readonly string[]>(() => (isIncome.value ? INCOME_CATEGORIES : EXPENSE_CATEGORIES))
-const catName = (c: string) => (e.value.categories as Record<string, string>)[c] ?? c
+const BUILT_IN = computed<readonly string[]>(() => (isIncome.value ? INCOME_CATEGORIES : EXPENSE_CATEGORIES))
 const COLORS: Record<string, string> = {
   food: '#FF7A59', transport: '#3B82F6', home: '#5B4BFF', software: '#19C3A6',
   tech: '#8B5CF6', fun: '#F59E0B', health: '#EC4899', other: '#9CA3AF',
@@ -27,6 +29,65 @@ const CAT_ICONS: Record<string, string> = {
   tech: 'laptop', fun: 'game', health: 'heart', other: 'tag',
   projects: 'briefcase', salary: 'cash', support: 'repeat', sale: 'cart', gift: 'gift', refund: 'back',
 }
+
+// Built-in categories + own ones ("c<id>"), "other" stays last
+const customs = ref<CustomCategory[]>([])
+const allCats = computed<MoneyCat[]>(() => {
+  const names = e.value.categories as Record<string, string>
+  const builtIn = BUILT_IN.value.map((key) => ({ key, name: names[key] ?? key, icon: CAT_ICONS[key] ?? 'tag', color: COLORS[key] ?? '#9CA3AF' }))
+  return [...builtIn.filter((c) => c.key !== 'other'), ...customs.value, ...builtIn.filter((c) => c.key === 'other')]
+})
+const catInfo = (key: string) => allCats.value.find((c) => c.key === key) ?? allCats.value.at(-1)!
+const catName = (key: string) => catInfo(key).name
+
+// Own category editor
+const vFocus = { mounted: (el: HTMLInputElement) => el.focus() }
+const catEdit = ref<number | 'new' | null>(null)
+const catForm = reactive({ name: '', icon: 'tag', color: CATEGORY_COLORS[0] as string })
+const catConfirm = ref(false)
+function openCat(c?: CustomCategory) {
+  catEdit.value = c ? c.id : 'new'
+  catConfirm.value = false
+  Object.assign(catForm, c
+    ? { name: c.name, icon: c.icon, color: c.color }
+    : { name: '', icon: 'tag', color: CATEGORY_COLORS[customs.value.length % CATEGORY_COLORS.length] })
+}
+async function saveCat() {
+  const name = catForm.name.trim()
+  if (!name) return
+  try {
+    const body = { name, icon: catForm.icon, color: catForm.color }
+    if (catEdit.value === 'new') {
+      const created = await api<CustomCategory>(`/${props.kind}/categories`, { method: 'POST', body })
+      customs.value.push(created)
+      form.category = created.key
+    } else {
+      const updated = await api<CustomCategory>(`/${props.kind}/categories/${catEdit.value}`, { method: 'PATCH', body })
+      customs.value = customs.value.map((c) => (c.id === updated.id ? updated : c))
+    }
+    catEdit.value = null
+  } catch (err) {
+    fail(err)
+  }
+}
+async function deleteCat() {
+  if (!catConfirm.value) {
+    catConfirm.value = true
+    setTimeout(() => (catConfirm.value = false), 3000)
+    return
+  }
+  const id = catEdit.value
+  catEdit.value = null
+  try {
+    await api(`/${props.kind}/categories/${id}`, { method: 'DELETE' })
+    if (form.category === `c${id}`) form.category = 'other'
+    await load()
+    recEl.value?.load()
+  } catch (err) {
+    fail(err)
+  }
+}
+const selectedCustom = computed(() => customs.value.find((c) => c.key === form.category))
 
 // Local dates (no UTC shift)
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -87,12 +148,14 @@ function fail(err: unknown) {
 async function load() {
   ready.value = false
   try {
-    const [list, sum, r, opposite] = await Promise.all([
+    const [list, sum, r, opposite, cats] = await Promise.all([
       api<TeamMoney[]>(`/${props.kind}`, { query: { month: month.value } }),
       api<{ month: string; total: number }[]>(`/${props.kind}/summary`, { query: { month: month.value } }),
       api<Record<Currency, number>>('/rates'),
       api<{ month: string; total: number }[]>(`/${other.value}/summary`, { query: { month: month.value, months: 1 } }),
+      api<CustomCategory[]>(`/${props.kind}/categories`),
     ])
+    customs.value = cats
     items.value = list
     history.value = sum
     rates.value = r
@@ -165,12 +228,14 @@ watch(total, (to) => {
 })
 onBeforeUnmount(() => clearInterval(tween))
 
+const recEl = ref<{ load: () => Promise<void> }>()
+
 // Form (add / edit)
 const formEl = ref<HTMLElement>()
 const editingId = ref<number | null>(null)
 const busy = ref(false)
 const amountError = ref(false)
-const form = reactive({ amount: '', currency: 'EUR' as Currency, category: CATS.value[0]!, note: '', spent_on: today })
+const form = reactive({ amount: '', currency: 'EUR' as Currency, category: BUILT_IN.value[0]!, note: '', spent_on: today })
 
 const parsedAmount = computed(() => Math.round(Number(form.amount.replace(',', '.').replace(/\s/g, '')) * 100) / 100)
 // Preview of the stored EUR value
@@ -228,6 +293,7 @@ async function remove(x: TeamMoney) {
   try {
     await api(`/${props.kind}/${x.id}`, { method: 'DELETE' })
     await load()
+    if (x.recurring_id) recEl.value?.load()
   } catch (err) {
     fail(err)
   }
@@ -308,6 +374,19 @@ function exportCsv() {
       </section>
     </div>
 
+    <TeamRecurring
+      ref="recEl"
+      :kind="kind"
+      :month="month"
+      :this-month="thisMonth"
+      :today="today"
+      :cats="allCats"
+      :rates="rates"
+      :view="view"
+      @changed="load"
+      @error="fail"
+    />
+
     <div class="ex-grid">
       <!-- Add / edit -->
       <form ref="formEl" class="ex-card ex-form" :class="{ editing: editingId }" @submit.prevent="save">
@@ -351,19 +430,63 @@ function exportCsv() {
           <span>{{ e.category }}</span>
           <div class="ex-cats" role="radiogroup" :aria-label="e.category">
             <button
-              v-for="c in CATS"
-              :key="c"
+              v-for="c in allCats"
+              :key="c.key"
               type="button"
               role="radio"
               class="ex-cat"
-              :class="{ on: form.category === c }"
-              :aria-checked="form.category === c"
-              :style="{ '--c': COLORS[c] }"
-              @click="form.category = c"
+              :class="{ on: form.category === c.key }"
+              :aria-checked="form.category === c.key"
+              :style="{ '--c': c.color }"
+              @click="form.category = c.key"
             >
-              <AppIcon :name="CAT_ICONS[c] ?? 'tag'" />{{ catName(c) }}
+              <AppIcon :name="c.icon" />{{ c.name }}
             </button>
+            <button type="button" class="ex-cat ex-cat-add" @click="openCat()"><AppIcon name="plus" />{{ p.cats.own }}</button>
+            <button v-if="selectedCustom" type="button" class="ex-cat ex-cat-add" @click="openCat(selectedCustom)"><AppIcon name="edit" />{{ p.cats.edit }}</button>
           </div>
+          <!-- Own category editor -->
+          <Transition name="rc-form">
+            <div v-if="catEdit" class="ex-catform" :style="{ '--c': catForm.color }">
+              <div class="ex-catform-row">
+                <span class="ex-dot"><AppIcon :name="catForm.icon" /></span>
+                <input v-model="catForm.name" v-focus class="tp-input" maxlength="40" :placeholder="p.cats.name" @keydown.enter.prevent="saveCat" @keydown.esc="catEdit = null">
+              </div>
+              <div class="ex-catform-icons" role="radiogroup" :aria-label="p.cats.icon">
+                <button
+                  v-for="i in CATEGORY_ICONS"
+                  :key="i"
+                  type="button"
+                  role="radio"
+                  :aria-checked="catForm.icon === i"
+                  :class="{ on: catForm.icon === i }"
+                  @click="catForm.icon = i"
+                >
+                  <AppIcon :name="i" />
+                </button>
+              </div>
+              <div class="ex-catform-colors" role="radiogroup" :aria-label="p.cats.color">
+                <button
+                  v-for="c in CATEGORY_COLORS"
+                  :key="c"
+                  type="button"
+                  role="radio"
+                  :aria-checked="catForm.color === c"
+                  :aria-label="c"
+                  :class="{ on: catForm.color === c }"
+                  :style="{ background: c }"
+                  @click="catForm.color = c"
+                />
+              </div>
+              <div class="rc-form-actions">
+                <button type="button" class="btn btn-primary btn-sm" :disabled="!catForm.name.trim()" @click="saveCat">{{ p.save }}</button>
+                <button type="button" class="btn btn-ghost btn-sm" @click="catEdit = null">{{ p.cancel }}</button>
+                <button v-if="catEdit !== 'new'" type="button" class="btn btn-sm tm-delete" :class="{ sure: catConfirm }" @click="deleteCat">
+                  <AppIcon name="trash" /> {{ catConfirm ? p.sure : p.delete }}
+                </button>
+              </div>
+            </div>
+          </Transition>
         </div>
         <label class="tp-field">
           <span>{{ e.note }}</span>
@@ -382,9 +505,9 @@ function exportCsv() {
         <section class="ex-card">
           <h2>{{ e.byCategory }}</h2>
           <ul v-if="byCategory.length" class="ex-bars">
-            <li v-for="row in byCategory" :key="row.cat" :style="{ '--c': COLORS[row.cat] }">
+            <li v-for="row in byCategory" :key="row.cat" :style="{ '--c': catInfo(row.cat).color }">
               <div class="ex-bar-text">
-                <span><AppIcon :name="CAT_ICONS[row.cat] ?? 'tag'" />{{ catName(row.cat) }}</span>
+                <span><AppIcon :name="catInfo(row.cat).icon" />{{ catName(row.cat) }}</span>
                 <b>{{ money(row.sum) }}</b>
               </div>
               <div class="ex-bar"><span :style="{ width: ready ? `${row.pct.toFixed(1)}%` : '0%' }" /></div>
@@ -426,10 +549,10 @@ function exportCsv() {
             :key="x.id"
             class="ex-row"
             :class="{ editing: editingId === x.id }"
-            :style="{ '--c': COLORS[x.category] }"
+            :style="{ '--c': catInfo(x.category).color }"
           >
             <button type="button" class="ex-row-main" @click="edit(x)">
-              <span class="ex-dot"><AppIcon :name="CAT_ICONS[x.category] ?? 'tag'" /></span>
+              <span class="ex-dot"><AppIcon :name="catInfo(x.category).icon" /></span>
               <span class="ex-row-text">
                 <b>{{ x.note || catName(x.category) }}</b>
                 <small v-if="x.note">{{ catName(x.category) }}</small>
@@ -465,25 +588,8 @@ function exportCsv() {
 .ex-income .ex-col.active .ex-col-bar { background: linear-gradient(180deg, #5EE6CF, #19C3A6); }
 .ex-income .ex-col.active .ex-col-val { color: #0E9F85; }
 .ex-rate { display: inline-block; margin-left: 4px; padding: 1px 10px; border-radius: 999px; background: var(--bg-2); font-size: .8rem; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
-.ex-seg { display: inline-flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
-.ex-seg button {
-  min-width: 34px; height: 30px; padding: 0 10px; border: 0; border-radius: 999px; cursor: pointer; background: none;
-  font-weight: 800; font-size: .9rem; color: var(--muted); transition: background .25s, color .25s;
-}
-.ex-seg button:hover { color: var(--ink); }
-.ex-seg button.on { background: var(--ink); color: #fff; }
-.ex-seg.sm { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); padding: 3px; border: 0; background: var(--bg-2); }
-.ex-seg.sm button { min-width: 30px; height: 28px; padding: 0 8px; font-size: .85rem; }
-.ex-amount { position: relative; display: block; }
-.tp-field .ex-amount input { padding-right: 120px; }
 .ex-preview { color: var(--accent); font-weight: 700; font-size: .82rem; }
 .ex-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.ex-month { display: flex; align-items: center; gap: 6px; padding: 4px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
-.ex-month-label { min-width: 150px; text-align: center; font-weight: 800; font-size: .95rem; }
-.ex-month-label::first-letter { text-transform: uppercase; }
-.ex-flip-enter-active, .ex-flip-leave-active { transition: opacity .2s, transform .25s var(--ease); }
-.ex-flip-enter-from { opacity: 0; transform: translateY(8px); }
-.ex-flip-leave-to { opacity: 0; transform: translateY(-8px); }
 .ex-head-actions .btn .ico { width: 16px; height: 16px; }
 .ex-head-actions .btn:disabled { opacity: .45; cursor: default; }
 
@@ -531,6 +637,18 @@ function exportCsv() {
 .ex-cat:hover .ico { transform: scale(1.15) rotate(-6deg); }
 .ex-cat.on { background: var(--c); border-color: var(--c); color: #fff; transform: translateY(-1px); }
 .ex-cat.on .ico { color: #fff; }
+.ex-cat-add { border-style: dashed; color: var(--muted); --c: var(--accent); }
+.ex-catform { display: grid; gap: 10px; margin-top: 10px; padding: 14px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line-2); }
+.ex-catform-row { display: flex; align-items: center; gap: 10px; }
+.ex-catform-row .tp-input { flex: 1; }
+.ex-catform-icons { display: flex; flex-wrap: wrap; gap: 4px; }
+.ex-catform-icons button {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; border: 0; background: none; cursor: pointer;
+  color: var(--ink-2); transition: background .2s, color .2s, transform .3s var(--ease);
+}
+.ex-catform-icons button .ico { width: 17px; height: 17px; }
+.ex-catform-icons button:hover { background: var(--bg-2); transform: scale(1.08); }
+.ex-catform-icons button.on { background: var(--c); color: #fff; }
 .ex-form-actions { display: flex; gap: 8px; margin-top: 4px; }
 .ex-form-actions .btn:disabled { opacity: .7; cursor: progress; }
 

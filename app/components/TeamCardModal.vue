@@ -152,20 +152,6 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
 </template>
 
 <style>
-.tm-overlay {
-  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px;
-  background: rgba(18, 18, 22, .35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  animation: tpFade .25s both;
-}
-.tm {
-  width: min(560px, 100%); max-height: calc(100svh - 32px); overflow-y: auto; padding: 24px;
-  border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-lg);
-  animation: tmIn .4s var(--ease) both;
-}
-@keyframes tmIn { from { opacity: 0; transform: translateY(20px) scale(.97); } }
-.tm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.tm-head h2 { font-size: 1.15rem; font-weight: 800; }
-.tm textarea { resize: vertical; min-height: 110px; font: inherit; }
 .tm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tm-mention { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 16px; font-size: .82rem; font-weight: 700; color: var(--muted); }
 .tm-mention > span { display: inline-flex; align-items: center; gap: 5px; }
@@ -191,9 +177,5 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
 .tm-vis button:disabled { cursor: not-allowed; opacity: .55; }
 .tm-due { display: flex; align-items: center; gap: 8px; }
 .tm-due input { flex: 1; }
-.tm-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
-.tm-foot-right { display: flex; gap: 8px; }
-.tm-delete { background: transparent; color: #C93A3F; padding-inline: 12px; }
-.tm-delete:hover, .tm-delete.sure { background: #E5484D; color: #fff; }
 @media (max-width: 520px) { .tm-row { grid-template-columns: 1fr; } }
 </style>

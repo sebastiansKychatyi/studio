@@ -11,7 +11,7 @@ from sqlalchemy import inspect, text
 from .config import settings
 from .db import engine
 from .models import Base
-from .routers import alarms, auth, kanban, money
+from .routers import alarms, auth, events, kanban, money
 
 PREFIX = "/api/team"
 
@@ -20,6 +20,8 @@ ADDED_COLUMNS = [
     ("cards", "due_date", "DATE"),
     ("cards", "is_private", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ("boards", "is_private", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    ("expenses", "recurring_id", "INTEGER REFERENCES recurring(id) ON DELETE SET NULL"),
+    ("incomes", "recurring_id", "INTEGER REFERENCES recurring(id) ON DELETE SET NULL"),
 ]
 
 
@@ -48,7 +50,7 @@ app = FastAPI(
     openapi_url=f"{PREFIX}/openapi.json" if settings.docs else None,
 )
 
-for r in (auth.router, kanban.router, alarms.router, money.router):
+for r in (auth.router, kanban.router, alarms.router, money.router, events.router):
     app.include_router(r, prefix=PREFIX)
 
 

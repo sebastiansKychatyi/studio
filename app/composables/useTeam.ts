@@ -23,11 +23,34 @@ export interface TeamBoardItem extends TeamBoard { columns: { id: number; title:
 export interface TeamBoardFull extends TeamBoard { columns: TeamColumn[] }
 // days: JS weekdays (0 = Sunday); empty = ring once
 export interface TeamAlarm { id: number; time: string; label: string; days: number[]; enabled: boolean }
+// Calendar event; weekly ones repeat on `days` (JS weekdays) until `until`, minus `skip` dates
+export interface TeamEvent {
+  id: number
+  title: string
+  date: string // first day, YYYY-MM-DD
+  start: string // HH:MM
+  end: string
+  repeat: 'none' | 'weekly'
+  days: number[]
+  until: string | null
+  skip: string[]
+  color: string
+  note: string
+}
+export type EventDraft = Omit<TeamEvent, 'id' | 'skip'>
+// Kanban card with a deadline, for the calendar
+export interface TeamDue { id: number; title: string; due_date: string; board_id: number; board_title: string; column_title: string; done: boolean }
 export const EXPENSE_CATEGORIES = ['food', 'transport', 'home', 'software', 'tech', 'fun', 'health', 'other'] as const
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
 export const INCOME_CATEGORIES = ['projects', 'salary', 'support', 'sale', 'gift', 'refund', 'other'] as const
 export type IncomeCategory = (typeof INCOME_CATEGORIES)[number]
 export type MoneyKind = 'expenses' | 'income'
+// Category as shown in the UI (built-in or the user's own, key "c<id>")
+export interface MoneyCat { key: string; name: string; icon: string; color: string }
+export interface CustomCategory { id: number; key: string; name: string; icon: string; color: string }
+// Icons offered for own categories
+export const CATEGORY_ICONS = ['tag', 'food', 'car', 'home', 'code', 'laptop', 'game', 'heart', 'cart', 'gift', 'cash', 'briefcase', 'repeat', 'wallet', 'phone', 'globe', 'pen', 'plug', 'chart', 'shield', 'spark', 'doc', 'mail', 'pin', 'user', 'bell'] as const
+export const CATEGORY_COLORS = ['#FF7A59', '#F59E0B', '#19C3A6', '#0E9F85', '#3B82F6', '#5B4BFF', '#8B5CF6', '#EC4899', '#E5484D', '#9CA3AF']
 export const CURRENCIES = ['EUR', 'UAH', 'USD'] as const
 export type Currency = (typeof CURRENCIES)[number]
 // Expense or income entry. amount in EUR; original_amount in `currency` (1 EUR = rate); spent_on = YYYY-MM-DD
@@ -40,6 +63,7 @@ export interface TeamMoney {
   category: string
   note: string
   spent_on: string
+  recurring_id: number | null // created from a monthly template
 }
 
 // Text split into plain parts and @mentions of known users

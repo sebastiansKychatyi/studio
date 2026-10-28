@@ -223,13 +223,6 @@ async function askPermission() {
 
 .al-form-row { display: grid; grid-template-columns: 140px 1fr; gap: 12px; }
 .al-time-field input { font-variant-numeric: tabular-nums; }
-.al-days { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 14px; }
-.al-day {
-  width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line-2); background: #fff; cursor: pointer;
-  font-weight: 800; font-size: .8rem; color: var(--ink-2); transition: background .2s, color .2s, border-color .2s, transform .3s var(--ease);
-}
-.al-day:hover { border-color: var(--ink); }
-.al-day.on { background: var(--accent); border-color: var(--accent); color: #fff; transform: scale(1.06); }
 .al-days-note { margin-left: 6px; color: var(--muted); font-size: .85rem; font-weight: 600; }
 .al-form .btn { justify-self: start; }
 .al-notify .ico { width: 16px; height: 16px; }

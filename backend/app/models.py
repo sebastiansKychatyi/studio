@@ -1,3 +1,4 @@
+import datetime as dt
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -104,7 +105,60 @@ class MoneyEntry:
     category: Mapped[str] = mapped_column(String(20), server_default="other")
     note: Mapped[str] = mapped_column(String(200), server_default="")
     spent_on: Mapped[date] = mapped_column(Date, index=True)  # entry date (also for income)
+    # Set when created from a monthly template ("paid" / "received")
+    recurring_id: Mapped[int | None] = mapped_column(ForeignKey("recurring.id", ondelete="SET NULL"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CalEvent(Base):
+    """Personal calendar event; weekly events repeat on `days` until `until` (minus `skip` dates)."""
+
+    __tablename__ = "events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    date: Mapped[dt.date] = mapped_column(Date)  # first day (or the only one)
+    start: Mapped[str] = mapped_column(String(5))  # HH:MM
+    end: Mapped[str] = mapped_column(String(5))  # HH:MM
+    repeat: Mapped[str] = mapped_column(String(10), server_default="none")  # none | weekly
+    # JS weekdays "1,3" (0 = Sunday) for weekly
+    days: Mapped[str] = mapped_column(String(20), server_default="")
+    until: Mapped[dt.date | None] = mapped_column(Date)
+    # Cancelled occurrences "YYYY-MM-DD,…"
+    skip: Mapped[str] = mapped_column(Text, server_default="")
+    color: Mapped[str] = mapped_column(String(7), server_default="#5B4BFF")
+    note: Mapped[str] = mapped_column(Text, server_default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Recurring(Base):
+    """Monthly template: rent, subscriptions, salary… amount None = varies every month."""
+
+    __tablename__ = "recurring"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10))  # expenses | income
+    title: Mapped[str] = mapped_column(String(120))
+    category: Mapped[str] = mapped_column(String(20), server_default="other")
+    amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))  # in `currency`
+    currency: Mapped[str] = mapped_column(String(3), server_default="EUR")
+    day: Mapped[int] = mapped_column(Integer, server_default="1")  # day of month, clamped to month length
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CustomCategory(Base):
+    """User's own category for expenses or income; entries refer to it as "c<id>"."""
+
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10))  # expenses | income
+    name: Mapped[str] = mapped_column(String(40))
+    icon: Mapped[str] = mapped_column(String(20), server_default="tag")
+    color: Mapped[str] = mapped_column(String(7), server_default="#9CA3AF")
 
 
 class Expense(MoneyEntry, Base):
