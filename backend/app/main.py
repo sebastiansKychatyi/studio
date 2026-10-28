@@ -16,11 +16,15 @@ from .routers import alarms, auth, kanban, money
 PREFIX = "/api/team"
 
 # Columns added after the first release: (table, column, SQL type)
-ADDED_COLUMNS = [("cards", "due_date", "DATE")]
+ADDED_COLUMNS = [
+    ("cards", "due_date", "DATE"),
+    ("cards", "is_private", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    ("boards", "is_private", "BOOLEAN NOT NULL DEFAULT FALSE"),
+]
 
 
 def _upgrade(conn) -> None:
-    """Create missing tables and add new nullable columns to existing ones (no migrations yet)."""
+    """Create missing tables and add new columns to existing ones (no migrations yet)."""
     Base.metadata.create_all(conn)
     insp = inspect(conn)
     for table, column, sql_type in ADDED_COLUMNS:

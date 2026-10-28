@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Team kanban: shared boards, editable columns, cards with drag & drop, deadlines, @mentions
-import { dueState, mentionParts, type TeamBoard, type TeamBoardFull, type TeamCard, type TeamColumn, type TeamMention } from '~/composables/useTeam'
+// Kanban: team or private boards and cards, drag & drop for cards, columns and boards, deadlines, @mentions
+import { dueState, mentionParts, type TeamBoardFull, type TeamBoardItem, type TeamCard, type TeamColumn, type TeamMention } from '~/composables/useTeam'
 
 const { t } = useSite()
 const localePath = useLocalePath()
@@ -10,11 +10,11 @@ const { api, users, user, mentions, loadMentions } = useTeam()
 const p = computed(() => t.value.panel)
 const k = computed(() => t.value.panel.kanban)
 
-const boards = ref<TeamBoard[]>([])
+const boards = ref<TeamBoardItem[]>([])
 const board = ref<TeamBoardFull | null>(null)
 const activeId = ref<number | null>(null)
 const loading = ref(true)
-const failed = ref(false)
+const failed = ref('')
 
 const STORE = 'team-board'
 const stored = () => {
@@ -29,14 +29,19 @@ async function run(fn: () => Promise<unknown>) {
   try {
     await fn()
   } catch (e) {
-    if (httpStatus(e) === 401) return navigateTo(localePath('/login'))
-    failed.value = true
-    setTimeout(() => (failed.value = false), 3000)
+    const status = httpStatus(e)
+    if (status === 401) return navigateTo(localePath('/login'))
+    failed.value = status === 409 ? k.value.errorConflict : status === 403 ? k.value.errorOwner : p.value.errorServer
+    setTimeout(() => (failed.value = ''), 3500)
     await reloadBoard().catch(() => {})
   }
 }
 
+// Board list (with column names for moving cards) + the open board
 async function reloadBoard() {
+  boards.value = await api<TeamBoardItem[]>('/boards')
+  // The open board may be gone or made private by its author
+  if (!boards.value.some((b) => b.id === activeId.value)) activeId.value = boards.value[0]?.id ?? null
   board.value = activeId.value ? await api<TeamBoardFull>(`/boards/${activeId.value}`) : null
   loadMentions().catch(() => {})
 }
@@ -49,9 +54,7 @@ async function openBoard(id: number) {
 
 onMounted(() =>
   run(async () => {
-    boards.value = await api<TeamBoard[]>('/boards')
-    const saved = stored()
-    activeId.value = boards.value.some((b) => b.id === saved) ? saved : (boards.value[0]?.id ?? null)
+    activeId.value = stored()
     await reloadBoard()
   }).finally(() => (loading.value = false))
 )
@@ -84,15 +87,43 @@ function confirmThen(key: string, action: () => unknown) {
   confirmTimer = setTimeout(() => (confirmKey.value = ''), 3000)
 }
 
+// Creator of a board/card (or no creator left) may change its visibility
+const mine = (x: { created_by: number | null }) => x.created_by === null || x.created_by === user.value?.id
+
 // Boards
+const newBoardPrivate = ref(false)
 async function createBoard() {
   const title = take('new-board')
   if (!title) return
   await run(async () => {
-    const b = await api<TeamBoard>('/boards', { method: 'POST', body: { title, columns: k.value.defaultColumns } })
-    boards.value.push(b)
+    const body = { title, columns: k.value.defaultColumns, is_private: newBoardPrivate.value }
+    const b = await api<TeamBoardItem>('/boards', { method: 'POST', body })
+    newBoardPrivate.value = false
     await openBoard(b.id)
   })
+}
+
+async function toggleBoardPrivate() {
+  const b = board.value
+  if (!b) return
+  const is_private = !b.is_private
+  await run(async () => {
+    await api(`/boards/${b.id}`, { method: 'PATCH', body: { is_private } })
+    await reloadBoard()
+  })
+}
+
+// Board tabs: drag to reorder
+const tabDrag = ref<number | null>(null)
+async function onTabDrop(target: TeamBoardItem) {
+  const id = tabDrag.value
+  tabDrag.value = null
+  const from = boards.value.findIndex((b) => b.id === id)
+  const to = boards.value.indexOf(target)
+  if (from < 0 || from === to) return
+  const [moved] = boards.value.splice(from, 1)
+  boards.value.splice(to, 0, moved!)
+  await run(() => api(`/boards/${id}`, { method: 'PATCH', body: { position: to } }))
 }
 
 async function renameBoard() {
@@ -152,13 +183,38 @@ async function deleteColumn(col: TeamColumn) {
   await run(() => api(`/columns/${col.id}`, { method: 'DELETE' }))
 }
 
+// Columns: drag the header to reorder
+const colDrag = ref<TeamColumn | null>(null)
+const colOver = ref<number | null>(null)
+function onColDragStart(e: DragEvent, col: TeamColumn) {
+  colDrag.value = col
+  e.dataTransfer?.setData('text/plain', `col-${col.id}`)
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+}
+function onColDragEnd() {
+  colDrag.value = null
+  colOver.value = null
+}
+async function onColDrop(target: TeamColumn) {
+  const col = colDrag.value
+  onColDragEnd()
+  const cols = board.value?.columns
+  if (!col || !cols || col === target) return
+  const to = cols.indexOf(target)
+  cols.splice(cols.indexOf(col), 1)
+  cols.splice(to, 0, col)
+  await run(() => api(`/columns/${col.id}`, { method: 'PATCH', body: { position: to } }))
+}
+
 // Cards
+const newCardPrivate = ref(false)
 async function addCard(col: TeamColumn) {
   const title = editText.value.trim()
   if (!title) return stopEdit()
   editText.value = '' // keep the form open for the next task
   await run(async () => {
-    col.cards.push(await api<TeamCard>(`/columns/${col.id}/cards`, { method: 'POST', body: { title } }))
+    const body = { title, is_private: newCardPrivate.value }
+    col.cards.push(await api<TeamCard>(`/columns/${col.id}/cards`, { method: 'POST', body }))
   })
 }
 
@@ -173,6 +229,11 @@ function onDragStart(e: DragEvent, card: TeamCard, from: TeamColumn) {
 }
 
 function onDragOver(e: DragEvent, col: TeamColumn) {
+  if (colDrag.value) {
+    e.preventDefault()
+    colOver.value = col.id
+    return
+  }
   if (!drag.value) return
   e.preventDefault()
   // Index among the other cards, by vertical midpoints
@@ -196,6 +257,7 @@ function onDragEnd() {
 }
 
 async function onDrop(col: TeamColumn) {
+  if (colDrag.value) return onColDrop(col)
   const d = drag.value
   const target = drop.value
   onDragEnd()
@@ -269,7 +331,7 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
 
 // Pick up changes made by the teammate
 let poll: ReturnType<typeof setInterval> | undefined
-const idle = () => !drag.value && !editing.value && !editKey.value && document.visibilityState === 'visible'
+const idle = () => !drag.value && !colDrag.value && !editing.value && !editKey.value && document.visibilityState === 'visible'
 const sync = () => idle() && reloadBoard().catch(() => {})
 onMounted(() => {
   addEventListener('focus', sync)
@@ -317,14 +379,33 @@ onBeforeUnmount(() => {
         type="button"
         role="tab"
         class="kb-tab"
-        :class="{ active: b.id === activeId }"
+        :class="{ active: b.id === activeId, dragging: tabDrag === b.id }"
         :aria-selected="b.id === activeId"
+        :title="`${b.is_private ? k.privateHint : k.teamHint} · ${k.drag}`"
+        draggable="true"
         @click="openBoard(b.id)"
+        @dragstart="tabDrag = b.id"
+        @dragend="tabDrag = null"
+        @dragover="tabDrag !== null && $event.preventDefault()"
+        @drop.prevent="onTabDrop(b)"
       >
-        {{ b.title }}
+        <AppIcon v-if="b.is_private" name="lock" />{{ b.title }}
       </button>
-      <form v-if="editKey === 'new-board'" class="kb-inline" @submit.prevent="createBoard">
-        <input v-model="editText" v-focus class="tp-input" :placeholder="k.boardName" maxlength="120" @keydown.esc="stopEdit" @blur="createBoard">
+      <form v-if="editKey === 'new-board'" class="kb-inline kb-new-board" @submit.prevent="createBoard">
+        <input v-model="editText" v-focus class="tp-input" :placeholder="k.boardName" maxlength="120" @keydown.esc="stopEdit">
+        <button
+          type="button"
+          class="kb-lock"
+          :class="{ on: newBoardPrivate }"
+          :aria-pressed="newBoardPrivate"
+          :title="newBoardPrivate ? k.privateHint : k.teamHint"
+          @mousedown.prevent
+          @click="newBoardPrivate = !newBoardPrivate"
+        >
+          <AppIcon :name="newBoardPrivate ? 'lock' : 'users'" />{{ newBoardPrivate ? k.private : k.team }}
+        </button>
+        <button class="btn btn-primary btn-sm">{{ p.add }}</button>
+        <button type="button" class="tp-icon-btn sm" :aria-label="p.cancel" @click="stopEdit"><AppIcon name="close" /></button>
       </form>
       <button v-else type="button" class="kb-tab kb-tab-add" @click="startEdit('new-board')">
         <AppIcon name="plus" /> {{ k.newBoard }}
@@ -359,6 +440,16 @@ onBeforeUnmount(() => {
           <AppIcon name="trash" />
         </button>
         <Transition name="fade-x"><span v-if="confirmKey === 'board'" class="kb-sure">{{ p.sure }}</span></Transition>
+        <button
+          type="button"
+          class="kb-lock"
+          :class="{ on: board.is_private }"
+          :disabled="!mine(board)"
+          :title="mine(board) ? (board.is_private ? k.privateHint : k.teamHint) : k.errorOwner"
+          @click="toggleBoardPrivate"
+        >
+          <AppIcon :name="board.is_private ? 'lock' : 'users'" />{{ board.is_private ? k.private : k.team }}
+        </button>
       </div>
 
       <!-- Columns -->
@@ -367,17 +458,17 @@ onBeforeUnmount(() => {
           v-for="(col, ci) in board.columns"
           :key="col.id"
           class="kb-col"
-          :class="{ over: drop?.col === col.id }"
+          :class="{ over: drop?.col === col.id || (colOver === col.id && colDrag !== col), moving: colDrag === col }"
           @dragover="onDragOver($event, col)"
           @dragleave="onDragLeave($event, col)"
           @drop.prevent="onDrop(col)"
         >
-          <header class="kb-col-head">
+          <header class="kb-col-head" draggable="true" :title="k.drag" @dragstart="onColDragStart($event, col)" @dragend="onColDragEnd">
             <form v-if="editKey === `col-${col.id}`" class="kb-inline" @submit.prevent="renameColumn(col)">
               <input v-model="editText" v-focus class="tp-input" maxlength="120" @keydown.esc="stopEdit" @blur="renameColumn(col)">
             </form>
             <h3 v-else @dblclick="startEdit(`col-${col.id}`, col.title)">
-              {{ col.title }} <span class="kb-count">{{ col.cards.length }}</span>
+              <AppIcon name="grip" class="kb-grip" />{{ col.title }} <span class="kb-count">{{ col.cards.length }}</span>
             </h3>
             <div class="kb-col-actions">
               <button type="button" class="tp-icon-btn sm" :disabled="ci === 0" :title="k.moveLeft" :aria-label="k.moveLeft" @click="moveColumn(col, -1)"><AppIcon name="left" /></button>
@@ -414,6 +505,7 @@ onBeforeUnmount(() => {
                 @keydown.enter="editing = it.card"
               >
                 <p class="kb-card-title">
+                  <AppIcon v-if="it.card.is_private && !board.is_private" name="lock" class="kb-card-lock" />
                   <template v-for="(part, pi) in mentionParts(it.card.title, users)" :key="pi">
                     <span v-if="part.user" class="kb-at" :class="{ me: part.user.id === user?.id }">{{ part.text }}</span>
                     <template v-else>{{ part.text }}</template>
@@ -459,6 +551,17 @@ onBeforeUnmount(() => {
             />
             <div class="kb-add-actions">
               <button class="btn btn-primary btn-sm">{{ p.add }}</button>
+              <button
+                v-if="!board.is_private"
+                type="button"
+                class="kb-lock"
+                :class="{ on: newCardPrivate }"
+                :aria-pressed="newCardPrivate"
+                :title="newCardPrivate ? k.privateHint : k.teamHint"
+                @click="newCardPrivate = !newCardPrivate"
+              >
+                <AppIcon :name="newCardPrivate ? 'lock' : 'users'" />{{ newCardPrivate ? k.private : k.team }}
+              </button>
               <button type="button" class="tp-icon-btn sm" :aria-label="p.cancel" @click="stopEdit"><AppIcon name="close" /></button>
             </div>
           </form>
@@ -479,13 +582,16 @@ onBeforeUnmount(() => {
       v-if="editing && board"
       :card="editing"
       :columns="board.columns"
+      :board-id="board.id"
+      :boards="boards"
       :users="users"
+      :me-id="user?.id ?? null"
       @close="editing = null"
       @save="saveCard"
       @delete="deleteCard"
     />
 
-    <Transition name="toast"><div v-if="failed" class="tp-toast" role="status">{{ p.errorServer }}</div></Transition>
+    <Transition name="toast"><div v-if="failed" class="tp-toast" role="status">{{ failed }}</div></Transition>
   </div>
 </template>
 
@@ -592,6 +698,27 @@ onBeforeUnmount(() => {
 .kb-forme-meta .kb-due { margin-right: 0; }
 .kb-forme-meta .kb-at { font-size: .75rem; }
 .kb-forme-empty { margin-top: 8px; color: var(--muted); font-size: .88rem; }
+.kb-tab .ico { color: inherit; }
+.kb-tab.dragging { opacity: .4; }
+.kb-new-board { display: flex; align-items: center; gap: 6px; }
+.kb-new-board .tp-input { width: 200px; }
+.kb-lock {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font-weight: 700; font-size: .8rem;
+  transition: background .2s, color .2s, border-color .2s;
+}
+.kb-lock .ico { width: 15px; height: 15px; transition: transform .35s var(--ease); }
+.kb-lock:hover:not(:disabled) { border-color: var(--ink); }
+.kb-lock.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.kb-lock.on .ico { transform: rotate(-8deg) scale(1.1); }
+.kb-lock:disabled { cursor: not-allowed; opacity: .55; }
+.kb-bar .kb-lock { margin-left: 8px; }
+.kb-col-head { cursor: grab; }
+.kb-col-head:active { cursor: grabbing; }
+.kb-grip { width: 14px; height: 14px; color: var(--muted); opacity: 0; margin-right: -4px; transition: opacity .2s; }
+.kb-col:hover .kb-grip { opacity: 1; }
+.kb-col.moving { opacity: .4; transform: rotate(-1deg); }
+.kb-card-lock { display: inline-block; width: 13px; height: 13px; margin: 0 4px 2px 0; vertical-align: middle; color: var(--accent); }
 .kb-ghost {
   display: grid; place-items: center; height: 46px; border-radius: 16px; border: 2px dashed rgba(91, 75, 255, .45);
   background: rgba(91, 75, 255, .06); color: var(--accent); font-size: .8rem; font-weight: 700;

@@ -36,6 +36,8 @@ class Board(Base):
     title: Mapped[str] = mapped_column(String(120))
     position: Mapped[int] = mapped_column(Integer, server_default="0")
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    # Private boards are visible only to created_by
+    is_private: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     columns: Mapped[list["BoardColumn"]] = relationship(
@@ -68,6 +70,8 @@ class Card(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     position: Mapped[int] = mapped_column(Integer, server_default="0")
     due_date: Mapped[date | None] = mapped_column(Date)
+    # Private cards are visible only to created_by
+    is_private: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

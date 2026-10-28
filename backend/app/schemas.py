@@ -33,6 +33,7 @@ class CardIn(BaseModel):
     description: str = Field("", max_length=10000)
     assignee_id: int | None = None
     due_date: date | None = None
+    is_private: bool = False
 
 
 class CardPatch(BaseModel):
@@ -42,6 +43,7 @@ class CardPatch(BaseModel):
     column_id: int | None = None
     position: int | None = Field(None, ge=0)
     due_date: date | None = None
+    is_private: bool | None = None
 
 
 class CardOut(Orm):
@@ -53,6 +55,7 @@ class CardOut(Orm):
     created_by: int | None
     position: int
     due_date: date | None
+    is_private: bool
     updated_at: datetime
 
 
@@ -81,15 +84,29 @@ class ColumnOut(Orm):
 class BoardIn(BaseModel):
     title: str = Title
     columns: list[str] = Field(default_factory=list, max_length=12)
+    is_private: bool = False
 
 
 class BoardPatch(BaseModel):
-    title: str = Title
+    title: str | None = Field(None, min_length=1, max_length=120)
+    is_private: bool | None = None
+    position: int | None = Field(None, ge=0)
 
 
 class BoardOut(Orm):
     id: int
     title: str
+    is_private: bool
+    created_by: int | None
+
+
+class ColumnRef(Orm):
+    id: int
+    title: str
+
+
+class BoardListItem(BoardOut):
+    columns: list[ColumnRef]
 
 
 class BoardFull(BoardOut):

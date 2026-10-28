@@ -1,8 +1,15 @@
 <script setup lang="ts">
-// Kanban card editor: title, description with @mentions, deadline, assignee, column, delete
-import type { TeamCard, TeamColumn, TeamUser } from '~/composables/useTeam'
+// Kanban card editor: title, description with @mentions, deadline, assignee, visibility, column (any board), delete
+import type { TeamBoardItem, TeamCard, TeamColumn, TeamUser } from '~/composables/useTeam'
 
-const props = defineProps<{ card: TeamCard; columns: TeamColumn[]; users: TeamUser[] }>()
+const props = defineProps<{
+  card: TeamCard
+  columns: TeamColumn[] // current board (fresh)
+  boardId: number
+  boards: TeamBoardItem[]
+  users: TeamUser[]
+  meId: number | null
+}>()
 const emit = defineEmits<{ close: []; save: [patch: Partial<TeamCard>]; delete: [] }>()
 
 const { t } = useSite()
@@ -15,7 +22,16 @@ const form = reactive({
   assignee_id: props.card.assignee_id,
   column_id: props.card.column_id,
   due_date: props.card.due_date ?? '',
+  is_private: props.card.is_private,
 })
+
+// Only the author changes visibility; someone else's card cannot go to a private board
+const mine = computed(() => props.card.created_by === null || props.card.created_by === props.meId)
+const targets = computed(() =>
+  props.boards
+    .filter((b) => b.id === props.boardId || !b.is_private || mine.value)
+    .map((b) => ({ ...b, columns: b.id === props.boardId ? props.columns : b.columns }))
+)
 
 // Insert "@username " at the cursor of the description
 const descEl = ref<HTMLTextAreaElement>()
@@ -41,6 +57,7 @@ function save() {
   if (form.assignee_id !== props.card.assignee_id) patch.assignee_id = form.assignee_id
   if (form.column_id !== props.card.column_id) patch.column_id = form.column_id
   if ((form.due_date || null) !== props.card.due_date) patch.due_date = form.due_date || null
+  if (form.is_private !== props.card.is_private) patch.is_private = form.is_private
   if (Object.keys(patch).length) emit('save', patch)
   else emit('close')
 }
@@ -81,7 +98,9 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
         <label class="tp-field">
           <span>{{ k.column }}</span>
           <select v-model="form.column_id">
-            <option v-for="c in columns" :key="c.id" :value="c.id">{{ c.title }}</option>
+            <optgroup v-for="b in targets" :key="b.id" :label="`${k.board}: ${b.title}${b.is_private ? ' 🔒' : ''}`">
+              <option v-for="c in b.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
+            </optgroup>
           </select>
         </label>
         <label class="tp-field">
@@ -91,6 +110,25 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
             <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name || u.username }}</option>
           </select>
         </label>
+      </div>
+      <div class="tp-field">
+        <span>{{ k.visibility }}</span>
+        <div class="tm-vis" role="radiogroup" :aria-label="k.visibility">
+          <button
+            v-for="v in [false, true]"
+            :key="String(v)"
+            type="button"
+            role="radio"
+            :aria-checked="form.is_private === v"
+            :class="{ on: form.is_private === v }"
+            :disabled="!mine"
+            :title="mine ? '' : k.errorOwner"
+            @click="form.is_private = v"
+          >
+            <AppIcon :name="v ? 'lock' : 'users'" />
+            <span><b>{{ v ? k.private : k.team }}</b><small>{{ v ? k.privateHint : k.teamHint }}</small></span>
+          </button>
+        </div>
       </div>
       <div class="tp-field">
         <span>{{ k.due }}</span>
@@ -138,6 +176,19 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
   font-weight: 700; font-size: .82rem; color: var(--accent); transition: background .2s, color .2s, border-color .2s;
 }
 .tm-chip:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tm-vis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tm-vis button {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; cursor: pointer; text-align: left;
+  border: 1px solid var(--line-2); background: #fff; color: var(--ink-2); transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.tm-vis button .ico { flex: none; width: 18px; height: 18px; color: var(--muted); transition: color .2s, transform .35s var(--ease); }
+.tm-vis button span { display: grid; line-height: 1.25; }
+.tm-vis button b { font-size: .88rem; }
+.tm-vis button small { font-size: .75rem; color: var(--muted); font-weight: 600; }
+.tm-vis button:hover:not(:disabled) { border-color: var(--accent); }
+.tm-vis button.on { border-color: var(--accent); background: #F4F2FF; box-shadow: 0 0 0 3px rgba(91, 75, 255, .12); }
+.tm-vis button.on .ico { color: var(--accent); transform: scale(1.1); }
+.tm-vis button:disabled { cursor: not-allowed; opacity: .55; }
 .tm-due { display: flex; align-items: center; gap: 8px; }
 .tm-due input { flex: 1; }
 .tm-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }

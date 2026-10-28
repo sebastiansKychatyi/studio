@@ -11,12 +11,15 @@ export interface TeamCard {
   created_by: number | null
   position: number
   due_date: string | null // YYYY-MM-DD
+  is_private: boolean // visible only to created_by
   updated_at: string
 }
 // Open card that mentions or is assigned to the current user
 export interface TeamMention extends TeamCard { board_id: number; board_title: string; column_title: string }
 export interface TeamColumn { id: number; title: string; position: number; cards: TeamCard[] }
-export interface TeamBoard { id: number; title: string }
+// Private boards are visible only to created_by
+export interface TeamBoard { id: number; title: string; is_private: boolean; created_by: number | null }
+export interface TeamBoardItem extends TeamBoard { columns: { id: number; title: string }[] }
 export interface TeamBoardFull extends TeamBoard { columns: TeamColumn[] }
 // days: JS weekdays (0 = Sunday); empty = ring once
 export interface TeamAlarm { id: number; time: string; label: string; days: number[]; enabled: boolean }
