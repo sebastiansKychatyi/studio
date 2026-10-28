@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Personal alarms: live clock, add form, list with on/off switches
+// Personal alarms: live clock, add form, sleep calculator, list with on/off switches
 import type { TeamAlarm } from '~/composables/useTeam'
 
 const { t } = useSite()
@@ -19,6 +19,7 @@ const nextHour = () => `${pad((new Date().getHours() + 1) % 24)}:00`
 const form = reactive({ time: nextHour(), label: '', days: [] as number[] })
 const busy = ref(false)
 const failed = ref(false)
+const notice = ref('')
 const confirmId = ref<number | null>(null)
 
 const permission = ref<NotificationPermission | 'unsupported'>('default')
@@ -63,6 +64,21 @@ async function add() {
     fail(e)
   } finally {
     busy.value = false
+  }
+}
+
+// One-time alarms from the sleep calculator
+const setTimes = computed(() => alarms.value.filter((x) => x.enabled).map((x) => x.time))
+async function addFromCalc(list: { time: string; label: string }[]) {
+  try {
+    for (const body of list) {
+      const created = await api<TeamAlarm>('/alarms', { method: 'POST', body: { ...body, days: [] } })
+      alarms.value = [...alarms.value, created].sort((x, y) => x.time.localeCompare(y.time))
+    }
+    notice.value = `${a.value.sleep.added}: ${list.map((x) => x.time).join(' + ')}`
+    setTimeout(() => (notice.value = ''), 3000)
+  } catch (e) {
+    fail(e)
   }
 }
 
@@ -150,6 +166,8 @@ async function askPermission() {
       </form>
     </div>
 
+    <TeamSleepCalc :set-times="setTimes" @alarm="addFromCalc" />
+
     <!-- List -->
     <TransitionGroup v-if="alarms.length" tag="ul" name="kb-card" class="al-list">
       <li v-for="al in alarms" :key="al.id" class="al-item" :class="{ off: !al.enabled }">
@@ -182,7 +200,7 @@ async function askPermission() {
     </TransitionGroup>
     <p v-else class="al-empty">{{ a.empty }}</p>
 
-    <Transition name="toast"><div v-if="failed" class="tp-toast" role="status">{{ p.errorServer }}</div></Transition>
+    <Transition name="toast"><div v-if="failed || notice" class="tp-toast" role="status">{{ failed ? p.errorServer : notice }}</div></Transition>
   </div>
 </template>
 
