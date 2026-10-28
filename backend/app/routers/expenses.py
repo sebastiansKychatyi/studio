@@ -1,16 +1,31 @@
 from datetime import date
+from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import settings
 from ..db import get_db
 from ..models import Expense, User
 from ..schemas import ExpenseIn, ExpenseOut, ExpensePatch, MonthTotal
 from ..security import current_user
 
-# Expenses are personal, like alarms
+# Expenses are personal, like alarms. Stored in EUR; UAH/USD converted with config rates.
 router = APIRouter(tags=["expenses"])
+
+
+def _rates() -> dict[str, Decimal]:
+    return {"EUR": Decimal(1), "UAH": Decimal(str(settings.rate_uah)), "USD": Decimal(str(settings.rate_usd))}
+
+
+def _convert(expense: Expense, amount: Decimal, currency: str) -> None:
+    rate = _rates()[currency]
+    eur = (amount / rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if eur <= 0 or eur > 1_000_000:
+        raise HTTPException(422, "Amount out of range")
+    expense.amount, expense.original_amount, expense.currency, expense.rate = eur, amount, currency, rate
+
 
 MONTH = Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$", description="YYYY-MM")
 
@@ -43,6 +58,12 @@ async def list_expenses(month: str = MONTH, user: User = Depends(current_user), 
     return rows.all()
 
 
+@router.get("/expenses/rates", dependencies=[Depends(current_user)])
+async def rates() -> dict[str, float]:
+    """1 EUR in each currency (from config)."""
+    return {k: float(v) for k, v in _rates().items()}
+
+
 @router.get("/expenses/summary", response_model=list[MonthTotal])
 async def summary(
     month: str = MONTH,
@@ -66,8 +87,8 @@ async def summary(
 
 @router.post("/expenses", response_model=ExpenseOut, status_code=201)
 async def create_expense(body: ExpenseIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    expense = Expense(user_id=user.id, **body.model_dump())
-    expense.note = expense.note.strip()
+    expense = Expense(user_id=user.id, category=body.category, note=body.note.strip(), spent_on=body.spent_on)
+    _convert(expense, body.amount, body.currency)
     db.add(expense)
     await db.commit()
     return expense
@@ -78,8 +99,15 @@ async def update_expense(
     expense_id: int, body: ExpensePatch, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
 ):
     expense = await _own(db, expense_id, user)
-    for field, value in body.model_dump(exclude_none=True).items():
-        setattr(expense, field, value.strip() if isinstance(value, str) and field == "note" else value)
+    if body.category is not None:
+        expense.category = body.category
+    if body.note is not None:
+        expense.note = body.note.strip()
+    if body.spent_on is not None:
+        expense.spent_on = body.spent_on
+    # New amount or currency → convert again with the current rate
+    if body.amount is not None or body.currency is not None:
+        _convert(expense, body.amount or expense.original_amount, body.currency or expense.currency)
     await db.commit()
     return expense
 

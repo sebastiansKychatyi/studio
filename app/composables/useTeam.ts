@@ -19,8 +19,19 @@ export interface TeamBoardFull extends TeamBoard { columns: TeamColumn[] }
 export interface TeamAlarm { id: number; time: string; label: string; days: number[]; enabled: boolean }
 export const EXPENSE_CATEGORIES = ['food', 'transport', 'home', 'software', 'tech', 'fun', 'health', 'other'] as const
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
-// amount in EUR, spent_on = YYYY-MM-DD
-export interface TeamExpense { id: number; amount: number; category: ExpenseCategory; note: string; spent_on: string }
+export const CURRENCIES = ['EUR', 'UAH', 'USD'] as const
+export type Currency = (typeof CURRENCIES)[number]
+// amount in EUR; original_amount in `currency` (1 EUR = rate); spent_on = YYYY-MM-DD
+export interface TeamExpense {
+  id: number
+  amount: number
+  original_amount: number
+  currency: Currency
+  rate: number
+  category: ExpenseCategory
+  note: string
+  spent_on: string
+}
 
 export const httpStatus = (e: unknown) => (e as { status?: number })?.status ?? 0
 

@@ -91,7 +91,11 @@ class Expense(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))  # EUR
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))  # always EUR
+    # What was entered and the rate used (1 EUR = rate units of currency)
+    original_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    currency: Mapped[str] = mapped_column(String(3), server_default="EUR")
+    rate: Mapped[Decimal] = mapped_column(Numeric(12, 4), server_default="1")
     category: Mapped[str] = mapped_column(String(20), server_default="other")
     note: Mapped[str] = mapped_column(String(200), server_default="")
     spent_on: Mapped[date] = mapped_column(Date, index=True)

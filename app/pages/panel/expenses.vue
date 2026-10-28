@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Personal expenses (EUR): month view, stats, categories, 6-month chart, CSV export
-import { EXPENSE_CATEGORIES, type ExpenseCategory, type TeamExpense } from '~/composables/useTeam'
+// Personal expenses: entered in EUR/UAH/USD, stored in EUR, shown in any of them.
+// Month view, stats, categories, 6-month chart, CSV export.
+import { CURRENCIES, EXPENSE_CATEGORIES, type Currency, type ExpenseCategory, type TeamExpense } from '~/composables/useTeam'
 
 const { t } = useSite()
 const { locale } = useI18n()
@@ -13,6 +14,10 @@ const e = computed(() => t.value.panel.expenses)
 const COLORS: Record<ExpenseCategory, string> = {
   food: '#FF7A59', transport: '#3B82F6', home: '#5B4BFF', software: '#19C3A6',
   tech: '#8B5CF6', fun: '#F59E0B', health: '#EC4899', other: '#9CA3AF',
+}
+const CAT_ICONS: Record<ExpenseCategory, string> = {
+  food: 'food', transport: 'car', home: 'home', software: 'code',
+  tech: 'laptop', fun: 'game', health: 'heart', other: 'tag',
 }
 
 // Local dates (no UTC shift)
@@ -34,8 +39,32 @@ const loading = ref(true)
 const ready = ref(false)
 const failed = ref(false)
 
-const money = computed(() => new Intl.NumberFormat(locale.value, { style: 'currency', currency: 'EUR', currencyDisplay: 'narrowSymbol' }))
-const fmt = (n: number) => money.value.format(n)
+// 1 EUR in each currency (from backend config)
+const rates = ref<Record<Currency, number>>({ EUR: 1, UAH: 51.5, USD: 1.16 })
+
+// Display currency, remembered per browser
+const CUR_KEY = 'team-currency'
+const view = ref<Currency>('EUR')
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem(CUR_KEY) as Currency | null
+    if (saved && CURRENCIES.includes(saved)) view.value = form.currency = saved
+  } catch { /* private mode */ }
+})
+watch(view, (c) => {
+  try { localStorage.setItem(CUR_KEY, c) } catch { /* private mode */ }
+})
+
+const fmtIn = (n: number, currency: Currency) =>
+  new Intl.NumberFormat(locale.value, { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).format(n)
+const toView = (eur: number) => eur * rates.value[view.value]
+// EUR amount shown in the display currency
+const fmt = (eur: number) => fmtIn(toView(eur), view.value)
+// Entry in the display currency: original amount when it matches (no rounding drift)
+const inView = (x: TeamExpense) => (x.currency === view.value ? x.original_amount : toView(x.amount))
+const money = (n: number) => fmtIn(n, view.value)
+const SYMBOLS: Record<Currency, string> = { EUR: '€', UAH: '₴', USD: '$' }
+const rateText = computed(() => `1 € = ${fmtIn(rates.value.UAH, 'UAH')} · ${fmtIn(rates.value.USD, 'USD')}`)
 const monthLabel = (m: string, opts: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }) =>
   asDate(`${m}-01`).toLocaleDateString(locale.value, opts)
 
@@ -48,12 +77,14 @@ function fail(err: unknown) {
 async function load() {
   ready.value = false
   try {
-    const [list, sum] = await Promise.all([
+    const [list, sum, r] = await Promise.all([
       api<TeamExpense[]>('/expenses', { query: { month: month.value } }),
       api<{ month: string; total: number }[]>('/expenses/summary', { query: { month: month.value } }),
+      api<Record<Currency, number>>('/expenses/rates'),
     ])
     items.value = list
     history.value = sum
+    rates.value = r
   } catch (err) {
     fail(err)
   } finally {
@@ -69,9 +100,9 @@ watch(month, () => {
 })
 onMounted(load)
 
-// Stats
-const total = computed(() => items.value.reduce((s, x) => s + x.amount, 0))
-const prevTotal = computed(() => history.value.at(-2)?.total ?? 0)
+// Stats (in the display currency)
+const total = computed(() => items.value.reduce((s, x) => s + inView(x), 0))
+const prevTotal = computed(() => toView(history.value.at(-2)?.total ?? 0))
 const delta = computed(() => (prevTotal.value ? Math.round(((total.value - prevTotal.value) / prevTotal.value) * 100) : null))
 const perDay = computed(() => {
   const [y, m] = month.value.split('-').map(Number)
@@ -81,7 +112,7 @@ const perDay = computed(() => {
 
 const byCategory = computed(() => {
   const sums = new Map<ExpenseCategory, number>()
-  for (const x of items.value) sums.set(x.category, (sums.get(x.category) ?? 0) + x.amount)
+  for (const x of items.value) sums.set(x.category, (sums.get(x.category) ?? 0) + inView(x))
   return [...sums.entries()]
     .map(([cat, sum]) => ({ cat, sum, pct: total.value ? (sum / total.value) * 100 : 0 }))
     .sort((a, b) => b.sum - a.sum)
@@ -96,7 +127,7 @@ const days = computed(() => {
       g = { date: x.spent_on, label: asDate(x.spent_on).toLocaleDateString(locale.value, { weekday: 'short', day: 'numeric', month: 'long' }), sum: 0, items: [] }
       groups.push(g)
     }
-    g.sum += x.amount
+    g.sum += inView(x)
     g.items.push(x)
   }
   return groups
@@ -122,7 +153,13 @@ const formEl = ref<HTMLElement>()
 const editingId = ref<number | null>(null)
 const busy = ref(false)
 const amountError = ref(false)
-const form = reactive({ amount: '', category: 'food' as ExpenseCategory, note: '', spent_on: today })
+const form = reactive({ amount: '', currency: 'EUR' as Currency, category: 'food' as ExpenseCategory, note: '', spent_on: today })
+
+const parsedAmount = computed(() => Math.round(Number(form.amount.replace(',', '.').replace(/\s/g, '')) * 100) / 100)
+// Preview of the stored EUR value
+const preview = computed(() =>
+  form.currency !== 'EUR' && parsedAmount.value > 0 ? `≈ ${fmtIn(parsedAmount.value / rates.value[form.currency], 'EUR')}` : ''
+)
 
 function resetForm() {
   editingId.value = null
@@ -134,7 +171,8 @@ function resetForm() {
 
 function edit(x: TeamExpense) {
   editingId.value = x.id
-  form.amount = x.amount.toFixed(2).replace('.', locale.value === 'en' ? '.' : ',')
+  form.amount = x.original_amount.toFixed(2).replace('.', locale.value === 'en' ? '.' : ',')
+  form.currency = x.currency
   form.category = x.category
   form.note = x.note
   form.spent_on = x.spent_on
@@ -142,17 +180,17 @@ function edit(x: TeamExpense) {
 }
 
 async function save() {
-  const amount = Math.round(Number(form.amount.replace(',', '.').replace(/\s/g, '')) * 100) / 100
-  amountError.value = !(amount > 0 && amount <= 1_000_000)
+  const amount = parsedAmount.value
+  amountError.value = !(amount > 0 && amount / rates.value[form.currency] <= 1_000_000)
   if (amountError.value || busy.value || !form.spent_on) return
   busy.value = true
-  const body = { amount, category: form.category, note: form.note.trim(), spent_on: form.spent_on }
+  const body = { amount, currency: form.currency, category: form.category, note: form.note.trim(), spent_on: form.spent_on }
   try {
     if (editingId.value) await api(`/expenses/${editingId.value}`, { method: 'PATCH', body })
     else await api('/expenses', { method: 'POST', body })
-    const keepCategory = form.category
+    const { category, currency } = form
     resetForm()
-    form.category = keepCategory
+    Object.assign(form, { category, currency })
     await load()
   } catch (err) {
     fail(err)
@@ -182,9 +220,11 @@ async function remove(x: TeamExpense) {
 function exportCsv() {
   const dec = locale.value === 'en' ? '.' : ','
   const cell = (s: string) => `"${s.replace(/"/g, '""')}"`
-  const rows = [[e.value.date, e.value.category, e.value.amount, e.value.note].map(cell).join(';')]
+  const num = (n: number) => n.toFixed(2).replace('.', dec)
+  const head = [e.value.date, e.value.category, `${e.value.amount} EUR`, e.value.amount, e.value.currency, e.value.rate, e.value.note]
+  const rows = [head.map(cell).join(';')]
   for (const x of [...items.value].reverse()) {
-    rows.push([x.spent_on, cell(e.value.categories[x.category]), x.amount.toFixed(2).replace('.', dec), cell(x.note)].join(';'))
+    rows.push([x.spent_on, cell(e.value.categories[x.category]), num(x.amount), num(x.original_amount), x.currency, String(x.rate).replace('.', dec), cell(x.note)].join(';'))
   }
   const url = URL.createObjectURL(new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' }))
   const a = document.createElement('a')
@@ -200,7 +240,7 @@ function exportCsv() {
     <header class="tp-head">
       <div>
         <h1>{{ e.title }}</h1>
-        <p>{{ e.subtitle }}</p>
+        <p>{{ e.subtitle }} <span class="ex-rate">{{ e.rate }}: {{ rateText }}</span></p>
       </div>
       <div class="ex-head-actions">
         <div class="ex-month">
@@ -210,6 +250,20 @@ function exportCsv() {
           </Transition>
           <button type="button" class="tp-icon-btn sm" :title="e.next" :aria-label="e.next" @click="month = shiftMonth(month, 1)"><AppIcon name="right" /></button>
         </div>
+        <div class="ex-seg" role="radiogroup" :aria-label="e.display">
+          <button
+            v-for="c in CURRENCIES"
+            :key="c"
+            type="button"
+            role="radio"
+            :aria-checked="view === c"
+            :class="{ on: view === c }"
+            :title="`${e.display} ${c}`"
+            @click="view = c"
+          >
+            {{ SYMBOLS[c] }}
+          </button>
+        </div>
         <button type="button" class="btn btn-ghost btn-sm" :disabled="!items.length" @click="exportCsv"><AppIcon name="download" /> {{ e.export }}</button>
       </div>
     </header>
@@ -218,14 +272,14 @@ function exportCsv() {
     <div class="ex-stats">
       <section class="ex-stat ex-stat-main">
         <p class="ex-stat-label">{{ e.total }}</p>
-        <p class="ex-stat-value">{{ fmt(shown) }}</p>
+        <p class="ex-stat-value">{{ money(shown) }}</p>
         <p v-if="delta !== null" class="ex-delta" :class="delta > 0 ? 'up' : 'down'">
           {{ delta > 0 ? '▲' : '▼' }} {{ Math.abs(delta) }} % <span>{{ e.vsPrev }}</span>
         </p>
       </section>
       <section class="ex-stat">
         <p class="ex-stat-label">{{ e.perDay }}</p>
-        <p class="ex-stat-value sm">{{ fmt(perDay) }}</p>
+        <p class="ex-stat-value sm">{{ money(perDay) }}</p>
       </section>
       <section class="ex-stat">
         <p class="ex-stat-label">{{ e.count }}</p>
@@ -240,15 +294,32 @@ function exportCsv() {
         <div class="ex-form-row">
           <label class="tp-field">
             <span>{{ e.amount }}</span>
-            <input
-              v-model="form.amount"
-              inputmode="decimal"
-              autocomplete="off"
-              placeholder="0,00"
-              required
-              :class="{ invalid: amountError }"
-              @input="amountError = false"
-            >
+            <span class="ex-amount">
+              <input
+                v-model="form.amount"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="0,00"
+                required
+                :class="{ invalid: amountError }"
+                @input="amountError = false"
+              >
+              <span class="ex-seg sm" role="radiogroup" :aria-label="e.currency">
+                <button
+                  v-for="c in CURRENCIES"
+                  :key="c"
+                  type="button"
+                  role="radio"
+                  :aria-checked="form.currency === c"
+                  :class="{ on: form.currency === c }"
+                  :title="c"
+                  @click="form.currency = c"
+                >
+                  {{ SYMBOLS[c] }}
+                </button>
+              </span>
+            </span>
+            <Transition name="fade-x"><small v-if="preview" class="ex-preview">{{ preview }}</small></Transition>
           </label>
           <label class="tp-field">
             <span>{{ e.date }}</span>
@@ -269,7 +340,7 @@ function exportCsv() {
               :style="{ '--c': COLORS[c] }"
               @click="form.category = c"
             >
-              <i />{{ e.categories[c] }}
+              <AppIcon :name="CAT_ICONS[c]" />{{ e.categories[c] }}
             </button>
           </div>
         </div>
@@ -292,8 +363,8 @@ function exportCsv() {
           <ul v-if="byCategory.length" class="ex-bars">
             <li v-for="row in byCategory" :key="row.cat" :style="{ '--c': COLORS[row.cat] }">
               <div class="ex-bar-text">
-                <span><i />{{ e.categories[row.cat] }}</span>
-                <b>{{ fmt(row.sum) }}</b>
+                <span><AppIcon :name="CAT_ICONS[row.cat]" />{{ e.categories[row.cat] }}</span>
+                <b>{{ money(row.sum) }}</b>
               </div>
               <div class="ex-bar"><span :style="{ width: ready ? `${row.pct.toFixed(1)}%` : '0%' }" /></div>
             </li>
@@ -314,7 +385,7 @@ function exportCsv() {
               :title="`${monthLabel(h.month)}: ${fmt(h.total)}`"
               @click="month = h.month"
             >
-              <span class="ex-col-val">{{ h.total ? Math.round(h.total) : '' }}</span>
+              <span class="ex-col-val">{{ h.total ? Math.round(toView(h.total)) : '' }}</span>
               <span class="ex-col-bar" :style="{ height: ready ? `${Math.max((h.total / maxMonth) * 100, 2).toFixed(1)}%` : '2%' }" />
               <span class="ex-col-label">{{ monthLabel(h.month, { month: 'short' }) }}</span>
             </button>
@@ -327,7 +398,7 @@ function exportCsv() {
     <div v-if="loading" class="kb-loading"><span class="spinner" /></div>
     <div v-else-if="days.length" class="ex-days">
       <section v-for="d in days" :key="d.date" class="ex-day">
-        <header><span>{{ d.label }}</span><b>{{ fmt(d.sum) }}</b></header>
+        <header><span>{{ d.label }}</span><b>{{ money(d.sum) }}</b></header>
         <TransitionGroup tag="ul" name="kb-card">
           <li
             v-for="x in d.items"
@@ -337,12 +408,15 @@ function exportCsv() {
             :style="{ '--c': COLORS[x.category] }"
           >
             <button type="button" class="ex-row-main" @click="edit(x)">
-              <i class="ex-dot" />
+              <span class="ex-dot"><AppIcon :name="CAT_ICONS[x.category]" /></span>
               <span class="ex-row-text">
                 <b>{{ x.note || e.categories[x.category] }}</b>
                 <small v-if="x.note">{{ e.categories[x.category] }}</small>
               </span>
-              <span class="ex-row-amount">−{{ fmt(x.amount) }}</span>
+              <span class="ex-row-amount">
+                −{{ money(inView(x)) }}
+                <small v-if="x.currency !== view">{{ fmtIn(x.original_amount, x.currency) }}</small>
+              </span>
             </button>
             <button
               type="button"
@@ -366,6 +440,19 @@ function exportCsv() {
 
 <style>
 /* ===== Expenses ===== */
+.ex-rate { display: inline-block; margin-left: 4px; padding: 1px 10px; border-radius: 999px; background: var(--bg-2); font-size: .8rem; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.ex-seg { display: inline-flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.ex-seg button {
+  min-width: 34px; height: 30px; padding: 0 10px; border: 0; border-radius: 999px; cursor: pointer; background: none;
+  font-weight: 800; font-size: .9rem; color: var(--muted); transition: background .25s, color .25s;
+}
+.ex-seg button:hover { color: var(--ink); }
+.ex-seg button.on { background: var(--ink); color: #fff; }
+.ex-seg.sm { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); padding: 3px; border: 0; background: var(--bg-2); }
+.ex-seg.sm button { min-width: 30px; height: 28px; padding: 0 8px; font-size: .85rem; }
+.ex-amount { position: relative; display: block; }
+.tp-field .ex-amount input { padding-right: 120px; }
+.ex-preview { color: var(--accent); font-weight: 700; font-size: .82rem; }
 .ex-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .ex-month { display: flex; align-items: center; gap: 6px; padding: 4px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
 .ex-month-label { min-width: 150px; text-align: center; font-weight: 800; font-size: .95rem; }
@@ -412,17 +499,18 @@ function exportCsv() {
   border: 1px solid var(--line-2); background: #fff; font-size: .82rem; font-weight: 700; color: var(--ink-2);
   transition: background .2s, color .2s, border-color .2s, transform .3s var(--ease);
 }
-.ex-cat i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); transition: background .2s; }
+.ex-cat .ico { width: 16px; height: 16px; color: var(--c); transition: color .2s, transform .35s var(--ease); }
 .ex-cat:hover { border-color: var(--c); }
+.ex-cat:hover .ico { transform: scale(1.15) rotate(-6deg); }
 .ex-cat.on { background: var(--c); border-color: var(--c); color: #fff; transform: translateY(-1px); }
-.ex-cat.on i { background: #fff; }
+.ex-cat.on .ico { color: #fff; }
 .ex-form-actions { display: flex; gap: 8px; margin-top: 4px; }
 .ex-form-actions .btn:disabled { opacity: .7; cursor: progress; }
 
 .ex-bars { display: grid; gap: 12px; }
 .ex-bar-text { display: flex; justify-content: space-between; gap: 10px; font-size: .88rem; margin-bottom: 5px; }
 .ex-bar-text span { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink-2); }
-.ex-bar-text i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.ex-bar-text .ico { width: 16px; height: 16px; color: var(--c); }
 .ex-bar-text b { font-variant-numeric: tabular-nums; }
 .ex-bar { height: 8px; border-radius: 99px; background: var(--bg-2); overflow: hidden; }
 .ex-bar span { display: block; height: 100%; border-radius: inherit; background: var(--c); transition: width .9s var(--ease); }
@@ -453,11 +541,17 @@ function exportCsv() {
 .ex-row:hover { box-shadow: var(--shadow); }
 .ex-row.editing { border-color: rgba(91, 75, 255, .45); }
 .ex-row-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 0; background: none; cursor: pointer; text-align: left; }
-.ex-dot { flex: none; width: 34px; height: 34px; border-radius: 11px; background: var(--c); opacity: .9; box-shadow: inset 0 0 0 9px rgba(255, 255, 255, .55); }
+.ex-dot {
+  flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px;
+  background: color-mix(in srgb, var(--c) 15%, #fff); color: var(--c); transition: transform .35s var(--ease);
+}
+.ex-dot .ico { width: 19px; height: 19px; }
+.ex-row:hover .ex-dot { transform: scale(1.06) rotate(-4deg); }
 .ex-row-text { flex: 1; min-width: 0; display: grid; line-height: 1.3; }
 .ex-row-text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .95rem; }
 .ex-row-text small { color: var(--muted); font-weight: 600; font-size: .78rem; }
-.ex-row-amount { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ex-row-amount { display: grid; justify-items: end; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.25; }
+.ex-row-amount small { font-size: .75rem; font-weight: 600; color: var(--muted); }
 
 @media (max-width: 1100px) { .ex-grid { grid-template-columns: 1fr; } }
 @media (max-width: 640px) {

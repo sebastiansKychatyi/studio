@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +10,9 @@ class Settings(BaseSettings):
     cookie_secure: bool = True
     session_days: int = 30
     docs: bool = True
+    # Exchange rates for expenses: how much 1 EUR costs (edit in .env, restart the API)
+    rate_uah: float = Field(51.5, gt=0)
+    rate_usd: float = Field(1.16, gt=0)
 
 
 settings = Settings()

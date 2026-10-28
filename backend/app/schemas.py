@@ -123,20 +123,22 @@ class AlarmOut(BaseModel):
     enabled: bool
 
 
-# Expenses (EUR)
+# Expenses: entered in EUR/UAH/USD, stored in EUR
 Category = Literal["food", "transport", "home", "software", "tech", "fun", "health", "other"]
-Amount = Field(gt=0, le=Decimal("1000000"), decimal_places=2)
+Currency = Literal["EUR", "UAH", "USD"]
 
 
 class ExpenseIn(BaseModel):
-    amount: Decimal = Amount
+    amount: Decimal = Field(gt=0, le=Decimal("100000000"), decimal_places=2)
+    currency: Currency = "EUR"
     category: Category = "other"
     note: str = Field("", max_length=200)
     spent_on: date
 
 
 class ExpensePatch(BaseModel):
-    amount: Decimal | None = Field(None, gt=0, le=Decimal("1000000"), decimal_places=2)
+    amount: Decimal | None = Field(None, gt=0, le=Decimal("100000000"), decimal_places=2)
+    currency: Currency | None = None
     category: Category | None = None
     note: str | None = Field(None, max_length=200)
     spent_on: date | None = None
@@ -144,7 +146,10 @@ class ExpensePatch(BaseModel):
 
 class ExpenseOut(Orm):
     id: int
-    amount: float
+    amount: float  # EUR
+    original_amount: float
+    currency: str
+    rate: float
     category: str
     note: str
     spent_on: date
