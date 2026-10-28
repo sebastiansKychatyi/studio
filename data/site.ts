@@ -180,7 +180,7 @@ const site = {
     {
       id: 'restaurant-reservation', title: 'Restaurant Reservation System', author: 'p2', category: 'app', year: 2026,
       repo: 'https://github.com/wwtanji/bp-restaurant-reservation-system',
-      colors: ['#0F766E', '#99F6E4'], layout: 4,
+      colors: ['#0F766E', '#99F6E4'], layout: 4, prototype: 'reservations',
       tags: ['FastAPI', 'SQLAlchemy', 'MySQL', 'React 19', 'TypeScript', 'Stripe', 'pytest'],
     },
     {
