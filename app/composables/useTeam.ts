@@ -17,6 +17,10 @@ export interface TeamBoard { id: number; title: string }
 export interface TeamBoardFull extends TeamBoard { columns: TeamColumn[] }
 // days: JS weekdays (0 = Sunday); empty = ring once
 export interface TeamAlarm { id: number; time: string; label: string; days: number[]; enabled: boolean }
+export const EXPENSE_CATEGORIES = ['food', 'transport', 'home', 'software', 'tech', 'fun', 'health', 'other'] as const
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
+// amount in EUR, spent_on = YYYY-MM-DD
+export interface TeamExpense { id: number; amount: number; category: ExpenseCategory; note: string; spent_on: string }
 
 export const httpStatus = (e: unknown) => (e as { status?: number })?.status ?? 0
 

@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -119,3 +121,35 @@ class AlarmOut(BaseModel):
     label: str
     days: list[int]
     enabled: bool
+
+
+# Expenses (EUR)
+Category = Literal["food", "transport", "home", "software", "tech", "fun", "health", "other"]
+Amount = Field(gt=0, le=Decimal("1000000"), decimal_places=2)
+
+
+class ExpenseIn(BaseModel):
+    amount: Decimal = Amount
+    category: Category = "other"
+    note: str = Field("", max_length=200)
+    spent_on: date
+
+
+class ExpensePatch(BaseModel):
+    amount: Decimal | None = Field(None, gt=0, le=Decimal("1000000"), decimal_places=2)
+    category: Category | None = None
+    note: str | None = Field(None, max_length=200)
+    spent_on: date | None = None
+
+
+class ExpenseOut(Orm):
+    id: int
+    amount: float
+    category: str
+    note: str
+    spent_on: date
+
+
+class MonthTotal(BaseModel):
+    month: str  # YYYY-MM
+    total: float

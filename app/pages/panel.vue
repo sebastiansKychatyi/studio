@@ -12,6 +12,7 @@ const p = computed(() => t.value.panel)
 const nav = computed(() => [
   { to: localePath('/panel'), icon: 'tasks', label: p.value.nav.tasks },
   { to: localePath('/panel/alarms'), icon: 'alarm', label: p.value.nav.alarms },
+  { to: localePath('/panel/expenses'), icon: 'wallet', label: p.value.nav.expenses },
 ])
 const current = computed(() => nav.value.find((n) => n.to === route.path)?.label ?? '')
 

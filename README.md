@@ -76,11 +76,12 @@ The form posts to `/api/contact` (`server/api/contact.post.ts`), which sends the
 
 The API needs the site to run as a **Node server** (see Deployment). If no key is set or the site is hosted as plain static files, the form automatically falls back to opening the visitor's mail app.
 
-## Team panel (login, kanban, alarms)
+## Team panel (login, kanban, alarms, expenses)
 
 A private area for the team at `/<lang>/login` → `/<lang>/panel`. The login link is the user icon in the header (and in the mobile menu and footer). There is **no sign-up**: accounts are created directly in the database.
 
 - **Tasks** (`/panel`): shared kanban boards. Create boards, add/rename/reorder/delete columns, add cards, drag cards between columns, edit a card (description, assignee, column) in a modal. The board refreshes on window focus and every 30 s, so changes from a teammate show up.
+- **Expenses** (`/panel/expenses`): personal expense log in EUR, visible only to its owner. Month switcher, monthly total vs the previous month, average per day, breakdown by category, a 6-month chart, a list grouped by day (click a row to edit), CSV export for Excel.
 - **Alarms** (`/panel/alarms`): personal alarms (time, label, weekdays; no weekday = rings once and then switches itself off). They ring with a sound, a full-screen dialog (stop / snooze 5 min) and a browser notification while the panel is open in some tab.
 
 Architecture: the Nuxt pages are client-only (`routeRules`, noindex). Nuxt proxies `/api/team/**` to a **FastAPI + PostgreSQL** backend in `backend/` (`server/api/team/[...path].ts`, target `NUXT_TEAM_API_URL`), so the session cookie stays first-party (httpOnly, 30 days). Passwords are bcrypt; 10 failed logins per 15 min per IP.
@@ -199,7 +200,7 @@ app/
   pages/lab/[id].vue         Lab concepts
   pages/case/[id].vue        case studies
   pages/privacy.vue          GDPR privacy policy
-  pages/login.vue, panel.vue, panel/   team panel: login, kanban, alarms (useTeam.ts, Team*.vue)
+  pages/login.vue, panel.vue, panel/   team panel: login, kanban, alarms, expenses (useTeam.ts, Team*.vue)
   (city pages are rendered by pages/[slug]/index.vue → components/CityPage.vue)
   components/                sections, ProfileDev, ProfileCreative, Concept*, Proto*, DesignModal, GeoLangHint…
   composables/useSite.ts     texts for the current language
@@ -209,7 +210,7 @@ app/
 data/                        content and settings (site, locales, cities, cases, privacy, concepts)
 server/api/contact.post.ts   contact form → Telegram + Web3Forms
 server/api/team/             proxy to the team panel backend
-backend/                     FastAPI + PostgreSQL: auth, kanban, alarms (app/), user CLI (app/cli.py)
+backend/                     FastAPI + PostgreSQL: auth, kanban, alarms, expenses (app/), user CLI (app/cli.py)
 server/routes/               sitemap.xml, robots.txt, llms.txt, site.webmanifest
 public/                      images, root index.html and short links (language by country)
 ```
