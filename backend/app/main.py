@@ -1,4 +1,4 @@
-"""Duo Studio team API: login, kanban boards, alarms and expenses.
+"""Duo Studio team API: login, kanban boards, alarms, expenses and income.
 
 Nuxt proxies /api/team/** to this app (see server/api/team/[...path].ts).
 """
@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from .config import settings
 from .db import engine
 from .models import Base
-from .routers import alarms, auth, expenses, kanban
+from .routers import alarms, auth, kanban, money
 
 PREFIX = "/api/team"
 
@@ -32,7 +32,7 @@ app = FastAPI(
     openapi_url=f"{PREFIX}/openapi.json" if settings.docs else None,
 )
 
-for r in (auth.router, kanban.router, alarms.router, expenses.router):
+for r in (auth.router, kanban.router, alarms.router, money.router):
     app.include_router(r, prefix=PREFIX)
 
 

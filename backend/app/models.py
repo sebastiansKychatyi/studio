@@ -86,8 +86,8 @@ class Alarm(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
-class Expense(Base):
-    __tablename__ = "expenses"
+class MoneyEntry:
+    """Shared columns for expenses and income. Amount always in EUR."""
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -98,5 +98,13 @@ class Expense(Base):
     rate: Mapped[Decimal] = mapped_column(Numeric(12, 4), server_default="1")
     category: Mapped[str] = mapped_column(String(20), server_default="other")
     note: Mapped[str] = mapped_column(String(200), server_default="")
-    spent_on: Mapped[date] = mapped_column(Date, index=True)
+    spent_on: Mapped[date] = mapped_column(Date, index=True)  # entry date (also for income)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Expense(MoneyEntry, Base):
+    __tablename__ = "expenses"
+
+
+class Income(MoneyEntry, Base):
+    __tablename__ = "incomes"

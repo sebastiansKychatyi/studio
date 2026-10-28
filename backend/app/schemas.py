@@ -123,15 +123,17 @@ class AlarmOut(BaseModel):
     enabled: bool
 
 
-# Expenses: entered in EUR/UAH/USD, stored in EUR
-Category = Literal["food", "transport", "home", "software", "tech", "fun", "health", "other"]
+# Expenses / income: entered in EUR/UAH/USD, stored in EUR
+ExpenseCategory = Literal["food", "transport", "home", "software", "tech", "fun", "health", "other"]
+IncomeCategory = Literal["projects", "salary", "support", "sale", "gift", "refund", "other"]
 Currency = Literal["EUR", "UAH", "USD"]
+Amount = Field(gt=0, le=Decimal("100000000"), decimal_places=2)
 
 
 class ExpenseIn(BaseModel):
-    amount: Decimal = Field(gt=0, le=Decimal("100000000"), decimal_places=2)
+    amount: Decimal = Amount
     currency: Currency = "EUR"
-    category: Category = "other"
+    category: ExpenseCategory = "other"
     note: str = Field("", max_length=200)
     spent_on: date
 
@@ -139,12 +141,20 @@ class ExpenseIn(BaseModel):
 class ExpensePatch(BaseModel):
     amount: Decimal | None = Field(None, gt=0, le=Decimal("100000000"), decimal_places=2)
     currency: Currency | None = None
-    category: Category | None = None
+    category: ExpenseCategory | None = None
     note: str | None = Field(None, max_length=200)
     spent_on: date | None = None
 
 
-class ExpenseOut(Orm):
+class IncomeIn(ExpenseIn):
+    category: IncomeCategory = "other"
+
+
+class IncomePatch(ExpensePatch):
+    category: IncomeCategory | None = None
+
+
+class MoneyOut(Orm):
     id: int
     amount: float  # EUR
     original_amount: float

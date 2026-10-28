@@ -19,16 +19,19 @@ export interface TeamBoardFull extends TeamBoard { columns: TeamColumn[] }
 export interface TeamAlarm { id: number; time: string; label: string; days: number[]; enabled: boolean }
 export const EXPENSE_CATEGORIES = ['food', 'transport', 'home', 'software', 'tech', 'fun', 'health', 'other'] as const
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
+export const INCOME_CATEGORIES = ['projects', 'salary', 'support', 'sale', 'gift', 'refund', 'other'] as const
+export type IncomeCategory = (typeof INCOME_CATEGORIES)[number]
+export type MoneyKind = 'expenses' | 'income'
 export const CURRENCIES = ['EUR', 'UAH', 'USD'] as const
 export type Currency = (typeof CURRENCIES)[number]
-// amount in EUR; original_amount in `currency` (1 EUR = rate); spent_on = YYYY-MM-DD
-export interface TeamExpense {
+// Expense or income entry. amount in EUR; original_amount in `currency` (1 EUR = rate); spent_on = YYYY-MM-DD
+export interface TeamMoney {
   id: number
   amount: number
   original_amount: number
   currency: Currency
   rate: number
-  category: ExpenseCategory
+  category: string
   note: string
   spent_on: string
 }
