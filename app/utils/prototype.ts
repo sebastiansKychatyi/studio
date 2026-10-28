@@ -6,6 +6,11 @@ export function formatUsd(cents: number): string {
   return `$${dollars}`
 }
 
+export function formatEur(cents: number): string {
+  const euros = (cents / CENTS_PER_DOLLAR).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return `${euros} €`
+}
+
 export function newId(): string {
   return Math.random().toString(36).slice(2, 2 + ID_LENGTH)
 }
