@@ -413,6 +413,9 @@ const cs: typeof sk = {
       access: 'Přístup',
       accessHint: 'Kdo kromě vás vidí a upravuje tuto nástěnku',
       owner: 'autor',
+      seenBy: 'Vidí',
+      boardNotShared: 'Nástěnka zatím není s nikým sdílená — ostatní tento úkol neuvidí. Přidejte je tlačítkem „Přístup“ u nástěnky.',
+      share: 'Sdílet',
     },
     calendar: {
       title: 'Kalendář',

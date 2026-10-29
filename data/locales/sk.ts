@@ -413,6 +413,9 @@ export default {
       access: 'Prístup',
       accessHint: 'Kto okrem vás vidí a upravuje túto nástenku',
       owner: 'autor',
+      seenBy: 'Vidia',
+      boardNotShared: 'Nástenka zatiaľ nie je s nikým zdieľaná — ostatní túto úlohu neuvidia. Pridajte ich tlačidlom „Prístup“ pri nástenke.',
+      share: 'Zdieľať',
     },
     calendar: {
       title: 'Kalendár',

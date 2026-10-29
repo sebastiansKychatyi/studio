@@ -480,13 +480,13 @@ onBeforeUnmount(() => {
               <button
                 type="button"
                 class="kb-lock"
-                :class="{ on: accessOpen === board.id }"
+                :class="{ on: accessOpen === board.id, share: board.is_private && mine(board) }"
                 :aria-expanded="accessOpen === board.id"
                 :title="k.access"
                 @click="accessOpen = accessOpen === board.id ? null : board.id"
               >
                 <AppIcon :name="board.is_private ? 'lock' : 'users'" />
-                <template v-if="board.is_private">{{ k.private }}</template>
+                <template v-if="board.is_private">{{ k.private }}<b v-if="mine(board)" class="kb-share">· {{ k.share }}</b></template>
                 <span v-else class="kb-faces">
                   <span v-for="u in people(board)" :key="u.id" class="tp-avatar sm" :data-c="u.id % 3" :title="u.name || u.username">{{ initial(u.name || u.username) }}</span>
                 </span>
@@ -813,6 +813,8 @@ onBeforeUnmount(() => {
 .kb-add-actions { display: flex; align-items: center; gap: 6px; }
 
 /* Access popover */
+.kb-lock.share { border-color: var(--accent); color: var(--accent); }
+.kb-share { font-weight: 800; }
 .kb-access { position: relative; }
 .kb-lock.on .kb-faces .tp-avatar { box-shadow: 0 0 0 2px var(--ink); }
 .kb-access-pop {

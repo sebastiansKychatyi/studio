@@ -27,6 +27,8 @@ const form = reactive({
 
 // Only the author changes visibility; someone else's card cannot go to a private board
 const mine = computed(() => props.card.created_by === null || props.card.created_by === props.meId)
+// `users` = people with access to the board; names of the others
+const viewers = computed(() => props.users.filter((u) => u.id !== props.meId).map((u) => u.name || u.username))
 const targets = computed(() =>
   props.boards
     .filter((b) => b.id === props.boardId || !b.is_private || mine.value)
@@ -129,6 +131,11 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
             <span><b>{{ v ? k.private : k.team }}</b><small>{{ v ? k.privateHint : k.teamHint }}</small></span>
           </button>
         </div>
+        <!-- Who actually sees a non-private card: everyone with access to the board -->
+        <small v-if="!form.is_private" class="tm-who" :class="{ warn: !viewers.length }">
+          <AppIcon :name="viewers.length ? 'users' : 'lock'" />
+          {{ viewers.length ? `${k.seenBy}: ${viewers.join(', ')}` : k.boardNotShared }}
+        </small>
       </div>
       <div class="tp-field">
         <span>{{ k.due }}</span>
@@ -175,6 +182,9 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
 .tm-vis button.on { border-color: var(--accent); background: #F4F2FF; box-shadow: 0 0 0 3px rgba(91, 75, 255, .12); }
 .tm-vis button.on .ico { color: var(--accent); transform: scale(1.1); }
 .tm-vis button:disabled { cursor: not-allowed; opacity: .55; }
+.tm-who { display: flex; align-items: center; gap: 6px; margin-top: 2px; color: var(--muted); font-size: .78rem; font-weight: 700; }
+.tm-who .ico { flex: none; width: 14px; height: 14px; }
+.tm-who.warn { color: #C2410C; }
 .tm-due { display: flex; align-items: center; gap: 8px; }
 .tm-due input { flex: 1; }
 @media (max-width: 520px) { .tm-row { grid-template-columns: 1fr; } }

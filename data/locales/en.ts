@@ -413,6 +413,9 @@ const en: typeof sk = {
       access: 'Access',
       accessHint: 'Who besides you can see and edit this board',
       owner: 'owner',
+      seenBy: 'Visible to',
+      boardNotShared: 'The board is not shared with anyone yet — others will not see this task. Add people with the “Access” button next to the board title.',
+      share: 'Share',
     },
     calendar: {
       title: 'Calendar',
