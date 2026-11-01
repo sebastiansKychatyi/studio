@@ -127,7 +127,7 @@ async function start(req, url) {
   try {
     return await withTimeout(fetch(req), 3000)
   } catch {
-    const target = GO[url.searchParams.get('go')] || '/panel'
+    const target = GO[url.searchParams.get('go')] || '/panel/today'
     return Response.redirect(`/${await lastLang()}${target}`, 302)
   }
 }

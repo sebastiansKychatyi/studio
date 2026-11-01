@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     vapid_public_key: str = ""
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:admin@example.com"
+    # Calendars visible only to their owner; true = owners may share them (saved shares are kept)
+    calendar_sharing: bool = False
     # Time zone for users who have not opened the panel yet
     default_tz: str = "Europe/Bratislava"
 

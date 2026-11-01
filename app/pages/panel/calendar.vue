@@ -276,6 +276,8 @@ function openLinked() {
   picked.value = date
   const ev = events.value.find((e) => e.id === id)
   if (ev) open({ ev, date, owner: null })
+  // Quick add from "Today": new event on that day
+  else if (route.query.new === 'event') newAt(date, Math.min((new Date().getHours() + 1) * 60, 23 * 60))
   navigateTo({ query: {} }, { replace: true })
 }
 watch(() => route.query.event, () => !loading.value && openLinked())

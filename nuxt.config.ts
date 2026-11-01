@@ -51,9 +51,14 @@ export default defineNuxtConfig({
     web3formsKey: '',
     // FastAPI backend of the team panel (backend/)
     teamApiUrl: 'http://127.0.0.1:8000',
+    // Android app (android/): package and SHA-256 of its signing key for assetlinks.json
+    twaPackage: 'com.duostudio.panel',
+    twaSha256: '',
     // Build version, set by modules/pwa.mjs
     public: { appVersion: '' },
   },
+
+  serverHandlers: [{ route: '/.well-known/assetlinks.json', handler: '~~/server/handlers/assetlinks.ts' }],
 
   // Private team panel: client-only, never indexed
   routeRules: {

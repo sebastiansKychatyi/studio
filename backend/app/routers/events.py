@@ -5,6 +5,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ..config import settings
 from ..db import get_db
 from ..models import Board, BoardColumn, CalendarShare, CalEvent, User
 from ..schemas import CalendarAccessOut, DueCard, EventIn, EventOut, EventPatch, MembersIn, SkipIn, UserOut
@@ -59,7 +60,7 @@ async def list_events(
     db: AsyncSession = Depends(get_db),
 ):
     owner_id = owner or user.id
-    if owner_id != user.id and await db.get(CalendarShare, (owner_id, user.id)) is None:
+    if owner_id != user.id and (not settings.calendar_sharing or await db.get(CalendarShare, (owner_id, user.id)) is None):
         raise HTTPException(404, "Calendar not shared with you")
     rows = await db.scalars(select(CalEvent).where(CalEvent.user_id == owner_id).order_by(CalEvent.date, CalEvent.start))
     return [_out(e) for e in rows.all()]
@@ -71,12 +72,16 @@ async def calendar_access(user: User = Depends(current_user), db: AsyncSession =
     theirs = await db.scalars(
         select(User).join(CalendarShare, CalendarShare.owner_id == User.id).where(CalendarShare.viewer_id == user.id).order_by(User.name)
     )
+    if not settings.calendar_sharing:
+        return CalendarAccessOut(shared_with=[], shared_to_me=[], enabled=False)
     return CalendarAccessOut(shared_with=sorted(mine.all()), shared_to_me=[UserOut.model_validate(u) for u in theirs.all()])
 
 
 @router.put("/calendar/access", response_model=CalendarAccessOut)
 async def set_calendar_access(body: MembersIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
     """Who may see my calendar (read-only)."""
+    if not settings.calendar_sharing:
+        raise HTTPException(403, "Calendar sharing is off")
     ids = sorted(set(body.user_ids) - {user.id})
     if ids and len((await db.scalars(select(User.id).where(User.id.in_(ids)))).all()) != len(ids):
         raise HTTPException(404, "User not found")

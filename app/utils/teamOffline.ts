@@ -14,6 +14,7 @@ const QUEUEABLE: [string, RegExp][] = [
   ['POST', /^\/(expenses|income)$/], ['PATCH', new RegExp(`^/(expenses|income)/${ID}$`)], ['DELETE', new RegExp(`^/(expenses|income)/${ID}$`)],
   ['POST', new RegExp(`^/columns/${ID}/cards$`)], ['PATCH', new RegExp(`^/cards/${ID}$`)], ['DELETE', new RegExp(`^/cards/${ID}$`)],
   ['PATCH', /^\/me\/settings$/],
+  ['POST', new RegExp(`^/(expenses|income)/recurring/${ID}/pay$`)],
 ]
 export const queueable = (method: string, url: string) => QUEUEABLE.some(([m, re]) => m === method && re.test(url))
 
@@ -33,6 +34,7 @@ function created(op: OutboxOp, ctx: Ctx): Obj {
   const b = op.body ?? {}
   if (op.url === '/alarms') return { id: op.temp, label: '', days: [], enabled: true, ...b, updated_at: null }
   if (op.url === '/events') return { id: op.temp, skip: [], note: '', remind: null, until: null, days: [], ...b, updated_at: null }
+  if (op.url.endsWith('/pay')) return { id: op.temp, ...b }
   if (/^\/(expenses|income)$/.test(op.url)) return money({ id: op.temp, recurring_id: null, note: '', category: 'other', updated_at: null }, b, ctx)
   const col = Number(op.url.split('/')[2])
   return {

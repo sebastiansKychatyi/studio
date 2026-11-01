@@ -8,9 +8,10 @@ const { alarms, events, api } = useTeam()
 const a = computed(() => t.value.panel.alarms)
 const c = computed(() => t.value.panel.calendar)
 
-const ringing = ref<{ time: string; label: string } | null>(null)
-const snoozes: { at: number; time: string; label: string }[] = []
+const ringing = ref<{ time: string; label: string; tag: string; alarmId: number } | null>(null)
+const { list: snoozes, add: addSnooze, remove: removeSnooze } = useSnoozes()
 const fired = new Set<string>()
+let ringStart = 0
 
 let tickTimer: ReturnType<typeof setInterval> | undefined
 let beepTimer: ReturnType<typeof setInterval> | undefined
@@ -28,7 +29,7 @@ function tick() {
     const key = `${al.id}|${now.toDateString()}|${hm}`
     if (fired.has(key)) continue
     fired.add(key)
-    ring(al.time, al.label, `alarm-${al.id}`)
+    ring(al.time, al.label, `alarm-${al.id}`, al.id)
     // One-time alarm switches itself off
     if (!al.days.length) {
       al.enabled = false
@@ -36,10 +37,10 @@ function tick() {
     }
   }
   remindEvents(now)
-  const due = snoozes.findIndex((s) => s.at <= now.getTime())
-  if (due >= 0) {
-    const [s] = snoozes.splice(due, 1)
-    ring(s!.time, s!.label)
+  const due = snoozes.value.find((s) => s.at <= now.getTime())
+  if (due) {
+    removeSnooze(due, true)
+    ring(due.time, due.label, due.tag, due.alarmId)
   }
 }
 
@@ -74,33 +75,52 @@ function unlock() {
   } catch { /* no Web Audio */ }
 }
 
+// Loud alarm pattern: 4 bright square-wave notes per second through a compressor,
+// getting louder for ~20 s. Plays at the phone's MEDIA volume (browser limit).
+let out: AudioNode | undefined
 function beep() {
   if (!ctx) return
-  const start = ctx.currentTime
-  for (let i = 0; i < 3; i++) {
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    const at = start + i * 0.22
-    osc.type = 'sine'
-    osc.frequency.value = i === 2 ? 1175 : 880
-    gain.gain.setValueAtTime(0.0001, at)
-    gain.gain.exponentialRampToValueAtTime(0.25, at + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.18)
-    osc.connect(gain).connect(ctx.destination)
-    osc.start(at)
-    osc.stop(at + 0.2)
+  if (!out) {
+    const comp = ctx.createDynamicsCompressor()
+    comp.threshold.value = -12
+    comp.ratio.value = 6
+    comp.connect(ctx.destination)
+    out = comp
   }
+  const level = Math.min(0.45 + (Date.now() - ringStart) / 20000 * 0.55, 1)
+  const start = ctx.currentTime
+  const notes = [988, 1319, 988, 1319]
+  notes.forEach((freq, i) => {
+    const at = start + i * 0.13
+    for (const [type, f, part] of [['square', freq, 0.6], ['triangle', freq * 2, 0.4]] as const) {
+      const osc = ctx!.createOscillator()
+      const gain = ctx!.createGain()
+      osc.type = type
+      osc.frequency.value = f
+      gain.gain.setValueAtTime(0.0001, at)
+      gain.gain.exponentialRampToValueAtTime(level * part, at + 0.01)
+      gain.gain.setValueAtTime(level * part, at + 0.09)
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.12)
+      osc.connect(gain).connect(out!)
+      osc.start(at)
+      osc.stop(at + 0.13)
+    }
+  })
+  navigator.vibrate?.([400, 150, 400])
 }
 
 // tag = same as the Web Push of this alarm/reminder: the phone shows one notification, not two
-function ring(time: string, label: string, tag = 'duo-alarm') {
-  if (!ringing.value) title.saved = document.title
-  ringing.value = { time, label }
+function ring(time: string, label: string, tag = 'duo-alarm', alarmId = 0) {
+  if (!ringing.value) {
+    title.saved = document.title
+    ringStart = Date.now()
+  }
+  ringing.value = { time, label, tag, alarmId }
   document.title = `⏰ ${time} ${label}`.trim()
   unlock()
   beep()
   clearInterval(beepTimer)
-  beepTimer = setInterval(beep, 1400)
+  beepTimer = setInterval(beep, 1000)
   clearTimeout(stopTimer)
   stopTimer = setTimeout(silence, 2 * 60 * 1000) // ring at most 2 min
   notifyLocal(`⏰ ${time}`, { body: label || a.value.ringing, tag, requireInteraction: true, data: { url: location.pathname } })
@@ -109,6 +129,7 @@ function ring(time: string, label: string, tag = 'duo-alarm') {
 function silence() {
   clearInterval(beepTimer)
   clearTimeout(stopTimer)
+  navigator.vibrate?.(0)
 }
 
 function stop() {
@@ -120,7 +141,8 @@ function stop() {
 function snooze() {
   const r = ringing.value
   stop()
-  if (r) snoozes.push({ ...r, at: Date.now() + 5 * 60 * 1000 })
+  // Listed on the alarms page, survives reloads, comes by push if the app is closed
+  if (r) addSnooze(r)
 }
 
 onMounted(() => {

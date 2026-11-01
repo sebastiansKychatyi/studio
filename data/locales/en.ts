@@ -313,6 +313,16 @@ const en: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    today: {
+      title: 'Today', today: 'Today', tomorrow: 'Tomorrow', tomorrowTitle: 'Plan for tomorrow',
+      night: 'Good night', morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening',
+      noAlarm: 'No alarm set', todayAt: 'today at', tomorrowAt: 'tomorrow at',
+      plan: 'Plan of the day', noEvents: 'nothing planned', now: 'Now', dayOver: 'the day is over',
+      tasks: 'Tasks', noTasks: 'all done', overdue: 'Overdue', dueToday: 'Due today', dueTomorrow: 'Due tomorrow', assigned: 'Assigned to me', markDone: 'Done',
+      money: 'Money', spentToday: 'Spent today', spentDay: 'Spent that day', spentMonth: 'This month', billToday: 'due today', billLate: 'overdue',
+      add: 'Add', addTask: 'Task', addEvent: 'Event', addExpense: 'Expense', addAlarm: 'Alarm',
+      offlineOld: 'Offline — tasks and money are from the last sync.', offlineNone: 'Offline — tasks and money appear once online.',
+    },
     offlineOnly: 'This needs internet — try again when you are online.',
     sync: {
       offline: 'Offline',
@@ -361,6 +371,7 @@ const en: typeof sk = {
     themeLight: 'Light theme',
     menu: 'Panel menu',
     nav: {
+      today: 'Today',
       finance: 'Finance',
       tasks: 'Tasks',
       calendar: 'Calendar',
@@ -507,6 +518,7 @@ const en: typeof sk = {
       m: 'min',
     },
     settings: {
+      calPrivate: 'Only you can see your calendar (sharing is off).',
       notify: {
         title: 'Notifications',
         device: 'On this device',
@@ -517,6 +529,8 @@ const en: typeof sk = {
         serverOff: 'The server has no VAPID keys — notifications arrive only while the app is open.',
         kinds: { alarms: 'Alarms', events: 'Calendar reminders', due: 'Task deadlines (at 9:00)', mentions: '@mentions', assign: 'Assigned tasks', bills: 'Monthly payments (at 9:00)' },
         quiet: 'Quiet hours (except alarms)',
+        summary: 'Morning summary of the day',
+        evening: 'Evening: what is tomorrow',
         test: 'Send a test notification',
         testSent: 'Sent to devices',
         testNone: 'No device with notifications — turn them on above.',
@@ -525,7 +539,7 @@ const en: typeof sk = {
           'A web notification is not a system alarm. In battery saver Android may delay it by a few minutes, and it cannot start a loud full-screen ringing.',
           'While the app is open the alarm rings as before. When it is closed you get a notification only (sound and vibration as set on the phone).',
           'iPhone / iPad: notifications work only in the app added to the Home Screen (iOS 16.4+), not in Safari.',
-          'For important wake-ups prefer the system Clock app. A “Create in system clock” button would need the Android wrapper (TWA) — tell me if you want it.',
+          'For important wake-ups use the system Clock: in the Android app (APK) every alarm has a “To system clock” button.',
         ],
       },
       title: 'Settings',
@@ -552,6 +566,10 @@ const en: typeof sk = {
       },
     },
     alarms: {
+      toSystem: 'To system clock',
+      toSystemHint: 'Creates the same alarm in the Clock app — rings loud even when the phone is locked.',
+      snoozed: 'Snoozed, was',
+      cancelSnooze: 'Cancel snooze',
       pushHint: 'The alarm rings while the app is open. When it is closed, a notification comes (battery saver may delay it).',
       title: 'Alarms',
       subtitle: 'Personal alarms and reminders.',

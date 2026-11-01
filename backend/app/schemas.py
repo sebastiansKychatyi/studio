@@ -338,6 +338,7 @@ class DueCard(BaseModel):
 class CalendarAccessOut(BaseModel):
     shared_with: list[int]  # who can see my calendar
     shared_to_me: list[UserOut]  # whose calendars I can see
+    enabled: bool = True  # sharing switched on (CALENDAR_SHARING)
 
 
 class SettingsIn(BaseModel):
@@ -369,3 +370,70 @@ class SnoozeIn(BaseModel):
     time: str = Field(pattern=TIME_PATTERN)
     label: str = Field("", max_length=120)
     minutes: int = Field(10, ge=1, le=60)
+    tag: str | None = Field(None, pattern=r"^[a-z0-9-]{1,60}$")  # notification tag of the app's own snooze
+
+
+class SnoozeCancelIn(BaseModel):
+    tag: str = Field(pattern=r"^[a-z0-9-]{1,60}$")
+
+
+# "Today" screen (GET /today) and the morning summary
+class TodayAlarm(BaseModel):
+    id: int
+    time: str
+    label: str
+    at: datetime  # next ring, user's time zone
+
+
+class TodayEvent(BaseModel):
+    id: int
+    title: str
+    start: str
+    end: str
+    color: str
+    repeat: str
+    note: str
+
+
+class TodayCard(BaseModel):
+    id: int
+    title: str
+    due_date: date | None
+    assignee_id: int | None
+    board_id: int
+    board_title: str
+    column_title: str
+    done_column_id: int  # last column of the board = done
+
+
+class TodayTasks(BaseModel):
+    overdue: list[TodayCard] = []
+    today: list[TodayCard] = []
+    assigned: list[TodayCard] = []  # mine, no deadline due yet
+
+
+class TodayBill(BaseModel):
+    id: int
+    title: str
+    category: str
+    amount: float | None
+    currency: str
+    day: int
+    overdue: bool
+
+
+class TodayMoney(BaseModel):
+    month: str  # YYYY-MM
+    spent_today: float  # EUR
+    spent_month: float  # EUR
+    bills: list[TodayBill] = []
+
+
+class TodayOut(BaseModel):
+    date: date
+    now: datetime
+    tz: str
+    next_alarm: TodayAlarm | None
+    events: list[TodayEvent]
+    tasks: TodayTasks
+    money: TodayMoney

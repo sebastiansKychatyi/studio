@@ -13,7 +13,7 @@ from . import notify
 from .config import settings
 from .db import engine
 from .models import Base
-from .routers import alarms, auth, events, kanban, money, push, settings as settings_router
+from .routers import alarms, auth, events, kanban, money, push, settings as settings_router, today
 
 PREFIX = "/api/team"
 
@@ -87,7 +87,7 @@ app = FastAPI(
     openapi_url=f"{PREFIX}/openapi.json" if settings.docs else None,
 )
 
-for r in (auth.router, kanban.router, alarms.router, money.router, events.router, settings_router.router, push.router):
+for r in (auth.router, kanban.router, alarms.router, money.router, events.router, settings_router.router, push.router, today.router):
     app.include_router(r, prefix=PREFIX)
 
 

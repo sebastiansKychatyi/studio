@@ -33,25 +33,33 @@ TEXT = {
         "alarm": "Budík", "snooze": "Odložiť o 10 min", "stop": "Vypnúť", "reminder": "Pripomienka", "due": "Dnes je termín",
         "mention": "Spomenuli vás", "assign": "Pridelené vám", "bill": "Platba na dnes", "variable": "suma sa mení",
         "test": "Testovacie upozornenie", "testBody": "Upozornenia fungujú.",
+        "today": "Dnes", "tomorrow": "Zajtra", "free": "Voľný deň", "first": "prvé",
+        "events": ("udalosť", "udalosti", "udalostí"), "deadlines": ("termín", "termíny", "termínov"), "bills": ("platba", "platby", "platieb"),
     },
     "cs": {
         "alarm": "Budík", "snooze": "Odložit o 10 min", "stop": "Vypnout", "reminder": "Připomínka", "due": "Dnes je termín",
         "mention": "Zmínili vás", "assign": "Přiděleno vám", "bill": "Platba na dnes", "variable": "částka se mění",
         "test": "Testovací oznámení", "testBody": "Oznámení fungují.",
+        "today": "Dnes", "tomorrow": "Zítra", "free": "Volný den", "first": "první",
+        "events": ("událost", "události", "událostí"), "deadlines": ("termín", "termíny", "termínů"), "bills": ("platba", "platby", "plateb"),
     },
     "uk": {
         "alarm": "Будильник", "snooze": "Відкласти на 10 хв", "stop": "Вимкнути", "reminder": "Нагадування", "due": "Сьогодні дедлайн",
         "mention": "Вас згадали", "assign": "Вам призначено", "bill": "Сьогодні оплата", "variable": "сума змінюється",
         "test": "Тестове сповіщення", "testBody": "Сповіщення працюють.",
+        "today": "Сьогодні", "tomorrow": "Завтра", "free": "Вільний день", "first": "перше",
+        "events": ("подія", "події", "подій"), "deadlines": ("дедлайн", "дедлайни", "дедлайнів"), "bills": ("платіж", "платежі", "платежів"),
     },
     "en": {
         "alarm": "Alarm", "snooze": "Snooze 10 min", "stop": "Turn off", "reminder": "Reminder", "due": "Due today",
         "mention": "You were mentioned", "assign": "Assigned to you", "bill": "Payment due today", "variable": "amount varies",
         "test": "Test notification", "testBody": "Notifications work.",
+        "today": "Today", "tomorrow": "Tomorrow", "free": "Free day", "first": "first",
+        "events": ("event", "events", "events"), "deadlines": ("deadline", "deadlines", "deadlines"), "bills": ("payment", "payments", "payments"),
     },
 }
 # Kinds a user can switch off in settings ("notify" key); alarms ignore quiet hours
-KINDS = ("alarms", "events", "due", "mentions", "assign", "bills")
+KINDS = ("alarms", "events", "due", "mentions", "assign", "bills", "summary", "evening")
 
 Builder = Callable[[dict, str], dict]  # (texts, lang) -> payload for the service worker
 
@@ -155,7 +163,8 @@ async def _once(db: AsyncSession, key: str) -> bool:
     return True
 
 
-def _occurs(e: CalEvent, day: date) -> bool:
+def occurs(e: CalEvent, day: date) -> bool:
+    """Does the event happen on this day (weekly repeats, end date, skipped days)."""
     if e.repeat != "weekly":
         return e.date == day
     days = {int(d) for d in e.days.split(",") if d}
@@ -181,7 +190,7 @@ async def _events(db: AsyncSession, uid: int, local: datetime) -> None:
         # The occurrence may be up to `remind` minutes ahead, also on a later day
         for k in range(math.ceil(e.remind / 1440) + 2):
             day = local.date() + timedelta(days=k)
-            if not _occurs(e, day):
+            if not occurs(e, day):
                 continue
             h, m = map(int, e.start.split(":"))
             start = datetime(day.year, day.month, day.day, h, m, tzinfo=local.tzinfo)
@@ -236,6 +245,40 @@ async def _bills(db: AsyncSession, uid: int, local: datetime) -> None:
         })
 
 
+def plural(lang: str, n: int, forms: tuple[str, str, str]) -> str:
+    if lang == "en":
+        i = 0 if n == 1 else 1
+    elif lang == "uk":
+        i = 0 if n % 10 == 1 and n % 100 != 11 else 1 if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14 else 2
+    else:  # sk, cs
+        i = 0 if n == 1 else 1 if 2 <= n <= 4 else 2
+    return f"{n} {forms[i]}"
+
+
+async def _summary(db: AsyncSession, uid: int, local: datetime, evening: bool) -> None:
+    """One push with the day: "3 events, 2 deadlines, 1 payment; first — 10:00 Lecture"."""
+    from .routers.today import build_today  # avoids an import cycle
+
+    day = local.date() + timedelta(days=1 if evening else 0)
+    if not await _once(db, f"{'v' if evening else 's'}{uid}:{day}"):
+        return
+    user = await db.get(User, uid)
+    t = await build_today(db, user, day)
+    deadlines = len(t.tasks.overdue) + len(t.tasks.today)
+
+    def build(texts: dict, lang: str) -> dict:
+        parts = [plural(lang, n, texts[key]) for n, key in ((len(t.events), "events"), (deadlines, "deadlines"), (len(t.money.bills), "bills")) if n]
+        body = ", ".join(parts) or texts["free"]
+        if t.events:
+            body += f"; {texts['first']} — {t.events[0].start} {t.events[0].title}"
+        return {
+            "title": f"{texts['tomorrow' if evening else 'today']} · {day:%d.%m.}", "body": body[:220], "tag": f"summary-{day}",
+            "url": f"/{lang}/panel/today" + (f"?date={day}" if evening else ""),
+        }
+
+    await send(db, uid, "evening" if evening else "summary", build)
+
+
 async def tick(now: datetime) -> None:
     async with SessionLocal() as db:
         for job in (await db.scalars(select(PushLater).where(PushLater.fire_at <= now))).all():
@@ -248,9 +291,15 @@ async def tick(now: datetime) -> None:
             local = now.astimezone(tz_of(prefs))
             await _alarms(db, uid, local)
             await _events(db, uid, local)
-            if f"{local:%H:%M}" == "09:00":
+            hm, n = f"{local:%H:%M}", prefs.get("notify") or {}
+            if hm == "09:00":
                 await _due(db, uid, local)
                 await _bills(db, uid, local)
+            # Morning summary (on by default) and "what is tomorrow" (off by default)
+            if n.get("summary") is not False and hm == (n.get("summaryAt") or "07:30"):
+                await _summary(db, uid, local, evening=False)
+            if n.get("evening") and hm == (n.get("eveningAt") or "20:00"):
+                await _summary(db, uid, local, evening=True)
         if now.minute == 0:
             await db.execute(delete(PushSent).where(PushSent.sent_at < now - timedelta(days=3)))
             await db.commit()

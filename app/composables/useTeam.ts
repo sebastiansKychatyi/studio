@@ -49,6 +49,18 @@ export function eventOccursOn(e: TeamEvent, day: string) {
   const weekday = new Date(`${day}T12:00:00`).getDay()
   return day >= e.date && (!e.until || day <= e.until) && e.days.includes(weekday) && !e.skip.includes(day)
 }
+// "Today" screen (GET /today), built on the server in the user's time zone
+export interface TodayCard { id: number; title: string; due_date: string | null; assignee_id: number | null; board_id: number; board_title: string; column_title: string; done_column_id: number }
+export interface TodayBill { id: number; title: string; category: string; amount: number | null; currency: Currency; day: number; overdue: boolean }
+export interface TeamToday {
+  date: string
+  now: string
+  tz: string
+  next_alarm: { id: number; time: string; label: string; at: string } | null
+  events: Pick<TeamEvent, 'id' | 'title' | 'start' | 'end' | 'color' | 'repeat' | 'note'>[]
+  tasks: { overdue: TodayCard[]; today: TodayCard[]; assigned: TodayCard[] }
+  money: { month: string; spent_today: number; spent_month: number; bills: TodayBill[] } // EUR
+}
 // Kanban card with a deadline, for the calendar
 export interface TeamDue { id: number; title: string; due_date: string; board_id: number; board_title: string; column_title: string; done: boolean }
 export const EXPENSE_CATEGORIES = ['food', 'transport', 'home', 'software', 'tech', 'fun', 'health', 'other'] as const
@@ -358,8 +370,11 @@ export function useTeam() {
     setInterval(() => pending.value && navigator.onLine && flushOutbox(), 30000)
   }
 
+  // Changes still waiting in the outbox (screens hide what is already done locally)
+  const waiting = async () => [...(await loadOps())]
+
   return {
-    user, users, alarms, mentions, events, online, pending, synced, notices,
+    user, users, alarms, mentions, events, online, pending, synced, notices, waiting,
     api, peek, refresh, login, logout, loadUsers, loadAlarms, loadMentions, loadEvents, startSync, flush: flushOutbox,
   }
 }

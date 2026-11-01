@@ -8,6 +8,8 @@ const GO: Record<string, string> = { task: '/panel?new=task', alarm: '/panel/ala
 export default defineEventHandler((event) => {
   const saved = getCookie(event, 'panel_lang') ?? ''
   const lang = (site.languages as readonly string[]).includes(saved) ? saved : site.defaultLang
-  const target = GO[String(getQuery(event).go ?? '')] ?? '/panel'
-  return sendRedirect(event, `/${lang}${target}`, 302)
+  const target = GO[String(getQuery(event).go ?? '')] ?? '/panel/today'
+  // The Android app (android/) marks its start; the page then offers "To system clock"
+  const twa = getQuery(event).source === 'twa' ? `${target.includes('?') ? '&' : '?'}source=twa` : ''
+  return sendRedirect(event, `/${lang}${target}${twa}`, 302)
 })

@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Release signing from the environment (GitHub secrets or your shell); nothing secret in the repo
+def keystore = System.getenv('ANDROID_KEYSTORE_PATH')
+
+android {
+    namespace 'com.duostudio.panel'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.duostudio.panel'
+        minSdk 21
+        targetSdk 34
+        // Bump when the wrapper changes (icon, name, permissions); web content updates by itself
+        versionCode 1
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        release {
+            if (keystore) {
+                storeFile file(keystore)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystore) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

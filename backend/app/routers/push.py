@@ -9,7 +9,7 @@ from .. import notify
 from ..config import settings
 from ..db import get_db
 from ..models import PushLater, PushSubscription, User
-from ..schemas import PushKeyOut, SnoozeIn, SubscriptionIn, UnsubscribeIn
+from ..schemas import PushKeyOut, SnoozeCancelIn, SnoozeIn, SubscriptionIn, UnsubscribeIn
 from ..security import current_user
 from ..sync import utcnow
 
@@ -53,5 +53,16 @@ async def snooze(body: SnoozeIn, user: User = Depends(current_user), db: AsyncSe
     prefs = await notify.prefs_of(db, user.id)
     lang = notify.lang_of(prefs)
     payload = notify.alarm_payload(notify.TEXT[lang], lang, body.alarm_id, body.time, body.label)
+    if body.tag:
+        payload["tag"] = body.tag
     db.add(PushLater(user_id=user.id, fire_at=utcnow() + timedelta(minutes=body.minutes), payload=json.dumps(payload, ensure_ascii=False)))
+    await db.commit()
+
+
+@router.post("/snooze/cancel", status_code=204)
+async def cancel_snooze(body: SnoozeCancelIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    """Snooze cancelled in the app: drop the pending push with that tag."""
+    for job in (await db.scalars(select(PushLater).where(PushLater.user_id == user.id))).all():
+        if json.loads(job.payload).get("tag") == body.tag:
+            await db.delete(job)
     await db.commit()

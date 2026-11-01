@@ -24,6 +24,7 @@ const nameOf = (id: number | null) => users.value.find((u) => u.id === id)
 // Calendar access
 const sharedWith = ref<number[]>([])
 const sharedToMe = ref<TeamUser[]>([])
+const calShared = ref(true) // sharing switched on on the server
 const boards = ref<TeamBoardItem[]>([])
 const loading = ref(true)
 const saved = ref(false)
@@ -38,11 +39,12 @@ function flash(ok: boolean) {
 onMounted(async () => {
   try {
     const [access, list] = await Promise.all([
-      api<{ shared_with: number[]; shared_to_me: TeamUser[] }>('/calendar/access'),
+      api<{ shared_with: number[]; shared_to_me: TeamUser[]; enabled?: boolean }>('/calendar/access'),
       api<TeamBoardItem[]>('/boards'),
     ])
     sharedWith.value = access.shared_with
     sharedToMe.value = access.shared_to_me
+    calShared.value = access.enabled !== false
     boards.value = list
   } catch (err) {
     if (httpStatus(err) === 401) navigateTo(localePath('/login'))
@@ -70,7 +72,12 @@ const version = useRuntimeConfig().public.appVersion
 // Notifications: this device's subscription + account-wide types and quiet hours (read by the server)
 const { permission, subscribed, serverReady, check, enable, disable, test } = usePush()
 const KINDS = ['alarms', 'events', 'due', 'mentions', 'assign', 'bills'] as const
-interface NotifyPrefs { quiet?: boolean; quietFrom?: string; quietTo?: string; [kind: string]: boolean | string | undefined }
+interface NotifyPrefs { quiet?: boolean; quietFrom?: string; quietTo?: string; summaryAt?: string; eveningAt?: string; [kind: string]: boolean | string | undefined }
+// Daily summaries: morning on by default, evening ("what is tomorrow") off
+const SUMMARIES = [
+  { key: 'summary', at: 'summaryAt', def: '07:30', on: (n: NotifyPrefs) => n.summary !== false },
+  { key: 'evening', at: 'eveningAt', def: '20:00', on: (n: NotifyPrefs) => n.evening === true },
+] as const
 const notify = pref<NotifyPrefs>('notify', {})
 const setNotify = (patch: NotifyPrefs) => (notify.value = { ...notify.value, ...patch })
 const pushBusy = ref(false)
@@ -185,6 +192,13 @@ function openBoard(id: number) {
             <span>{{ st.notify.kinds[kind] }}</span>
           </label>
         </div>
+        <div v-for="s in SUMMARIES" :key="s.key" class="st-row">
+          <label class="st-kind">
+            <input type="checkbox" class="kb-check" :checked="s.on(notify)" @change="setNotify({ [s.key]: ($event.target as HTMLInputElement).checked })">
+            <span>{{ st.notify[s.key] }}</span>
+          </label>
+          <input type="time" class="tp-input st-at" :value="notify[s.at] || s.def" :disabled="!s.on(notify)" :aria-label="st.notify[s.key]" @change="setNotify({ [s.at]: ($event.target as HTMLInputElement).value })">
+        </div>
         <div class="st-row">
           <label class="st-kind">
             <input type="checkbox" class="kb-check" :checked="!!notify.quiet" @change="setNotify({ quiet: ($event.target as HTMLInputElement).checked })">
@@ -210,9 +224,9 @@ function openBoard(id: number) {
       <!-- Calendar access -->
       <section class="st-card">
         <h2><AppIcon name="calendar" /> {{ st.calAccess }}</h2>
-        <p class="st-note">{{ st.calAccessHint }}</p>
+        <p class="st-note">{{ calShared ? st.calAccessHint : st.calPrivate }}</p>
         <div v-if="loading" class="kb-loading"><span class="spinner" /></div>
-        <template v-else>
+        <template v-else-if="calShared">
           <label v-for="u in others" :key="u.id" class="kb-access-row">
             <span class="tp-avatar sm" :data-c="u.id % 3">{{ initial(u) }}</span>
             <span class="kb-access-name"><b>{{ u.name || u.username }}</b><small>@{{ u.username }}</small></span>
@@ -286,7 +300,8 @@ function openBoard(id: number) {
 .st-kinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .st-kind { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; font-size: .9rem; color: var(--ink-2); cursor: pointer; }
 .st-quiet { display: inline-flex; align-items: center; gap: 6px; }
-.st-quiet .tp-input { width: 120px; }
+.st-quiet .tp-input, .st-at { width: 120px; }
+.st-at:disabled { opacity: .5; }
 .st-quiet .tp-input:disabled { opacity: .5; }
 .st-limits { margin-top: 12px; font-size: .84rem; color: var(--ink-2); }
 .st-limits summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 800; color: var(--accent); }

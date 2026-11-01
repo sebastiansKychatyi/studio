@@ -13,6 +13,7 @@ const { ready, loadPrefs, pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
 const nav = computed(() => [
+  { to: localePath('/panel/today'), icon: 'spark', label: p.value.nav.today },
   { to: localePath('/panel'), icon: 'tasks', label: p.value.nav.tasks },
   { to: localePath('/panel/calendar'), icon: 'calendar', label: p.value.nav.calendar },
   { to: localePath('/panel/alarms'), icon: 'alarm', label: p.value.nav.alarms },
@@ -21,7 +22,7 @@ const nav = computed(() => [
   { to: localePath('/panel/settings'), icon: 'gear', label: p.value.nav.settings },
 ])
 const current = computed(() => nav.value.find((n) => n.to === route.path)?.label ?? '')
-// Phone tab bar: expenses + income share one "Finance" tab (switch inside the page)
+// Phone tab bar: Today, Tasks, Calendar, Finance (expenses + income), More (alarms, settings…)
 const money = computed(() => [localePath('/panel/expenses'), localePath('/panel/income')])
 const tabs = computed(() => [
   ...nav.value.slice(0, 3).map((n) => ({ ...n, active: route.path === n.to })),

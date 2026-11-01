@@ -313,6 +313,16 @@ export default {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    today: {
+      title: 'Dnes', today: 'Dnes', tomorrow: 'Zajtra', tomorrowTitle: 'Plán na zajtra',
+      night: 'Dobrú noc', morning: 'Dobré ráno', afternoon: 'Dobrý deň', evening: 'Dobrý večer',
+      noAlarm: 'Budík nie je nastavený', todayAt: 'dnes o', tomorrowAt: 'zajtra o',
+      plan: 'Plán dňa', noEvents: 'nič naplánované', now: 'Teraz', dayOver: 'deň je za nami',
+      tasks: 'Úlohy', noTasks: 'všetko hotové', overdue: 'Po termíne', dueToday: 'Termín dnes', dueTomorrow: 'Termín zajtra', assigned: 'Pridelené mne', markDone: 'Hotovo',
+      money: 'Peniaze', spentToday: 'Dnes minuté', spentDay: 'Minuté v ten deň', spentMonth: 'Tento mesiac', billToday: 'na dnes', billLate: 'po splatnosti',
+      add: 'Pridať', addTask: 'Úloha', addEvent: 'Udalosť', addExpense: 'Výdavok', addAlarm: 'Budík',
+      offlineOld: 'Offline — úlohy a peniaze sú z poslednej synchronizácie.', offlineNone: 'Offline — úlohy a peniaze sa zobrazia po pripojení.',
+    },
     offlineOnly: 'Bez internetu to nejde — skúste to, keď budete online.',
     sync: {
       offline: 'Offline',
@@ -361,6 +371,7 @@ export default {
     themeLight: 'Svetlá téma',
     menu: 'Menu panela',
     nav: {
+      today: 'Dnes',
       finance: 'Financie',
       tasks: 'Úlohy',
       calendar: 'Kalendár',
@@ -507,6 +518,7 @@ export default {
       m: 'min',
     },
     settings: {
+      calPrivate: 'Váš kalendár vidíte len vy (zdieľanie je vypnuté).',
       notify: {
         title: 'Upozornenia',
         device: 'Na tomto zariadení',
@@ -517,6 +529,8 @@ export default {
         serverOff: 'Na serveri nie sú nastavené kľúče VAPID — upozornenia prídu, len kým je aplikácia otvorená.',
         kinds: { alarms: 'Budíky', events: 'Pripomienky z kalendára', due: 'Termíny úloh (o 9:00)', mentions: '@spomenutia', assign: 'Priradené úlohy', bills: 'Mesačné platby (o 9:00)' },
         quiet: 'Tiché hodiny (okrem budíkov)',
+        summary: 'Ranný prehľad dňa',
+        evening: 'Večer: čo je zajtra',
         test: 'Poslať testovacie upozornenie',
         testSent: 'Odoslané na zariadenia',
         testNone: 'Žiadne zariadenie s upozorneniami — zapnite ich vyššie.',
@@ -525,7 +539,7 @@ export default {
           'Webové upozornenie nie je systémový budík. Pri šetrení batérie ho Android môže oneskoriť o niekoľko minút a nespustí hlasné zvonenie na celú obrazovku.',
           'Ak je aplikácia otvorená, budík zvoní ako doteraz. Ak je zatvorená, príde len upozornenie (so zvukom a vibráciou podľa nastavení telefónu).',
           'iPhone / iPad: upozornenia fungujú len v aplikácii pridanej na plochu (iOS 16.4+), nie v Safari.',
-          'Na dôležité vstávanie používajte radšej systémové Hodiny. Tlačidlo „Vytvoriť v systémových hodinách“ by šlo len v Android obale (TWA) — dajte vedieť, ak ho chcete.',
+          'Na dôležité vstávanie použite systémové Hodiny: v Android aplikácii (APK) má každý budík tlačidlo „Do systémových hodín“.',
         ],
       },
       title: 'Nastavenia',
@@ -552,6 +566,10 @@ export default {
       },
     },
     alarms: {
+      toSystem: 'Do systémových hodín',
+      toSystemHint: 'Vytvorí rovnaký budík v aplikácii Hodiny — zvoní nahlas aj pri zamknutom telefóne.',
+      snoozed: 'Odložený, pôvodne',
+      cancelSnooze: 'Zrušiť odloženie',
       pushHint: 'Budík zvoní, kým je aplikácia otvorená. Keď je zatvorená, príde upozornenie (môže sa pri šetrení batérie oneskoriť).',
       title: 'Budík',
       subtitle: 'Osobné budíky a pripomienky.',

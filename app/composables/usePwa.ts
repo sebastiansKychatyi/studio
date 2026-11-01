@@ -14,11 +14,17 @@ export function usePwa() {
   const standalone = useState('pwa-standalone', () => false) // running as the installed app
   const ios = useState('pwa-ios', () => false) // iPhone/iPad: install by hand (Share → Add to Home Screen)
   const updateReady = useState('pwa-update', () => false)
+  const twa = useState('pwa-twa', () => false) // inside the Android app (android/): can hand alarms to the system Clock
 
   // From a client plugin: the browser may offer install before the panel is mounted
   function listen() {
     standalone.value = matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
     ios.value = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    try {
+      if (new URLSearchParams(location.search).get('source') === 'twa' || document.referrer.startsWith('android-app://')) localStorage.setItem('duo-twa', '1')
+      twa.value = localStorage.getItem('duo-twa') === '1'
+    } catch { /* storage blocked */ }
+    if (twa.value) standalone.value = true
     addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault()
       prompt = e as InstallPrompt
@@ -68,5 +74,5 @@ export function usePwa() {
   }
 
   // Child pages mount before the shell: registering here too is harmless (done once)
-  return { canInstall, standalone, ios, updateReady, listen, register, install, update, ready: register }
+  return { canInstall, standalone, ios, updateReady, twa, listen, register, install, update, ready: register }
 }

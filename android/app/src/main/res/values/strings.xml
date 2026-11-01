@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appName">Duo Studio</string>
+    <!-- Site of the panel (same domain as data/site.ts) -->
+    <string name="hostName">studio.k2drive.com</string>
+    <string name="launchUrl">https://studio.k2drive.com/panel?source=twa</string>
+    <string name="providerAuthority">com.duostudio.panel.fileprovider</string>
+    <string name="alarmFailed">Could not open the Clock app</string>
+    <!-- Must match /.well-known/assetlinks.json of the site -->
+    <string name="assetStatements" translatable="false">
+        [{ \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+           \"target\": { \"namespace\": \"web\", \"site\": \"https://studio.k2drive.com\" } }]
+    </string>
+</resources>

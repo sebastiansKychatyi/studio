@@ -106,6 +106,18 @@ async function remove(al: TeamAlarm) {
   await api(`/alarms/${al.id}`, { method: 'DELETE' }).catch(fail)
 }
 
+// Snoozed ("in 5 minutes") alarms waiting to ring again
+const { list: snoozes, remove: cancelSnooze } = useSnoozes()
+const timeOf = (ms: number) => new Date(ms).toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
+
+// Android app (android/AlarmActivity.java) opens the system Clock with this alarm
+const { twa } = usePwa()
+const clockLink = (al: TeamAlarm) => {
+  const [hour, minutes] = al.time.split(':').map(Number)
+  const q = new URLSearchParams({ hour: String(hour), minutes: String(minutes), label: al.label, days: al.days.join(',') })
+  return `duostudio://alarm?${q}`
+}
+
 async function askPermission() {
   if (permission.value === 'unsupported') return
   await enablePush().catch(fail)
@@ -177,14 +189,30 @@ async function askPermission() {
 
     <TeamSleepCalc :set-times="setTimes" @alarm="addFromCalc" />
 
+    <!-- Snoozed -->
+    <TransitionGroup v-if="snoozes.length" tag="ul" name="kb-card" class="al-list al-snoozed">
+      <li v-for="s in snoozes" :key="s.tag" class="al-item snoozed">
+        <p class="al-item-time">{{ timeOf(s.at) }}</p>
+        <div class="al-item-text">
+          <b>{{ s.label || a.ringing }}</b>
+          <small>{{ a.snoozed }} · {{ s.time }}</small>
+        </div>
+        <button type="button" class="tp-icon-btn sm" :title="a.cancelSnooze" :aria-label="a.cancelSnooze" @click="cancelSnooze(s)">
+          <AppIcon name="close" />
+        </button>
+      </li>
+    </TransitionGroup>
+
     <!-- List -->
     <TransitionGroup v-if="alarms.length" tag="ul" name="kb-card" class="al-list">
-      <li v-for="al in alarms" :key="al.id" class="al-item" :class="{ off: !al.enabled }">
+      <li v-for="al in alarms" :key="al.id" class="al-item" :class="{ off: !al.enabled, twa }">
         <p class="al-item-time">{{ al.time }}</p>
         <div class="al-item-text">
           <b>{{ al.label || a.ringing }}</b>
           <small>{{ daysText(al.days) }}</small>
         </div>
+        <!-- Android app: a real alarm in the system Clock (rings loud, also when the phone sleeps) -->
+        <a v-if="twa" :href="clockLink(al)" class="al-sys" :title="a.toSystemHint"><AppIcon name="alarm" /><span>{{ a.toSystem }}</span></a>
         <button
           type="button"
           class="al-switch"
@@ -253,6 +281,19 @@ async function askPermission() {
 .al-switch i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(18, 18, 22, .2); transition: transform .35s var(--ease); }
 .al-switch[aria-checked="true"] { background: var(--accent-3); }
 .al-switch[aria-checked="true"] i { transform: translateX(20px); }
+.al-snoozed { margin-bottom: 10px; }
+.al-item.twa { grid-template-columns: auto minmax(0, 1fr) auto auto auto; }
+.al-sys {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--line-2); color: var(--accent); font-weight: 800; font-size: .8rem;
+}
+.al-sys .ico { width: 16px; height: 16px; }
+@media (max-width: 480px) {
+  .al-item.twa { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .al-item.twa .al-sys { grid-column: 1 / -1; justify-content: center; order: 5; }
+}
+.al-item.snoozed { grid-template-columns: auto minmax(0, 1fr) auto; border-color: rgba(245, 158, 11, .5); background: color-mix(in srgb, #F59E0B 8%, var(--surface)); }
+.al-item.snoozed .al-item-time { color: #C27803; }
 .al-empty { padding: 30px; text-align: center; color: var(--muted); border-radius: 20px; border: 1px dashed var(--line-2); }
 
 @media (max-width: 960px) { .al-grid { grid-template-columns: 1fr; } }

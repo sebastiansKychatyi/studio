@@ -313,6 +313,16 @@ const cs: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    today: {
+      title: 'Dnes', today: 'Dnes', tomorrow: 'Zítra', tomorrowTitle: 'Plán na zítra',
+      night: 'Dobrou noc', morning: 'Dobré ráno', afternoon: 'Dobrý den', evening: 'Dobrý večer',
+      noAlarm: 'Budík není nastavený', todayAt: 'dnes v', tomorrowAt: 'zítra v',
+      plan: 'Plán dne', noEvents: 'nic naplánováno', now: 'Teď', dayOver: 'den je za námi',
+      tasks: 'Úkoly', noTasks: 'vše hotovo', overdue: 'Po termínu', dueToday: 'Termín dnes', dueTomorrow: 'Termín zítra', assigned: 'Přiřazené mně', markDone: 'Hotovo',
+      money: 'Peníze', spentToday: 'Dnes utraceno', spentDay: 'Utraceno ten den', spentMonth: 'Tento měsíc', billToday: 'na dnes', billLate: 'po splatnosti',
+      add: 'Přidat', addTask: 'Úkol', addEvent: 'Událost', addExpense: 'Výdaj', addAlarm: 'Budík',
+      offlineOld: 'Offline — úkoly a peníze jsou z poslední synchronizace.', offlineNone: 'Offline — úkoly a peníze se zobrazí po připojení.',
+    },
     offlineOnly: 'Bez internetu to nejde — zkuste to, až budete online.',
     sync: {
       offline: 'Offline',
@@ -361,6 +371,7 @@ const cs: typeof sk = {
     themeLight: 'Světlý motiv',
     menu: 'Menu panelu',
     nav: {
+      today: 'Dnes',
       finance: 'Finance',
       tasks: 'Úkoly',
       calendar: 'Kalendář',
@@ -507,6 +518,7 @@ const cs: typeof sk = {
       m: 'min',
     },
     settings: {
+      calPrivate: 'Váš kalendář vidíte jen vy (sdílení je vypnuté).',
       notify: {
         title: 'Oznámení',
         device: 'Na tomto zařízení',
@@ -517,6 +529,8 @@ const cs: typeof sk = {
         serverOff: 'Na serveru nejsou nastaveny klíče VAPID — oznámení přijdou, jen dokud je aplikace otevřená.',
         kinds: { alarms: 'Budíky', events: 'Připomínky z kalendáře', due: 'Termíny úkolů (v 9:00)', mentions: '@zmínky', assign: 'Přiřazené úkoly', bills: 'Měsíční platby (v 9:00)' },
         quiet: 'Tiché hodiny (kromě budíků)',
+        summary: 'Ranní přehled dne',
+        evening: 'Večer: co je zítra',
         test: 'Poslat testovací oznámení',
         testSent: 'Odesláno na zařízení',
         testNone: 'Žádné zařízení s oznámeními — zapněte je výše.',
@@ -525,7 +539,7 @@ const cs: typeof sk = {
           'Webové oznámení není systémový budík. Při úspoře baterie ho Android může zpozdit o několik minut a nespustí hlasité zvonění přes celou obrazovku.',
           'Když je aplikace otevřená, budík zvoní jako dosud. Když je zavřená, přijde jen oznámení (se zvukem a vibrací podle nastavení telefonu).',
           'iPhone / iPad: oznámení fungují jen v aplikaci přidané na plochu (iOS 16.4+), ne v Safari.',
-          'Na důležité vstávání raději používejte systémové Hodiny. Tlačítko „Vytvořit v systémových hodinách“ by šlo jen v Android obalu (TWA) — dejte vědět, jestli ho chcete.',
+          'Na důležité vstávání použijte systémové Hodiny: v Android aplikaci (APK) má každý budík tlačítko „Do systémových hodin“.',
         ],
       },
       title: 'Nastavení',
@@ -552,6 +566,10 @@ const cs: typeof sk = {
       },
     },
     alarms: {
+      toSystem: 'Do systémových hodin',
+      toSystemHint: 'Vytvoří stejný budík v aplikaci Hodiny — zvoní nahlas i při zamčeném telefonu.',
+      snoozed: 'Odložený, původně',
+      cancelSnooze: 'Zrušit odložení',
       pushHint: 'Budík zvoní, dokud je aplikace otevřená. Když je zavřená, přijde oznámení (při úspoře baterie se může zpozdit).',
       title: 'Budík',
       subtitle: 'Osobní budíky a připomínky.',
