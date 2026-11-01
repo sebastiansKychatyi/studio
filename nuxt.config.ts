@@ -30,7 +30,8 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
-        { rel: 'manifest', href: '/site.webmanifest' },
+        // Panel pages swap it for /panel.webmanifest (server/plugins/panel-head.ts)
+        { rel: 'manifest', href: '/site.webmanifest', key: 'manifest' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
@@ -50,16 +51,24 @@ export default defineNuxtConfig({
     web3formsKey: '',
     // FastAPI backend of the team panel (backend/)
     teamApiUrl: 'http://127.0.0.1:8000',
+    // Build version, set by modules/pwa.mjs
+    public: { appVersion: '' },
   },
 
   // Private team panel: client-only, never indexed
-  routeRules: Object.fromEntries(
-    site.languages.flatMap((l) => [
-      [`/${l}/panel`, { ssr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } }],
-      [`/${l}/panel/**`, { ssr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } }],
-      [`/${l}/login`, { headers: { 'x-robots-tag': 'noindex, nofollow' } }],
-    ])
-  ),
+  routeRules: {
+    ...Object.fromEntries(
+      site.languages.flatMap((l) => [
+        [`/${l}/panel`, { ssr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } }],
+        [`/${l}/panel/**`, { ssr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } }],
+        [`/${l}/login`, { headers: { 'x-robots-tag': 'noindex, nofollow' } }],
+      ])
+    ),
+    // Installed app (PWA): service worker must never be cached by the browser or a proxy
+    '/sw.js': { headers: { 'cache-control': 'no-cache', 'x-robots-tag': 'noindex' } },
+    '/panel': { headers: { 'x-robots-tag': 'noindex, nofollow' } },
+    '/panel.webmanifest': { headers: { 'cache-control': 'no-cache', 'x-robots-tag': 'noindex' } },
+  },
 
   i18n: {
     baseUrl: site.domain,

@@ -1,5 +1,8 @@
 // Private team panel: session user, API client and shared state.
 // API is FastAPI (backend/), proxied by Nuxt at /api/team.
+import type { Ref } from 'vue'
+import { cacheKey, findIn, labelOf, optimistic, overlay, queueable, searchKeys, targetId, type Ctx } from '~/utils/teamOffline'
+import { clearLocal, localCache, outbox, type OutboxOp } from '~/utils/teamStore'
 
 export interface TeamUser { id: number; username: string; name: string }
 export interface TeamCard {
@@ -98,7 +101,178 @@ export function dueState(due: string | null) {
   return days < 0 ? 'overdue' : days === 0 ? 'today' : days <= 2 ? 'soon' : 'later'
 }
 
+// 0 = no answer at all (offline, server down) — never a reason to sign out
 export const httpStatus = (e: unknown) => (e as { status?: number })?.status ?? 0
+// Action that needs the network was tried offline
+export const isOffline = (e: unknown) => (e as { offline?: boolean })?.offline === true
+const offlineError = () => Object.assign(new Error('Offline'), { offline: true, status: 0 })
+
+// ===== Offline layer =====
+// GET: network, then the local copy (IndexedDB) when there is no answer. Alarms, events,
+// expenses/income, cards and settings can also be changed offline: the change waits in the
+// outbox, the page gets an optimistic result and the outbox is sent in order once online.
+export interface SyncNotice { id: number; kind: 'overwrote' | 'discarded' | 'rejected'; label: string }
+interface ApiOpts { method?: string; body?: object; query?: Record<string, unknown> }
+type Fetcher = ReturnType<typeof $fetch.create>
+
+let fetcher: Fetcher | undefined
+const raw = () => (fetcher ??= $fetch.create({ baseURL: '/api/team', timeout: 12000 }))
+let ops: OutboxOp[] | undefined // same order as the outbox store
+let opsLoading: Promise<OutboxOp[]> | undefined
+let tempSeq = -Date.now() // ids of items created offline
+const realIds = new Map<number, number>() // temp id → server id, once sent
+let flushing: Promise<void> | null = null
+let sync: { online: Ref<boolean>; pending: Ref<number>; synced: Ref<number>; notices: Ref<SyncNotice[]>; user: Ref<TeamUser | null | undefined> } | undefined
+
+const loadOps = () => (opsLoading ??= outbox.all().catch(() => []).then((list) => (ops = list)))
+const KNOWN = 'team-user' // last signed-in user, for starting offline
+const known = (): TeamUser | null => {
+  try {
+    return JSON.parse(localStorage.getItem(KNOWN) ?? 'null')
+  } catch {
+    return null
+  }
+}
+
+async function ctx(): Promise<Ctx> {
+  const rates = await localCache.get<Record<string, number>>('/rates').catch(() => undefined)
+  return { rates: rates ?? { EUR: 1 }, meId: sync?.user.value?.id ?? null }
+}
+async function overlaid(key: string, data: unknown) {
+  const list = await loadOps()
+  return list.length ? overlay(key, data, list, await ctx()) : data
+}
+function setOnline(on: boolean) {
+  if (sync && sync.online.value !== on) sync.online.value = on
+}
+
+async function peek<T>(url: string, query?: Record<string, unknown>): Promise<T | undefined> {
+  if (import.meta.server) return undefined
+  const key = cacheKey(url, query)
+  const hit = await localCache.get(key).catch(() => undefined)
+  return hit === undefined ? undefined : ((await overlaid(key, hit)) as T)
+}
+
+async function get<T>(url: string, query?: Record<string, unknown>): Promise<T> {
+  const key = cacheKey(url, query)
+  if (navigator.onLine) {
+    try {
+      const data = await raw()<T>(url, { query })
+      setOnline(true)
+      localCache.set(key, data).catch(() => {})
+      return (await overlaid(key, data)) as T
+    } catch (e) {
+      if (httpStatus(e)) throw e
+      setOnline(false)
+    }
+  }
+  const hit = await peek<T>(url, query)
+  if (hit === undefined) throw offlineError()
+  return hit
+}
+
+async function change<T>(method: string, url: string, body?: object): Promise<T> {
+  // The page may still show an item created offline under its temp id
+  url = url.replace(/\/(-\d+)(?=\/|$)/, (m, id) => (realIds.has(Number(id)) ? `/${realIds.get(Number(id))}` : m))
+  const list = await loadOps()
+  const canQueue = queueable(method, url)
+  // Online with nothing waiting: straight to the server (keeps the order of changes)
+  if (navigator.onLine && (!canQueue || !list.length)) {
+    try {
+      const res = await raw()<T>(url, { method: method as 'POST', body })
+      setOnline(true)
+      return res
+    } catch (e) {
+      if (httpStatus(e)) throw e
+      setOnline(false)
+    }
+  }
+  if (!canQueue) throw offlineError()
+  return (await enqueue(method as OutboxOp['method'], url, body as Record<string, unknown> | undefined)) as T
+}
+
+async function enqueue(method: OutboxOp['method'], url: string, body?: Record<string, unknown>) {
+  const list = await loadOps()
+  const creating = method === 'POST' && !url.endsWith('/skip')
+  // The item as the user sees it now (for the result, the conflict check and messages)
+  let current: Record<string, unknown> | undefined
+  let base: string | null = null
+  if (url === '/me/settings') current = await peek('/me/settings')
+  else if (!creating) {
+    const id = targetId(url)
+    for (const key of searchKeys(url, await localCache.keys().catch(() => []))) {
+      const data = await localCache.get(key)
+      const hit = findIn(data, id)
+      const shown = findIn(await overlaid(key, data), id)
+      if (hit || shown) {
+        base = (hit?.updated_at as string | undefined) ?? null
+        current = shown ?? hit
+        break
+      }
+    }
+  }
+  const op: OutboxOp = { method, url, body, at: new Date().toISOString(), base, label: labelOf(body, current), temp: creating ? tempSeq-- : undefined }
+  op.seq = await outbox.add(op)
+  list.push(op)
+  if (sync) sync.pending.value = list.length
+  // Background Sync (Chrome) wakes the app's worker when the network is back
+  navigator.serviceWorker?.ready
+    .then((r) => (r as ServiceWorkerRegistration & { sync?: { register: (tag: string) => Promise<void> } }).sync?.register('team-sync'))
+    .catch(() => {})
+  if (navigator.onLine) flushOutbox()
+  return optimistic(op, current, await ctx())
+}
+
+// Send waiting changes in order; temp ids become real ones; stops at the first network error
+export function flushOutbox() {
+  if (import.meta.server) return Promise.resolve()
+  flushing ??= (async () => {
+    const list = await loadOps()
+    let changed = false
+    const notice = (kind: SyncNotice['kind'], label: string) => sync?.notices.value.push({ id: Date.now() + Math.random(), kind, label })
+    while (list.length) {
+      const op = list[0]!
+      try {
+        const res = await raw().raw(op.url, {
+          method: op.method,
+          body: op.body,
+          headers: { 'x-offline-at': op.at, 'x-client-now': new Date().toISOString(), ...(op.base ? { 'x-base-updated': op.base } : {}) },
+        })
+        setOnline(true)
+        if (res.headers.get('x-overwrote')) notice('overwrote', op.label)
+        const id = (res._data as { id?: number } | undefined)?.id
+        if (op.temp && id) {
+          realIds.set(op.temp, id)
+          for (const next of list.slice(1)) {
+            const url = next.url.replace(new RegExp(`/${op.temp}(?=/|$)`), `/${id}`)
+            if (url !== next.url) await outbox.put({ ...next, url }).then(() => (next.url = url))
+          }
+        }
+      } catch (e) {
+        const status = httpStatus(e)
+        // No answer, server error, signed out, rate limit: keep the outbox and retry later
+        if (!status || status >= 500 || status === 401 || status === 429) {
+          if (!status) setOnline(false)
+          break
+        }
+        // 404 gone, 409 changed later elsewhere, 422 invalid: drop it (and what depends on it)
+        notice(status === 409 ? 'discarded' : 'rejected', op.label)
+        if (op.temp) {
+          for (const next of list.slice(1).filter((x) => new RegExp(`/${op.temp}(/|$)`).test(x.url))) {
+            list.splice(list.indexOf(next), 1)
+            await outbox.remove(next.seq!)
+          }
+        }
+      }
+      changed = true
+      list.shift()
+      await outbox.remove(op.seq!)
+      if (sync) sync.pending.value = list.length
+    }
+    if (changed && sync) sync.synced.value++
+  })().finally(() => (flushing = null))
+  return flushing
+}
 
 export function useTeam() {
   // undefined = not checked yet, null = signed out
@@ -107,32 +281,87 @@ export function useTeam() {
   const alarms = useState<TeamAlarm[]>('team-alarms', () => [])
   const mentions = useState<TeamMention[]>('team-mentions', () => [])
   const events = useState<TeamEvent[]>('team-events', () => [])
-  const api = $fetch.create({ baseURL: '/api/team' })
+  const online = useState('team-online', () => true)
+  const pending = useState('team-pending', () => 0)
+  const synced = useState('team-synced', () => 0) // bumped after the outbox was sent: pages reload
+  const notices = useState<SyncNotice[]>('team-sync-notices', () => [])
+  if (import.meta.client) sync ??= { online, pending, synced, notices, user }
+
+  const api = <T = unknown>(url: string, opts: ApiOpts = {}): Promise<T> => {
+    const method = (opts.method ?? 'GET').toUpperCase()
+    if (import.meta.server) return raw()<T>(url, opts as never)
+    return method === 'GET' ? get<T>(url, opts.query) : change<T>(method, url, opts.body)
+  }
 
   async function refresh() {
     try {
-      user.value = (await api<{ user: TeamUser | null }>('/auth/me')).user
-    } catch {
-      user.value = null
+      user.value = (await raw()<{ user: TeamUser | null }>('/auth/me')).user
+      if (user.value) localStorage.setItem(KNOWN, JSON.stringify(user.value))
+    } catch (e) {
+      // Offline: stay signed in as the last known user (the data is local)
+      user.value = httpStatus(e) ? null : known()
     }
     return user.value
   }
 
   async function login(username: string, password: string) {
-    user.value = await api<TeamUser>('/auth/login', { method: 'POST', body: { username, password } })
+    const next = await raw()<TeamUser>('/auth/login', { method: 'POST', body: { username, password } })
+    // Another account on this device: drop the previous one's local data
+    if (known()?.id !== next.id) await resetLocal()
+    localStorage.setItem(KNOWN, JSON.stringify(next))
+    user.value = next
   }
 
+  // Needs the network (the session cookie is cleared by the server); local data is wiped
   async function logout() {
-    await api('/auth/logout', { method: 'POST' }).catch(() => {})
+    await raw()('/auth/logout', { method: 'POST' }).catch((e) => {
+      if (!httpStatus(e)) throw offlineError()
+    })
+    await resetLocal()
+    localStorage.removeItem(KNOWN)
     user.value = null
   }
 
-  const loadUsers = async () => (users.value = await api<TeamUser[]>('/users'))
-  const loadAlarms = async () => (alarms.value = await api<TeamAlarm[]>('/alarms'))
-  const loadMentions = async () => (mentions.value = await api<TeamMention[]>('/mentions'))
-  const loadEvents = async () => (events.value = await api<TeamEvent[]>('/events'))
+  async function resetLocal() {
+    await clearLocal().catch(() => {})
+    ops = []
+    opsLoading = Promise.resolve(ops)
+    pending.value = 0
+  }
 
-  return { user, users, alarms, mentions, events, api, refresh, login, logout, loadUsers, loadAlarms, loadMentions, loadEvents }
+  // Local copy first (instant, also offline), then the network
+  async function load<T>(url: string, target: Ref<T>) {
+    const cached = await peek<T>(url)
+    if (cached !== undefined) target.value = cached
+    target.value = await api<T>(url)
+    return target.value
+  }
+  const loadUsers = () => load('/users', users)
+  const loadAlarms = () => load('/alarms', alarms)
+  const loadMentions = () => load('/mentions', mentions)
+  const loadEvents = () => load('/events', events)
+
+  // From the panel shell: count waiting changes, send them when the network is back
+  function startSync() {
+    loadOps().then((list) => {
+      pending.value = list.length
+      flushOutbox()
+    })
+    online.value = navigator.onLine
+    addEventListener('online', () => {
+      online.value = true
+      flushOutbox()
+    })
+    addEventListener('offline', () => (online.value = false))
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && pending.value && flushOutbox())
+    navigator.serviceWorker?.addEventListener('message', (e) => e.data === 'flush' && flushOutbox())
+    setInterval(() => pending.value && navigator.onLine && flushOutbox(), 30000)
+  }
+
+  return {
+    user, users, alarms, mentions, events, online, pending, synced, notices,
+    api, peek, refresh, login, logout, loadUsers, loadAlarms, loadMentions, loadEvents, startSync, flush: flushOutbox,
+  }
 }
 
 // Per-account UI settings, stored on the server (/me/settings) and merged key by key
@@ -142,10 +371,15 @@ let prefPending: Record<string, unknown> = {}
 export function usePrefs() {
   const prefs = useState<Record<string, unknown>>('team-prefs', () => ({}))
   const ready = useState('team-prefs-ready', () => false)
-  const { api } = useTeam()
+  const { api, peek } = useTeam()
 
   async function loadPrefs() {
     try {
+      const cached = await peek<Record<string, unknown>>('/me/settings')
+      if (cached) {
+        prefs.value = cached
+        ready.value = true
+      }
       prefs.value = await api<Record<string, unknown>>('/me/settings')
     } finally {
       ready.value = true

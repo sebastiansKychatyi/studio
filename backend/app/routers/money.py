@@ -3,7 +3,7 @@ from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 from typing import get_args
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,6 +29,7 @@ from ..schemas import (
     RecurringPatch,
 )
 from ..security import current_user
+from ..sync import check_offline
 
 # Expenses and income are personal, like alarms. Stored in EUR; UAH/USD converted with config rates.
 router = APIRouter()
@@ -246,9 +247,15 @@ def money_routes(
 
     @r.patch("/{entry_id}", response_model=MoneyOut)
     async def update_entry(
-        entry_id: int, body: body_patch, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)  # type: ignore[valid-type]
+        entry_id: int,
+        body: body_patch,  # type: ignore[valid-type]
+        request: Request,
+        response: Response,
+        user: User = Depends(current_user),
+        db: AsyncSession = Depends(get_db),
     ):
         entry = await own(db, entry_id, user)
+        check_offline(request, response, entry.updated_at)
         await check_category(db, user, body.category)
         if body.category is not None:
             entry.category = body.category
@@ -263,8 +270,12 @@ def money_routes(
         return entry
 
     @r.delete("/{entry_id}", status_code=204)
-    async def delete_entry(entry_id: int, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-        await db.delete(await own(db, entry_id, user))
+    async def delete_entry(
+        entry_id: int, request: Request, response: Response, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+    ):
+        entry = await own(db, entry_id, user)
+        check_offline(request, response, entry.updated_at)
+        await db.delete(entry)
         await db.commit()
 
     return r

@@ -6,7 +6,7 @@ import { eventOccursOn as occursOn, type EventDraft, type TeamDue, type TeamEven
 const { t } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
-const { api, events } = useTeam() // own events are shared with the reminder ringer
+const { api, peek, events, synced } = useTeam() // own events are shared with the reminder ringer
 const { pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
@@ -53,7 +53,7 @@ const initial = (u?: TeamUser) => (u?.name || u?.username || '?').charAt(0).toUp
 
 const due = ref<TeamDue[]>([])
 const loading = ref(true)
-const failed = ref(false)
+const failed = ref('')
 
 // Visible range
 // Phones show 3 days from the anchor instead of the whole week
@@ -77,18 +77,32 @@ const range = computed(() =>
 
 function fail(err: unknown) {
   if (httpStatus(err) === 401) return navigateTo(localePath('/login'))
-  failed.value = true
-  setTimeout(() => (failed.value = false), 3000)
+  failed.value = isOffline(err) ? p.value.offlineOnly : p.value.errorServer
+  setTimeout(() => (failed.value = ''), 3000)
 }
 
+// Deadlines of a range never seen online are simply missing offline
 async function loadDue() {
-  due.value = await api<TeamDue[]>('/due', { query: { from: range.value[0], to: range.value[1] } })
+  due.value = await api<TeamDue[]>('/due', { query: { from: range.value[0], to: range.value[1] } }).catch((e) => {
+    if (!isOffline(e)) throw e
+    return []
+  })
 }
 async function load() {
+  // Local copy first: instant, also offline
+  const [cached, cachedAccess] = await Promise.all([peek<TeamEvent[]>('/events'), peek<{ shared_to_me: TeamUser[] }>('/calendar/access')])
+  if (cached) {
+    events.value = cached
+    sharedToMe.value = cachedAccess?.shared_to_me ?? []
+    loading.value = false
+  }
   try {
     const [list, access] = await Promise.all([
       api<TeamEvent[]>('/events'),
-      api<{ shared_to_me: TeamUser[] }>('/calendar/access'),
+      api<{ shared_to_me: TeamUser[] }>('/calendar/access').catch((e) => {
+        if (!isOffline(e)) throw e
+        return { shared_to_me: sharedToMe.value }
+      }),
       loadDue(),
     ])
     events.value = list
@@ -101,6 +115,7 @@ async function load() {
   }
 }
 watch(range, () => loadDue().catch(fail))
+watch(synced, () => load())
 
 // Occurrences of events on one day
 interface Occ { ev: TeamEvent; date: string; start: number; end: number; lane: number; lanes: number; owner: number | null }
@@ -162,6 +177,31 @@ function shift(n: number) {
     return ymd(d)
   })()
 }
+
+// Phone: horizontal swipe = previous / next range
+let touch: { x: number; y: number } | null = null
+const onTouchStart = (e: TouchEvent) => (touch = { x: e.touches[0]!.clientX, y: e.touches[0]!.clientY })
+function onTouchEnd(e: TouchEvent) {
+  if (!touch) return
+  const dx = e.changedTouches[0]!.clientX - touch.x
+  const dy = e.changedTouches[0]!.clientY - touch.y
+  touch = null
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) shift(dx < 0 ? 1 : -1)
+}
+
+// Phone month: tap a day to list its events below the grid
+const picked = ref(ymd(new Date()))
+watch(monthStart, (m) => {
+  if (picked.value.slice(0, 7) !== m.slice(0, 7)) picked.value = today.value.slice(0, 7) === m.slice(0, 7) ? today.value : m
+})
+function onDay(day: string) {
+  if (phone.value) picked.value = day
+  else {
+    anchor.value = day
+    view.value = 'week'
+  }
+}
+const pickedLabel = computed(() => asDate(picked.value).toLocaleDateString(locale.value, { weekday: 'long', day: 'numeric', month: 'long' }))
 
 // Week grid geometry
 const HOUR = 46 // px per hour
@@ -226,9 +266,26 @@ function openCard(d: TeamDue) {
   navigateTo(localePath('/panel'))
 }
 
+// Reminder notification link ?date=…&event=…: go to that day and open the event
+const route = useRoute()
+function openLinked() {
+  const date = String(route.query.date ?? '')
+  const id = Number(route.query.event)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return
+  anchor.value = date
+  picked.value = date
+  const ev = events.value.find((e) => e.id === id)
+  if (ev) open({ ev, date, owner: null })
+  navigateTo({ query: {} }, { replace: true })
+}
+watch(() => route.query.event, () => !loading.value && openLinked())
+
 onMounted(() => {
   clock = setInterval(() => (now.value = new Date()), 30000)
-  load().then(scrollToMorning)
+  load().then(() => {
+    scrollToMorning()
+    openLinked()
+  })
 })
 watch(view, (v) => v === 'week' && scrollToMorning())
 onBeforeUnmount(() => clearInterval(clock))
@@ -251,7 +308,7 @@ onBeforeUnmount(() => clearInterval(clock))
         </div>
         <button type="button" class="btn btn-ghost btn-sm" @click="anchor = today">{{ c.today }}</button>
         <div class="ex-seg" role="radiogroup" :aria-label="c.title">
-          <button type="button" role="radio" :aria-checked="view === 'week'" :class="{ on: view === 'week' }" @click="view = 'week'">{{ c.week }}</button>
+          <button type="button" role="radio" :aria-checked="view === 'week'" :class="{ on: view === 'week' }" @click="view = 'week'">{{ phone ? c.days3 : c.week }}</button>
           <button type="button" role="radio" :aria-checked="view === 'month'" :class="{ on: view === 'month' }" @click="view = 'month'">{{ c.month }}</button>
         </div>
         <button type="button" class="btn btn-primary btn-sm" @click="newAt(view === 'week' && !weekDays.includes(today) ? weekDays[0]! : today)">
@@ -278,7 +335,14 @@ onBeforeUnmount(() => clearInterval(clock))
     <div v-if="loading" class="kb-loading"><span class="spinner" /></div>
 
     <!-- Week: hour grid -->
-    <section v-else-if="view === 'week'" ref="gridEl" class="cal-week cal-scroll" :style="{ '--days': span }">
+    <section
+      v-else-if="view === 'week'"
+      ref="gridEl"
+      class="cal-week cal-scroll"
+      :style="{ '--days': span }"
+      @touchstart.passive="onTouchStart"
+      @touchend.passive="onTouchEnd"
+    >
       <div class="cal-week-head">
         <span />
         <div v-for="(day, i) in weekDays" :key="day" class="cal-dayhead" :class="{ today: day === today, past: day < today }">
@@ -337,7 +401,7 @@ onBeforeUnmount(() => clearInterval(clock))
     </section>
 
     <!-- Month -->
-    <section v-else class="cal-month">
+    <section v-else class="cal-month" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
       <div class="cal-month-head">
         <span v-for="(w, i) in monthLabels" :key="i">{{ w }}</span>
       </div>
@@ -346,10 +410,15 @@ onBeforeUnmount(() => clearInterval(clock))
           v-for="day in monthDays"
           :key="day"
           class="cal-cell"
-          :class="{ today: day === today, out: day.slice(0, 7) !== monthStart.slice(0, 7) }"
-          @click.self="newAt(day)"
+          :class="{ today: day === today, out: day.slice(0, 7) !== monthStart.slice(0, 7), picked: phone && day === picked }"
+          @click.self="phone ? (picked = day) : newAt(day)"
         >
-          <button type="button" class="cal-cell-day" :title="c.week" @click="anchor = day; view = 'week'">{{ Number(day.slice(8)) }}</button>
+          <button type="button" class="cal-cell-day" :title="c.week" @click="onDay(day)">{{ Number(day.slice(8)) }}</button>
+          <!-- Phone: dots instead of titles -->
+          <span v-if="byDay.get(day)?.length || dueByDay.get(day)?.length" class="cal-dots" aria-hidden="true">
+            <i v-for="d in (dueByDay.get(day) ?? []).slice(0, 1)" :key="`d${d.id}`" class="due" />
+            <i v-for="o in (byDay.get(day) ?? []).slice(0, 3)" :key="`${o.ev.id}-${day}`" :style="{ '--c': o.ev.color }" />
+          </span>
           <button
             v-for="d in dueByDay.get(day) ?? []"
             :key="`d${d.id}`"
@@ -379,6 +448,38 @@ onBeforeUnmount(() => clearInterval(clock))
       </div>
     </section>
 
+    <!-- Phone month: events of the tapped day -->
+    <section v-if="phone && view === 'month' && !loading" class="cal-agenda">
+      <header>
+        <b>{{ pickedLabel }}</b>
+        <button type="button" class="btn btn-ghost btn-sm" @click="newAt(picked)"><AppIcon name="plus" /> {{ c.newEvent }}</button>
+      </header>
+      <button
+        v-for="d in dueByDay.get(picked) ?? []"
+        :key="`d${d.id}`"
+        type="button"
+        class="cal-due-chip"
+        :class="{ done: d.done, late: !d.done && picked < today }"
+        @click="openCard(d)"
+      >
+        <AppIcon name="calendar" />{{ c.deadline }}: {{ d.title }}
+      </button>
+      <button
+        v-for="o in byDay.get(picked) ?? []"
+        :key="`${o.ev.id}-${picked}`"
+        type="button"
+        class="cal-agenda-ev"
+        :class="{ other: o.owner !== null }"
+        :style="{ '--c': o.ev.color }"
+        @click="open(o)"
+      >
+        <span>{{ o.ev.start }}–{{ o.ev.end }}</span>
+        <b><span v-if="o.owner !== null" class="tp-avatar sm cal-ev-who" :data-c="o.owner % 3">{{ initial(ownerOf(o.owner)) }}</span>{{ o.ev.title }}</b>
+        <AppIcon v-if="o.ev.repeat === 'weekly'" name="repeat" />
+      </button>
+      <p v-if="!byDay.get(picked)?.length && !dueByDay.get(picked)?.length" class="cal-agenda-empty">{{ c.noEvents }}</p>
+    </section>
+
     <TeamEventModal
       v-if="editing"
       :event="editing.event"
@@ -389,7 +490,7 @@ onBeforeUnmount(() => clearInterval(clock))
       @skip="skip"
       @delete="remove"
     />
-    <Transition name="toast"><div v-if="failed" class="tp-toast" role="status">{{ p.errorServer }}</div></Transition>
+    <Transition name="toast"><div v-if="failed" class="tp-toast" role="status">{{ failed }}</div></Transition>
   </div>
 </template>
 
@@ -487,9 +588,45 @@ onBeforeUnmount(() => clearInterval(clock))
   .cal-ev b { font-size: .74rem; }
   .cal-actions { gap: 8px; }
   .cal-range { min-width: 0; font-size: .85rem; }
-  .cal-scroll { max-height: calc(100svh - 300px); }
+  .cal-scroll { max-height: calc(100vh - 300px); max-height: calc(100dvh - 300px); }
+  /* Toolbar: range on its own line, buttons below */
+  .tp-head:has(.cal-actions) p { display: none; }
+  .cal-actions { width: 100%; }
+  .cal-actions .ex-month { flex: 1 1 100%; justify-content: space-between; }
+  .cal-actions .ex-month .tp-icon-btn { width: 40px; height: 40px; }
+  .cal-actions .ex-seg button { height: 36px; }
+  .cal-actions .btn { min-height: 44px; }
+  .cal-actions .btn-primary { margin-left: auto; }
+  /* Month: compact cells with dots, the tapped day is listed below */
+  .cal-cell { min-height: 52px; padding: 4px 2px; justify-items: center; cursor: pointer; }
+  .cal-cell > .cal-due-chip, .cal-pill, .cal-more { display: none; }
+  .cal-cell-day { justify-self: center; min-width: 32px; height: 32px; }
+  .cal-cell.picked { background: rgba(91, 75, 255, .08); }
+  .cal-cell.picked:not(.today) .cal-cell-day { box-shadow: inset 0 0 0 2px var(--accent); }
+  .cal-dots { display: flex; gap: 3px; pointer-events: none; }
+  .cal-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--c, var(--accent)); }
+  .cal-dots i.due { background: #F59E0B; }
+  .cal-month-head span { padding: 8px 2px; text-align: center; font-size: .68rem; }
 }
-@media (max-width: 720px) {
+.cal-dots, .cal-agenda { display: none; }
+@media (max-width: 640px) {
+  .cal-dots { display: flex; }
+  .cal-agenda { display: grid; gap: 8px; margin-top: 14px; animation: tpUp .4s var(--ease) both; }
+}
+.cal-agenda header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 4px; }
+.cal-agenda header b::first-letter { text-transform: uppercase; }
+.cal-agenda .cal-due-chip { padding: 10px 12px; font-size: .85rem; border-radius: 14px; }
+.cal-agenda-ev {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 52px; padding: 10px 14px;
+  border: 0; border-left: 4px solid var(--c); border-radius: 14px; cursor: pointer; text-align: left;
+  background: color-mix(in srgb, var(--c) 12%, var(--surface)); color: var(--ink);
+}
+.cal-agenda-ev span { font-size: .82rem; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cal-agenda-ev b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-agenda-ev .ico { width: 15px; height: 15px; color: var(--muted); }
+.cal-agenda-ev.other { cursor: default; border-left-style: dashed; }
+.cal-agenda-empty { padding: 18px; text-align: center; color: var(--muted); font-size: .9rem; border-radius: 14px; border: 1px dashed var(--line-2); }
+@media (min-width: 641px) and (max-width: 720px) {
   .cal-cell { min-height: 74px; padding: 4px; }
   .cal-pill { font-size: .66rem; }
   .cal-pill i { display: none; }

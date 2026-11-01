@@ -157,6 +157,7 @@ class AlarmOut(BaseModel):
     label: str
     days: list[int]
     enabled: bool
+    updated_at: datetime | None = None
 
 
 # Expenses / income: entered in EUR/UAH/USD, stored in EUR
@@ -228,6 +229,7 @@ class MoneyOut(Orm):
     note: str
     spent_on: date
     recurring_id: int | None = None
+    updated_at: datetime | None = None
 
 
 # Monthly templates (category is checked against the kind in the router)
@@ -315,6 +317,7 @@ class EventOut(BaseModel):
     color: str
     note: str
     remind: int | None
+    updated_at: datetime | None = None
 
 
 class SkipIn(BaseModel):
@@ -339,3 +342,30 @@ class CalendarAccessOut(BaseModel):
 
 class SettingsIn(BaseModel):
     data: dict = Field(default_factory=dict)
+
+
+# Web Push
+class PushKeys(BaseModel):
+    p256dh: str = Field(min_length=1, max_length=200)
+    auth: str = Field(min_length=1, max_length=100)
+
+
+class SubscriptionIn(BaseModel):
+    endpoint: str = Field(min_length=10, max_length=2000, pattern=r"^https://")
+    keys: PushKeys
+
+
+class UnsubscribeIn(BaseModel):
+    endpoint: str = Field(max_length=2000)
+
+
+class PushKeyOut(BaseModel):
+    key: str  # VAPID public key (applicationServerKey)
+    enabled: bool
+
+
+class SnoozeIn(BaseModel):
+    alarm_id: int
+    time: str = Field(pattern=TIME_PATTERN)
+    label: str = Field("", max_length=120)
+    minutes: int = Field(10, ge=1, le=60)

@@ -211,5 +211,11 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
 .ev-remind-custom { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .ev-remind-custom input { width: 110px; }
 .ev-remind-custom span { color: var(--muted); font-weight: 700; font-size: .85rem; }
-@media (max-width: 520px) { .ev-row { grid-template-columns: 1fr 1fr; } .ev-row .tp-field:first-child { grid-column: 1 / -1; } }
+@media (max-width: 520px) {
+  .ev-row { grid-template-columns: 1fr 1fr; }
+  .ev-row .tp-field:first-child { grid-column: 1 / -1; }
+  .ev-days { flex-basis: 100%; }
+  .ev-days .al-day { flex: 1 1 0; width: auto; height: 44px; }
+  .ev-remind button { min-height: 40px; }
+}
 </style>

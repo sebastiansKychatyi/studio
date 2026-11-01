@@ -215,8 +215,17 @@ function addAlarm(o: { n: number; time: string }) {
 
 @media (max-width: 960px) { .sc-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) {
-  .sc { padding: 20px; }
-  .sc-inputs { grid-template-columns: 1fr; }
+  .sc { padding: 20px 16px; }
+  .sc-inputs { grid-template-columns: 1fr; gap: 6px; }
+  .sc-opt { padding: 14px 12px; }
   .sc-opt-time { font-size: 1.6rem; }
+  .sc-modes { display: flex; width: 100%; }
+  .sc-modes button { flex: 1; min-height: 40px; padding: 6px 8px; line-height: 1.2; white-space: normal; }
+  .sc-time-row { flex-wrap: wrap; }
+  .sc-time input { flex: 1; min-width: 0; }
+  .sc-time .btn { min-height: 48px; }
+  .sc-chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sc-chips button { min-height: 44px; padding: 6px 4px; }
+  .sc-add { padding: 9px 10px; font-size: .75rem; }
 }
 </style>

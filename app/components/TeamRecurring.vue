@@ -46,7 +46,8 @@ async function load() {
   try {
     items.value = await api<Template[]>(`/${props.kind}/recurring`, { query: { month: props.month } })
   } catch (e) {
-    emit('error', e)
+    // Never loaded online: just nothing to show offline
+    if (!isOffline(e)) emit('error', e)
   } finally {
     loading.value = false
   }
@@ -331,6 +332,8 @@ async function removeTemplate() {
 .rc-form-grid { display: grid; grid-template-columns: 1.2fr 1.2fr 110px; gap: 12px; }
 
 @media (max-width: 720px) {
+  .rc { padding: 16px; }
+  .rc-pay { min-height: 40px; }
   .rc-form-grid { grid-template-columns: 1fr; }
   .rc-list { grid-template-columns: 1fr; }
   .rc-item { flex-wrap: wrap; }

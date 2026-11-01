@@ -3,15 +3,17 @@
 Nuxt proxies /api/team/** to this app (see server/api/team/[...path].ts).
 """
 
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from sqlalchemy import inspect, text
 
+from . import notify
 from .config import settings
 from .db import engine
 from .models import Base
-from .routers import alarms, auth, events, kanban, money, settings as settings_router
+from .routers import alarms, auth, events, kanban, money, push, settings as settings_router
 
 PREFIX = "/api/team"
 
@@ -23,6 +25,11 @@ ADDED_COLUMNS = [
     ("expenses", "recurring_id", "INTEGER REFERENCES recurring(id) ON DELETE SET NULL"),
     ("incomes", "recurring_id", "INTEGER REFERENCES recurring(id) ON DELETE SET NULL"),
     ("events", "remind", "INTEGER"),
+    # Offline sync (last write wins), see sync.py
+    ("alarms", "updated_at", "TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+    ("events", "updated_at", "TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+    ("expenses", "updated_at", "TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+    ("incomes", "updated_at", "TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP"),
 ]
 
 
@@ -62,7 +69,13 @@ def _share_team_boards(conn) -> None:
 async def lifespan(_: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(_upgrade)
+    # Web Push scheduler (alarms, reminders, deadlines) when VAPID keys are set
+    scheduler = asyncio.create_task(notify.run_scheduler()) if notify.enabled() else None
     yield
+    if scheduler:
+        scheduler.cancel()
+        with suppress(asyncio.CancelledError):
+            await scheduler
     await engine.dispose()
 
 
@@ -74,7 +87,7 @@ app = FastAPI(
     openapi_url=f"{PREFIX}/openapi.json" if settings.docs else None,
 )
 
-for r in (auth.router, kanban.router, alarms.router, money.router, events.router, settings_router.router):
+for r in (auth.router, kanban.router, alarms.router, money.router, events.router, settings_router.router, push.router):
     app.include_router(r, prefix=PREFIX)
 
 

@@ -7,7 +7,7 @@ import { dueState, mentionParts, type TeamBoardFull, type TeamBoardItem, type Te
 const { t } = useSite()
 const localePath = useLocalePath()
 const { locale } = useI18n()
-const { api, users, user, mentions, loadMentions } = useTeam()
+const { api, peek, users, user, mentions, synced, loadMentions } = useTeam()
 const { pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
@@ -20,27 +20,49 @@ const openIds = pref<number[]>('kanbanBoards', [])
 const loading = ref(true)
 const failed = ref('')
 
+// Bumped by every local change: a background sync that started earlier is dropped
+let localRev = 0
+const toast = (text: string) => {
+  failed.value = text
+  setTimeout(() => (failed.value = ''), 3500)
+}
+
 // Runs an API action; on failure shows a toast and reloads the boards
-async function run(fn: () => Promise<unknown>) {
+async function run(fn: () => Promise<unknown>, conflict = k.value.errorConflict) {
+  localRev++
   try {
     await fn()
   } catch (e) {
     const status = httpStatus(e)
     if (status === 401) return navigateTo(localePath('/login'))
-    failed.value = status === 409 ? k.value.errorConflict : status === 403 ? k.value.errorOwner : p.value.errorServer
-    setTimeout(() => (failed.value = ''), 3500)
+    toast(isOffline(e) ? p.value.offlineOnly : status === 409 ? conflict : status === 403 ? k.value.errorOwner : p.value.errorServer)
     await reloadBoards().catch(() => {})
   }
 }
 
-// Board list (with column names for moving cards) + the shown boards
-async function reloadBoards() {
-  boards.value = await api<TeamBoardItem[]>('/boards')
+// Card writes go out one at a time in click order (fast moves cannot overtake each other)
+let queue: Promise<unknown> = Promise.resolve()
+const writing = ref(0)
+function write(fn: () => Promise<unknown>) {
+  writing.value++
+  const job = queue.then(fn)
+  queue = job.catch(() => {}).finally(() => writing.value--)
+  return run(() => job, k.value.errorAuthor)
+}
+
+// Board list (with column names for moving cards) + the shown boards.
+// stale = background sync: skip the result if something changed locally meanwhile.
+async function reloadBoards(stale = false) {
+  const rev = localRev
+  const list = await api<TeamBoardItem[]>('/boards')
   // Shown boards may be gone or made private by their author
-  const ids = openIds.value.filter((id) => boards.value.some((b) => b.id === id))
-  const next = ids.length ? ids : boards.value[0] ? [boards.value[0].id] : []
+  const ids = openIds.value.filter((id) => list.some((b) => b.id === id))
+  const next = ids.length ? ids : list[0] ? [list[0].id] : []
+  const full = await Promise.all(next.map((id) => api<TeamBoardFull>(`/boards/${id}`)))
+  if (stale && (rev !== localRev || writing.value || drag.value)) return
   if (next.join() !== openIds.value.join()) openIds.value = next
-  shown.value = await Promise.all(openIds.value.map((id) => api<TeamBoardFull>(`/boards/${id}`)))
+  boards.value = list
+  shown.value = full
   loadMentions().catch(() => {})
 }
 
@@ -64,10 +86,55 @@ function hideBoard(id: number) {
   shown.value = shown.value.filter((b) => b.id !== id)
 }
 
-onMounted(() => run(reloadBoards).finally(() => (loading.value = false)))
+// App shortcut "New task" (?new=task): open the add form in the first column
+const route = useRoute()
+onMounted(async () => {
+  // Local copy first: instant, also offline
+  const list = await peek<TeamBoardItem[]>('/boards')
+  const ids = openIds.value.filter((id) => list?.some((b) => b.id === id))
+  const full = await Promise.all(ids.map((id) => peek<TeamBoardFull>(`/boards/${id}`)))
+  if (list && ids.length && full.every(Boolean) && loading.value) {
+    boards.value = list
+    shown.value = full as TeamBoardFull[]
+    loading.value = false
+  }
+  run(reloadBoards).finally(() => {
+    loading.value = false
+    const first = shown.value[0]?.columns[0]
+    if (route.query.new === 'task' && first) startEdit(`card-${first.id}`)
+    if (route.query.new) navigateTo({ query: {} }, { replace: true })
+    openLinked()
+  })
+})
+// Notification link ?board=…&card=…: show that board and open the card
+async function openLinked() {
+  const board = Number(route.query.board)
+  const card = Number(route.query.card)
+  if (!board || !card) return
+  await navigateTo({ query: {} }, { replace: true })
+  await openMention({ board_id: board, id: card } as TeamMention)
+}
+watch(() => route.query.card, () => !loading.value && openLinked())
+// Offline changes reached the server: real ids, teammates' changes
+watch(synced, () => reloadBoards(true).catch(() => {}))
 
 // Layout: columns in one scrolling row or wrapped into a grid
 const layout = pref<'grid' | 'row'>('kanbanLayout', 'grid')
+
+// Phone: columns swipe one by one (CSS snap); chips above jump to a column
+const activeCol = ref<Record<number, number>>({})
+function onColsScroll(e: Event, boardId: number) {
+  const el = e.currentTarget as HTMLElement
+  const first = el.firstElementChild as HTMLElement | null
+  if (!first?.offsetWidth) return
+  const step = first.offsetWidth + (parseFloat(getComputedStyle(el).columnGap) || 0)
+  const i = Math.round(el.scrollLeft / step)
+  if (activeCol.value[boardId] !== i) activeCol.value = { ...activeCol.value, [boardId]: i }
+}
+function showCol(boardId: number, i: number) {
+  const col = document.querySelector(`[data-cols="${boardId}"]`)?.children[i]
+  col?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+}
 
 // Inline editing / two-step delete
 const vFocus = { mounted: (el: HTMLInputElement) => (el.focus(), el.select?.()) }
@@ -243,58 +310,68 @@ async function addCard(col: TeamColumn) {
   })
 }
 
-// Card drag & drop (native HTML5), across all shown boards
-const drag = ref<{ card: TeamCard; from: TeamColumn } | null>(null)
-const drop = ref<{ col: number; index: number } | null>(null)
-
-function onDragStart(e: DragEvent, card: TeamCard, from: TeamColumn) {
-  drag.value = { card, from }
-  e.dataTransfer?.setData('text/plain', String(card.id))
-  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
-}
-
+// Columns: HTML5 drag of a header (mouse) onto another column of the same board
 function onDragOver(e: DragEvent, board: TeamBoardFull, col: TeamColumn) {
-  if (colDrag.value) {
-    if (colDrag.value.board !== board) return
-    e.preventDefault()
-    colOver.value = col.id
-    return
-  }
-  if (!drag.value) return
+  if (colDrag.value?.board !== board) return
   e.preventDefault()
-  // Index among the other cards, by vertical midpoints
-  let index = 0
-  ;(e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[data-card]').forEach((el) => {
-    if (el.dataset.card === String(drag.value!.card.id)) return
-    const r = el.getBoundingClientRect()
-    if (e.clientY > r.top + r.height / 2) index++
+  colOver.value = col.id
+}
+
+// Cards: pointer drag (mouse + finger) across all shown boards. Ids, not objects:
+// a sync may replace the boards while the card is held.
+const allCols = () => shown.value.flatMap((b) => b.columns)
+function locate(cardId: number) {
+  for (const col of allCols()) {
+    const card = col.cards.find((c) => c.id === cardId)
+    if (card) return { col, card }
+  }
+}
+const { drag, drop, down, dragged } = useCardDrag((cardId, _from, target) => {
+  const at = locate(cardId)
+  // target.index counts the other cards of the column
+  if (!at || (at.col.id === target.col && at.col.cards.indexOf(at.card) === target.index)) return
+  moveCard(cardId, target.col, target.index)
+})
+
+// Move locally right away, then on the server (index null = bottom of the column)
+function moveCard(cardId: number, colId: number, index: number | null) {
+  const at = locate(cardId)
+  if (!at) return
+  const target = allCols().find((c) => c.id === colId)
+  at.col.cards.splice(at.col.cards.indexOf(at.card), 1)
+  let position: number | undefined = index ?? undefined
+  if (target) {
+    target.cards.splice(index ?? target.cards.length, 0, at.card)
+    target.cards.forEach((c, i) => (c.position = i))
+    position = target.cards.indexOf(at.card)
+  }
+  const { card } = at
+  const assignee = card.assignee_id
+  card.column_id = colId
+  return write(async () => {
+    const saved = await api<TeamCard>(`/cards/${card.id}`, { method: 'PATCH', body: { column_id: colId, position } })
+    card.assignee_id = saved.assignee_id
+    if (assignee && !saved.assignee_id) toast(k.value.assigneeCleared)
   })
-  if (drop.value?.col !== col.id || drop.value.index !== index) drop.value = { col: col.id, index }
 }
 
-function onDragLeave(e: DragEvent, col: TeamColumn) {
-  const inside = (e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)
-  if (!inside && drop.value?.col === col.id) drop.value = null
+// Card menu (⋯): open, move, assign
+const menuFor = ref<TeamCard | null>(null)
+const menuBoard = computed(() => (menuFor.value ? boardOf(menuFor.value) : undefined))
+function menuMove(colId: number, where: 'top' | 'bottom') {
+  const card = menuFor.value
+  menuFor.value = null
+  if (card) moveCard(card.id, colId, where === 'top' ? 0 : null)
 }
-
-function onDragEnd() {
-  drag.value = null
-  drop.value = null
+function menuAssign(uid: number | null) {
+  const card = menuFor.value
+  menuFor.value = null
+  if (!card || card.assignee_id === uid) return
+  card.assignee_id = uid
+  write(() => api(`/cards/${card.id}`, { method: 'PATCH', body: { assignee_id: uid } }))
 }
-
-async function onDrop(board: TeamBoardFull, col: TeamColumn) {
-  if (colDrag.value) return onColDrop(board, col)
-  const d = drag.value
-  const target = drop.value
-  onDragEnd()
-  if (!d || !target) return
-  const from = d.from.cards.indexOf(d.card)
-  if (d.from === col && from === target.index) return
-  d.from.cards.splice(from, 1)
-  col.cards.splice(target.index, 0, d.card)
-  d.card.column_id = col.id
-  col.cards.forEach((c, i) => (c.position = i))
-  await run(() => api(`/cards/${d.card.id}`, { method: 'PATCH', body: { column_id: col.id, position: target.index } }))
+function openCard(card: TeamCard) {
+  if (!dragged()) editing.value = card
 }
 
 // Cards of a column with the drop placeholder inserted
@@ -303,7 +380,7 @@ function items(col: TeamColumn) {
   const ghostAt = drop.value?.col === col.id ? drop.value.index : -1
   let i = 0
   for (const card of col.cards) {
-    const moving = drag.value?.card === card
+    const moving = drag.value?.id === card.id
     if (!moving && i === ghostAt) out.push({ ghost: true, key: 'ghost' })
     out.push({ ghost: false, key: card.id, card })
     if (!moving) i++
@@ -321,7 +398,7 @@ async function saveCard(patch: Partial<TeamCard>) {
   const card = editing.value
   editing.value = null
   if (!card) return
-  await run(async () => {
+  await write(async () => {
     await api(`/cards/${card.id}`, { method: 'PATCH', body: patch })
     await reloadBoards()
   })
@@ -332,7 +409,7 @@ async function deleteCard() {
   editing.value = null
   if (!card) return
   for (const b of shown.value) for (const col of b.columns) col.cards = col.cards.filter((c) => c.id !== card.id)
-  await run(() => api(`/cards/${card.id}`, { method: 'DELETE' }))
+  await write(() => api(`/cards/${card.id}`, { method: 'DELETE' }))
 }
 
 // Open a card from the "For me" list (its board is added below if hidden)
@@ -360,8 +437,10 @@ const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
 
 // Pick up changes made by the teammate
 let poll: ReturnType<typeof setInterval> | undefined
-const idle = () => !drag.value && !colDrag.value && tabDrag.value === null && !editing.value && !editKey.value && document.visibilityState === 'visible'
-const sync = () => idle() && reloadBoards().catch(() => {})
+const idle = () =>
+  !drag.value && !colDrag.value && tabDrag.value === null && !editing.value && !menuFor.value && !editKey.value && !writing.value
+  && document.visibilityState === 'visible'
+const sync = () => idle() && reloadBoards(true).catch(() => {})
 onMounted(() => {
   addEventListener('focus', sync)
   poll = setInterval(sync, 30000)
@@ -516,16 +595,37 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
+          <!-- Phone: column switcher -->
+          <nav v-if="board.columns.length > 1" class="kb-colnav" :aria-label="k.columns">
+            <button
+              v-for="(col, ci) in board.columns"
+              :key="col.id"
+              type="button"
+              :class="{ on: (activeCol[board.id] ?? 0) === ci }"
+              :aria-current="(activeCol[board.id] ?? 0) === ci"
+              @click="showCol(board.id, ci)"
+            >
+              {{ col.title }}<span class="kb-count">{{ col.cards.length }}</span>
+            </button>
+          </nav>
+
           <!-- Columns -->
-          <TransitionGroup tag="div" name="kb-col" class="kb-columns" :class="{ grid: layout === 'grid' }">
+          <TransitionGroup
+            tag="div"
+            name="kb-col"
+            class="kb-columns"
+            :class="{ grid: layout === 'grid' }"
+            :data-cols="board.id"
+            @scroll.passive="onColsScroll($event, board.id)"
+          >
             <section
               v-for="(col, ci) in board.columns"
               :key="col.id"
               class="kb-col"
               :class="{ over: drop?.col === col.id || (colOver === col.id && colDrag?.col !== col), moving: colDrag?.col === col }"
+              :data-col="col.id"
               @dragover="onDragOver($event, board, col)"
-              @dragleave="onDragLeave($event, col)"
-              @drop.prevent.stop="onDrop(board, col)"
+              @drop.prevent.stop="onColDrop(board, col)"
             >
               <header class="kb-col-head" draggable="true" :title="k.drag" @dragstart="onColDragStart($event, board, col)" @dragend="onColDragEnd">
                 <form v-if="editKey === `col-${col.id}`" class="kb-inline" @submit.prevent="renameColumn(col)">
@@ -558,16 +658,18 @@ onBeforeUnmount(() => {
                     v-else
                     :key="it.key"
                     class="kb-card"
-                    :class="{ dragging: drag?.card === it.card }"
+                    :class="{ dragging: drag?.id === it.card.id }"
                     :data-card="it.card.id"
-                    draggable="true"
                     role="button"
                     tabindex="0"
-                    @dragstart="onDragStart($event, it.card, col)"
-                    @dragend="onDragEnd"
-                    @click="editing = it.card"
-                    @keydown.enter="editing = it.card"
+                    :title="k.dragHint"
+                    @pointerdown="down($event, it.card.id, col.id)"
+                    @click="openCard(it.card)"
+                    @keydown.enter.self="openCard(it.card)"
                   >
+                    <button type="button" class="kb-card-menu" :title="k.menu" :aria-label="k.menu" @click.stop="menuFor = it.card">
+                      <AppIcon name="more" />
+                    </button>
                     <p class="kb-card-title">
                       <AppIcon v-if="it.card.is_private && !board.is_private" name="lock" class="kb-card-lock" />
                       <template v-for="(part, pi) in mentionParts(it.card.title, users)" :key="pi">
@@ -659,6 +761,18 @@ onBeforeUnmount(() => {
       @save="saveCard"
       @delete="deleteCard"
     />
+    <TeamCardMenu
+      v-if="menuFor && menuBoard"
+      :card="menuFor"
+      :board-id="menuBoard.id"
+      :boards="boards"
+      :users="people(menuBoard)"
+      :me-id="user?.id ?? null"
+      @close="menuFor = null"
+      @open="editing = menuFor; menuFor = null"
+      @move="menuMove"
+      @assign="menuAssign"
+    />
 
     <Transition name="toast"><div v-if="failed" class="tp-toast" role="status">{{ failed }}</div></Transition>
   </div>
@@ -721,10 +835,26 @@ onBeforeUnmount(() => {
 
 .kb-cards { display: grid; gap: 8px; min-height: 8px; }
 .kb-card {
-  padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line);
-  box-shadow: 0 1px 2px rgba(18, 18, 22, .04); cursor: grab; user-select: none;
-  transition: transform .3s var(--ease), box-shadow .3s, border-color .2s, opacity .2s;
+  position: relative; padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(18, 18, 22, .04); cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  touch-action: manipulation; transition: transform .3s var(--ease), box-shadow .3s, border-color .2s, opacity .2s;
 }
+.kb-card-menu {
+  position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 10px;
+  background: var(--surface); color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .2s, background .2s, color .2s;
+}
+.kb-card-menu .ico { width: 18px; height: 18px; }
+.kb-card:hover .kb-card-menu, .kb-card:focus-within .kb-card-menu { opacity: 1; }
+.kb-card-menu:hover { background: var(--bg-2); color: var(--ink); }
+.kb-card-title { padding-right: 22px; }
+@media (hover: none) { .kb-card-menu { opacity: 1; width: 40px; height: 40px; top: 0; right: 0; } }
+/* Floating copy under the pointer while dragging */
+.kb-floating {
+  position: fixed; z-index: 500; margin: 0; pointer-events: none; list-style: none; cursor: grabbing;
+  box-shadow: var(--shadow-lg); border-color: rgba(91, 75, 255, .45); opacity: .95; transition: none; will-change: transform;
+}
+html.kb-dragging, html.kb-dragging * { cursor: grabbing !important; user-select: none; }
+html.kb-dragging .kb-columns { scroll-snap-type: none; }
 .kb-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--line-2); }
 .kb-card:active { cursor: grabbing; }
 .kb-card.dragging { opacity: .35; transform: rotate(-1.5deg) scale(.98); }
@@ -846,13 +976,35 @@ onBeforeUnmount(() => {
 .kb-board-enter-from { opacity: 0; transform: translateY(16px); }
 .kb-board-leave-active { display: none; }
 
+.kb-colnav { display: none; }
+@media (hover: none) { .kb-card:hover, .kb-forme-item:hover { transform: none; box-shadow: none; } }
+
+/* Phone: one column per screen, swiped sideways (layout setting is ignored) */
 @media (max-width: 640px) {
   .kb-board.stacked { padding: 12px 10px 2px; }
-  .kb-columns.grid { grid-template-columns: minmax(0, 1fr); }
-  .kb-columns { grid-auto-columns: minmax(250px, 82vw); }
+  .kb-columns, .kb-columns.grid {
+    grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: calc(100% - 28px); gap: 10px;
+    overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none;
+  }
+  .kb-columns::-webkit-scrollbar { display: none; }
+  .kb-board:not(.stacked) .kb-columns { margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }
+  .kb-col { scroll-snap-stop: always; }
+  .kb-layout { display: none; }
   .kb-col-actions { opacity: 1; }
   .kb-title { font-size: 1.1rem; }
   .kb-access-pop { position: fixed; left: 12px; right: 12px; top: auto; bottom: calc(84px + env(safe-area-inset-bottom)); width: auto; }
   .kb-forme-list li { width: 210px; }
+  /* Board tabs and column chips: one scrolling line */
+  .kb-boards, .kb-colnav { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; }
+  .kb-boards::-webkit-scrollbar, .kb-colnav::-webkit-scrollbar { display: none; }
+  .kb-tab { flex: none; min-height: 44px; }
+  .kb-colnav { display: flex; gap: 6px; margin-bottom: 10px; padding-block: 2px; }
+  .kb-colnav button {
+    flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line-2); background: none; color: var(--muted); font-weight: 800; font-size: .85rem; transition: background .2s, color .2s;
+  }
+  .kb-colnav button.on { background: var(--surface); border-color: var(--accent); color: var(--ink); }
+  .kb-board.stacked .kb-boards, .kb-board.stacked .kb-colnav { margin-inline: 0; padding-inline: 0; }
+  .kb-add { min-height: 44px; }
 }
 </style>

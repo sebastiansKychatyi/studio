@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -9,6 +9,7 @@ from ..db import get_db
 from ..models import Board, BoardColumn, CalendarShare, CalEvent, User
 from ..schemas import CalendarAccessOut, DueCard, EventIn, EventOut, EventPatch, MembersIn, SkipIn, UserOut
 from ..security import current_user
+from ..sync import check_offline
 from .kanban import can_see_board, can_see_card
 
 # Personal calendar: events belong to their owner; the owner can let chosen people see them (read-only).
@@ -30,6 +31,7 @@ def _out(e: CalEvent) -> EventOut:
         color=e.color,
         note=e.note,
         remind=e.remind,
+        updated_at=e.updated_at,
     )
 
 
@@ -97,8 +99,11 @@ async def create_event(body: EventIn, user: User = Depends(current_user), db: As
 
 
 @router.patch("/events/{event_id}", response_model=EventOut)
-async def update_event(event_id: int, body: EventPatch, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+async def update_event(
+    event_id: int, body: EventPatch, request: Request, response: Response, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+):
     e = await _own(db, event_id, user)
+    check_offline(request, response, e.updated_at)
     for field in body.model_fields_set:
         value = getattr(body, field)
         if field == "days":
@@ -115,9 +120,12 @@ async def update_event(event_id: int, body: EventPatch, user: User = Depends(cur
 
 
 @router.post("/events/{event_id}/skip", response_model=EventOut)
-async def skip_day(event_id: int, body: SkipIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+async def skip_day(
+    event_id: int, body: SkipIn, request: Request, response: Response, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+):
     """Cancel one occurrence of a repeating event (e.g. no class that day)."""
     e = await _own(db, event_id, user)
+    check_offline(request, response, e.updated_at)
     days = {d for d in e.skip.split(",") if d}
     days.add(body.date.isoformat())
     e.skip = ",".join(sorted(days))
@@ -126,8 +134,10 @@ async def skip_day(event_id: int, body: SkipIn, user: User = Depends(current_use
 
 
 @router.delete("/events/{event_id}", status_code=204)
-async def delete_event(event_id: int, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    await db.delete(await _own(db, event_id, user))
+async def delete_event(event_id: int, request: Request, response: Response, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    e = await _own(db, event_id, user)
+    check_offline(request, response, e.updated_at)
+    await db.delete(e)
     await db.commit()
 
 

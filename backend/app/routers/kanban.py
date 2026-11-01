@@ -1,12 +1,13 @@
 import re
 from collections.abc import Callable
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..db import get_db
+from ..notify import card_changed
 from ..models import Board, BoardColumn, BoardMember, Card, User
 from ..schemas import (
     BoardFull,
@@ -24,6 +25,7 @@ from ..schemas import (
     MentionOut,
 )
 from ..security import current_user
+from ..sync import check_offline
 
 # A board is visible to its creator and to the people they shared it with;
 # private cards are visible only to their author
@@ -92,6 +94,18 @@ async def _place(db: AsyncSession, model, where, item, index: int, visible: Call
     siblings.insert(at, item)
     for i, row in enumerate(siblings):
         row.position = i
+
+
+async def _lock_columns(db: AsyncSession, *ids: int) -> None:
+    """Serialize concurrent card moves in these columns (row locks in Postgres; no-op in SQLite)."""
+    await db.execute(select(BoardColumn.id).where(BoardColumn.id.in_(sorted(set(ids)))).order_by(BoardColumn.id).with_for_update())
+
+
+async def _renumber(db: AsyncSession, column_id: int) -> None:
+    """Positions 0..n-1 without gaps (after a card left the column)."""
+    cards = (await db.scalars(select(Card).where(Card.column_id == column_id).order_by(Card.position, Card.id))).all()
+    for i, card in enumerate(cards):
+        card.position = i
 
 
 async def _next_position(db: AsyncSession, model, where) -> int:
@@ -205,10 +219,13 @@ async def delete_column(column_id: int, user: User = Depends(current_user), db: 
 
 # Cards
 @router.post("/columns/{column_id}/cards", response_model=CardOut, status_code=201)
-async def create_card(column_id: int, body: CardIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+async def create_card(
+    column_id: int, body: CardIn, background: BackgroundTasks, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+):
     column = await _column(db, column_id, user)
     if body.assignee_id is not None and body.assignee_id not in board_people(await db.get(Board, column.board_id)):
         raise HTTPException(422, "Assignee has no access to the board")
+    await _lock_columns(db, column_id)
     card = Card(
         column_id=column_id,
         title=body.title.strip(),
@@ -222,47 +239,78 @@ async def create_card(column_id: int, body: CardIn, user: User = Depends(current
     db.add(card)
     await db.commit()
     await db.refresh(card)
+    # Push to the assignee and @mentioned people
+    background.add_task(card_changed, card.id, user.id, None)
     return card
 
 
 @router.patch("/cards/{card_id}", response_model=CardOut)
-async def update_card(card_id: int, body: CardPatch, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+async def update_card(
+    card_id: int,
+    body: CardPatch,
+    request: Request,
+    response: Response,
+    background: BackgroundTasks,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
     card = await _card(db, card_id, user)
+    before = (f"{card.title}\n{card.description}", card.assignee_id)
     sent = body.model_fields_set
+    # A pure move needs no check (renumbering bumps updated_at of neighbours)
+    if sent - {"column_id", "position"}:
+        check_offline(request, response, card.updated_at)
     if body.title is not None:
         card.title = body.title.strip()
     if body.description is not None:
         card.description = body.description
-    if "assignee_id" in sent:
-        # Only someone who can see the board
-        column = await db.get(BoardColumn, card.column_id)
-        if body.assignee_id is not None and body.assignee_id not in board_people(await db.get(Board, column.board_id)):
-            raise HTTPException(422, "Assignee has no access to the board")
-        card.assignee_id = body.assignee_id
     if "due_date" in sent:
         card.due_date = body.due_date
     if body.is_private is not None and body.is_private != card.is_private:
         _owner_only(card, user)
         card.is_private = body.is_private
+    moving = body.column_id is not None and body.column_id != card.column_id
+    if moving or body.position is not None:
+        await _lock_columns(db, card.column_id, *([body.column_id] if moving else []))
     # Any column the user can see, also on another board
-    if body.column_id is not None and body.column_id != card.column_id:
+    if moving:
         target = await _column(db, body.column_id, user)
         board = await db.get(Board, target.board_id)
         if card.created_by is not None and card.created_by not in board_people(board):
             raise HTTPException(409, "The card's author has no access to that board")
-        card.column_id = target.id
+        source_id = card.column_id
         if body.position is None:
             card.position = await _next_position(db, Card, Card.column_id == target.id)
+        card.column_id = target.id
+        # An assignee without access to the new board would lose the card silently
+        if "assignee_id" not in sent and card.assignee_id is not None and card.assignee_id not in board_people(board):
+            card.assignee_id = None
+        await db.flush()
+        await _renumber(db, source_id)
+    if "assignee_id" in sent:
+        # Only someone who can see the (new) board
+        column = await db.get(BoardColumn, card.column_id)
+        if body.assignee_id is not None and body.assignee_id not in board_people(await db.get(Board, column.board_id)):
+            raise HTTPException(422, "Assignee has no access to the board")
+        card.assignee_id = body.assignee_id
     if body.position is not None:
         await _place(db, Card, Card.column_id == card.column_id, card, body.position, lambda c: can_see_card(c, user))
     await db.commit()
     await db.refresh(card)
+    # New assignee / new @mentions get a push
+    if sent & {"title", "description", "assignee_id"}:
+        background.add_task(card_changed, card.id, user.id, before)
     return card
 
 
 @router.delete("/cards/{card_id}", status_code=204)
-async def delete_card(card_id: int, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    await db.delete(await _card(db, card_id, user))
+async def delete_card(card_id: int, request: Request, response: Response, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    card = await _card(db, card_id, user)
+    check_offline(request, response, card.updated_at)
+    await _lock_columns(db, card.column_id)
+    await db.delete(card)
+    await db.flush()
+    await _renumber(db, card.column_id)
     await db.commit()
 
 

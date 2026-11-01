@@ -18,23 +18,32 @@ let clock: ReturnType<typeof setInterval> | undefined
 const nextHour = () => `${pad((new Date().getHours() + 1) % 24)}:00`
 const form = reactive({ time: nextHour(), label: '', days: [] as number[] })
 const busy = ref(false)
-const failed = ref(false)
+const failed = ref('')
 const notice = ref('')
 const confirmId = ref<number | null>(null)
 
-const permission = ref<NotificationPermission | 'unsupported'>('default')
+// Notifications: in the open app + Web Push when it is closed
+const { permission, enable: enablePush, check: checkPush } = usePush()
 
+// App shortcut "Alarm" (?new=alarm): straight to the time field
+const route = useRoute()
+const timeEl = ref<HTMLInputElement>()
 onMounted(() => {
   clock = setInterval(() => (now.value = new Date()), 1000)
-  permission.value = 'Notification' in window ? Notification.permission : 'unsupported'
+  checkPush()
   loadAlarms().catch(fail)
+  if (route.query.new === 'alarm') {
+    timeEl.value?.scrollIntoView({ block: 'center' })
+    timeEl.value?.focus()
+    navigateTo({ query: {} }, { replace: true })
+  }
 })
 onBeforeUnmount(() => clearInterval(clock))
 
 function fail(e: unknown) {
   if (httpStatus(e) === 401) return navigateTo(localePath('/login'))
-  failed.value = true
-  setTimeout(() => (failed.value = false), 3000)
+  failed.value = isOffline(e) ? p.value.offlineOnly : p.value.errorServer
+  setTimeout(() => (failed.value = ''), 3000)
   loadAlarms().catch(() => {})
 }
 
@@ -99,7 +108,7 @@ async function remove(al: TeamAlarm) {
 
 async function askPermission() {
   if (permission.value === 'unsupported') return
-  permission.value = await Notification.requestPermission()
+  await enablePush().catch(fail)
 }
 </script>
 
@@ -133,7 +142,7 @@ async function askPermission() {
           {{ pad(now.getHours()) }}<span class="al-colon">:</span>{{ pad(now.getMinutes()) }}<small>{{ pad(now.getSeconds()) }}</small>
         </p>
         <p class="al-date">{{ dateLabel }}</p>
-        <p class="al-hint">{{ a.hint }}</p>
+        <p class="al-hint">{{ permission === 'granted' ? a.pushHint : a.hint }}</p>
       </section>
 
       <!-- New alarm -->
@@ -141,7 +150,7 @@ async function askPermission() {
         <div class="al-form-row">
           <label class="tp-field al-time-field">
             <span>{{ a.time }}</span>
-            <input v-model="form.time" type="time" required>
+            <input ref="timeEl" v-model="form.time" type="time" required>
           </label>
           <label class="tp-field">
             <span>{{ a.label }}</span>
@@ -200,7 +209,7 @@ async function askPermission() {
     </TransitionGroup>
     <p v-else class="al-empty">{{ a.empty }}</p>
 
-    <Transition name="toast"><div v-if="failed || notice" class="tp-toast" role="status">{{ failed ? p.errorServer : notice }}</div></Transition>
+    <Transition name="toast"><div v-if="failed || notice" class="tp-toast" role="status">{{ failed || notice }}</div></Transition>
   </div>
 </template>
 
@@ -247,9 +256,19 @@ async function askPermission() {
 .al-empty { padding: 30px; text-align: center; color: var(--muted); border-radius: 20px; border: 1px dashed var(--line-2); }
 
 @media (max-width: 960px) { .al-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .al-clock, .al-form { padding: 20px 16px; }
+  .al-clock { min-height: 220px; }
+  .al-clock-ring { width: 200px; height: 200px; margin: -100px 0 0 -100px; }
+  .al-form .btn, .al-notify { width: 100%; min-height: 48px; }
+  .al-days { justify-content: space-between; gap: 4px; }
+  .al-days-note { flex-basis: 100%; margin: 4px 0 0; }
+  .al-item { padding: 12px 14px; }
+}
 @media (max-width: 480px) {
   .al-form-row { grid-template-columns: 1fr; }
-  .al-item { grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px 12px; }
-  .al-item .tp-icon-btn { grid-column: 3; }
+  .al-time-field input { font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; padding-block: 10px; }
+  .al-item { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; }
+  .al-item-time { font-size: 1.45rem; }
 }
 </style>

@@ -4,6 +4,7 @@
     python -m app.cli passwd sebastian
     python -m app.cli list
     python -m app.cli remove roman
+    python -m app.cli vapid          # key pair for Web Push (put into backend/.env)
 """
 
 import argparse
@@ -33,6 +34,21 @@ def _ask_password() -> str:
 
 async def _find(db, username: str) -> User | None:
     return await db.scalar(select(User).where(func.lower(User.username) == username.lower()))
+
+
+def _vapid() -> int:
+    """New VAPID key pair in the format the API and the browser expect (base64url)."""
+    import base64
+
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    b64 = lambda raw: base64.urlsafe_b64encode(raw).rstrip(b"=").decode()  # noqa: E731
+    print(f"VAPID_PUBLIC_KEY={b64(key.public_key().public_bytes(Encoding.X962, PublicFormat.UncompressedPoint))}")
+    print(f"VAPID_PRIVATE_KEY={b64(key.private_numbers().private_value.to_bytes(32, 'big'))}")
+    print("VAPID_SUBJECT=mailto:you@example.com")
+    return 0
 
 
 async def main(args: argparse.Namespace) -> int:
@@ -75,4 +91,6 @@ if __name__ == "__main__":
     sub.add_parser("passwd", help="change password").add_argument("username")
     sub.add_parser("remove", help="delete a user").add_argument("username")
     sub.add_parser("list", help="list users")
-    sys.exit(asyncio.run(main(p.parse_args())))
+    sub.add_parser("vapid", help="print a new Web Push key pair")
+    args = p.parse_args()
+    sys.exit(_vapid() if args.cmd == "vapid" else asyncio.run(main(args)))

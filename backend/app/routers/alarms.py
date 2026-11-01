@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,13 +6,14 @@ from ..db import get_db
 from ..models import Alarm, User
 from ..schemas import AlarmIn, AlarmOut, AlarmPatch
 from ..security import current_user
+from ..sync import check_offline
 
 # Alarms are personal; ringing happens in the browser
 router = APIRouter(tags=["alarms"])
 
 
 def _out(a: Alarm) -> AlarmOut:
-    return AlarmOut(id=a.id, time=a.time, label=a.label, days=[int(d) for d in a.days.split(",") if d], enabled=a.enabled)
+    return AlarmOut(id=a.id, time=a.time, label=a.label, days=[int(d) for d in a.days.split(",") if d], enabled=a.enabled, updated_at=a.updated_at)
 
 
 async def _own(db: AsyncSession, alarm_id: int, user: User) -> Alarm:
@@ -39,8 +40,11 @@ async def create_alarm(body: AlarmIn, user: User = Depends(current_user), db: As
 
 
 @router.patch("/alarms/{alarm_id}", response_model=AlarmOut)
-async def update_alarm(alarm_id: int, body: AlarmPatch, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+async def update_alarm(
+    alarm_id: int, body: AlarmPatch, request: Request, response: Response, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+):
     alarm = await _own(db, alarm_id, user)
+    check_offline(request, response, alarm.updated_at)
     if body.time is not None:
         alarm.time = body.time
     if body.label is not None:
@@ -54,6 +58,8 @@ async def update_alarm(alarm_id: int, body: AlarmPatch, user: User = Depends(cur
 
 
 @router.delete("/alarms/{alarm_id}", status_code=204)
-async def delete_alarm(alarm_id: int, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    await db.delete(await _own(db, alarm_id, user))
+async def delete_alarm(alarm_id: int, request: Request, response: Response, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    alarm = await _own(db, alarm_id, user)
+    check_offline(request, response, alarm.updated_at)
+    await db.delete(alarm)
     await db.commit()

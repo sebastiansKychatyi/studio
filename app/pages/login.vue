@@ -12,7 +12,11 @@ const error = ref('')
 const shake = ref(0)
 
 useSeoMeta({ title: () => `${p.value.loginTitle} | ${cfg.brand}`, description: () => p.value.loginText, robots: 'noindex, nofollow' })
-useHead(() => ({ htmlAttrs: { lang: locale.value } }))
+useHead(() => ({
+  htmlAttrs: { lang: locale.value },
+  // Same installable app as the panel
+  link: [{ rel: 'manifest', href: `/panel.webmanifest?lang=${locale.value}`, key: 'manifest' }],
+}))
 
 // Already signed in → straight to the panel
 onMounted(async () => {

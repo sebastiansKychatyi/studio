@@ -11,7 +11,7 @@ const props = defineProps<{ kind: MoneyKind }>()
 const { t } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
-const { api } = useTeam()
+const { api, synced } = useTeam()
 
 const p = computed(() => t.value.panel)
 const e = computed(() => t.value.panel[props.kind])
@@ -108,7 +108,7 @@ const history = ref<{ month: string; total: number }[]>([])
 const otherTotal = ref(0)
 const loading = ref(true)
 const ready = ref(false)
-const failed = ref(false)
+const failed = ref('')
 
 // 1 EUR in each currency (from backend config)
 const rates = ref<Record<Currency, number>>({ EUR: 1, UAH: 51.5, USD: 1.16 })
@@ -132,8 +132,14 @@ const monthLabel = (m: string, opts: Intl.DateTimeFormatOptions = { month: 'long
 
 function fail(err: unknown) {
   if (httpStatus(err) === 401) return navigateTo(localePath('/login'))
-  failed.value = true
-  setTimeout(() => (failed.value = false), 3000)
+  failed.value = isOffline(err) ? p.value.offlineOnly : p.value.errorServer
+  setTimeout(() => (failed.value = ''), 3000)
+}
+
+// Offline: parts never loaded before fall back to what is on screen
+const orKeep = <T>(value: T) => (e: unknown) => {
+  if (isOffline(e)) return value
+  throw e
 }
 
 async function load() {
@@ -141,10 +147,10 @@ async function load() {
   try {
     const [list, sum, r, opposite, cats] = await Promise.all([
       api<TeamMoney[]>(`/${props.kind}`, { query: { month: month.value } }),
-      api<{ month: string; total: number }[]>(`/${props.kind}/summary`, { query: { month: month.value } }),
-      api<Record<Currency, number>>('/rates'),
-      api<{ month: string; total: number }[]>(`/${other.value}/summary`, { query: { month: month.value, months: 1 } }),
-      api<CustomCategory[]>(`/${props.kind}/categories`),
+      api<{ month: string; total: number }[]>(`/${props.kind}/summary`, { query: { month: month.value } }).catch(orKeep(history.value)),
+      api<Record<Currency, number>>('/rates').catch(orKeep(rates.value)),
+      api<{ month: string; total: number }[]>(`/${other.value}/summary`, { query: { month: month.value, months: 1 } }).catch(orKeep([{ month: month.value, total: otherTotal.value }])),
+      api<CustomCategory[]>(`/${props.kind}/categories`).catch(orKeep(customs.value)),
     ])
     customs.value = cats
     items.value = list
@@ -165,6 +171,21 @@ watch(month, () => {
   load()
 })
 onMounted(load)
+// Offline entries reached the server
+watch(synced, () => {
+  load()
+  recEl.value?.load()
+})
+
+// App shortcut "Add expense" (?new=expense): straight to the amount
+const route = useRoute()
+const amountEl = ref<HTMLInputElement>()
+onMounted(() => {
+  if (route.query.new !== 'expense') return
+  amountEl.value?.scrollIntoView({ block: 'center' })
+  amountEl.value?.focus()
+  navigateTo({ query: {} }, { replace: true })
+})
 
 // Stats (in the display currency)
 const total = computed(() => items.value.reduce((s, x) => s + inView(x), 0))
@@ -311,6 +332,11 @@ function exportCsv() {
 
 <template>
   <div class="ex" :class="`ex-${kind}`">
+    <!-- Phone: expenses and income share the "Finance" tab -->
+    <nav class="ex-seg ex-switch" :aria-label="p.nav.finance">
+      <NuxtLink :to="localePath('/panel/expenses')" :class="{ on: !isIncome }">{{ p.nav.expenses }}</NuxtLink>
+      <NuxtLink :to="localePath('/panel/income')" :class="{ on: isIncome }">{{ p.nav.income }}</NuxtLink>
+    </nav>
     <header class="tp-head">
       <div>
         <h1>{{ e.title }}</h1>
@@ -387,6 +413,7 @@ function exportCsv() {
             <span>{{ e.amount }}</span>
             <span class="ex-amount">
               <input
+                ref="amountEl"
                 v-model="form.amount"
                 inputmode="decimal"
                 autocomplete="off"
@@ -569,7 +596,7 @@ function exportCsv() {
     </div>
     <p v-else class="al-empty">{{ e.empty }}</p>
 
-    <Transition name="toast"><div v-if="failed" class="tp-toast" role="status">{{ p.errorServer }}</div></Transition>
+    <Transition name="toast"><div v-if="failed" class="tp-toast" role="status">{{ failed }}</div></Transition>
   </div>
 </template>
 
@@ -690,11 +717,35 @@ function exportCsv() {
 .ex-row-amount.ex-plus { color: #0E9F85; }
 .ex-row-amount small { font-size: .75rem; font-weight: 600; color: var(--muted); }
 
+.ex-switch { display: none; }
 @media (max-width: 1100px) { .ex-grid { grid-template-columns: 1fr; } }
+@media (max-width: 860px) {
+  .ex-switch { display: flex; margin-bottom: 14px; }
+  .ex-switch a {
+    flex: 1; display: grid; place-items: center; min-height: 40px; border-radius: 999px;
+    font-weight: 800; font-size: .92rem; color: var(--muted); transition: background .25s, color .25s;
+  }
+  .ex-switch a.on { background: var(--ink); color: #fff; }
+  .tp.dark .ex-switch a.on { background: var(--solid); }
+}
 @media (max-width: 640px) {
-  .ex-stats { grid-template-columns: 1fr 1fr; }
+  .ex-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ex-stat { padding: 16px; }
   .ex-stat-main { grid-column: 1 / -1; }
   .ex-form-row { grid-template-columns: 1fr; }
-  .ex-month-label { min-width: 120px; }
+  .ex-head-actions { width: 100%; }
+  .ex-head-actions .ex-month { flex: 1 1 100%; justify-content: space-between; }
+  .ex-head-actions .ex-month .tp-icon-btn { width: 40px; height: 40px; }
+  .ex-month-label { min-width: 0; }
+  .ex-head-actions .ex-seg button { min-width: 44px; height: 36px; }
+  .ex-head-actions .btn { margin-left: auto; min-height: 44px; }
+  .ex-card { padding: 18px 16px; }
+  .ex-cat { min-height: 40px; }
+  .ex-form-actions .btn { flex: 1; min-height: 48px; }
+  .ex-chart { gap: 6px; height: 150px; }
+  .ex-col-val { font-size: .62rem; }
+  .ex-row { padding-right: 6px; }
+  .ex-row-main { gap: 10px; padding: 8px; }
+  .ex-row-amount { font-size: .92rem; }
 }
 </style>

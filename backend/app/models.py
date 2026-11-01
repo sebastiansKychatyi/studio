@@ -5,6 +5,8 @@ from decimal import Decimal
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from .sync import utcnow
+
 
 class Base(DeclarativeBase):
     pass
@@ -103,6 +105,8 @@ class Alarm(Base):
     days: Mapped[str] = mapped_column(String(20), server_default="")
     enabled: Mapped[bool] = mapped_column(Boolean, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Set in Python (no reload after commit); offline sync compares it (see sync.py)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)
 
 
 class MoneyEntry:
@@ -121,6 +125,8 @@ class MoneyEntry:
     # Set when created from a monthly template ("paid" / "received")
     recurring_id: Mapped[int | None] = mapped_column(ForeignKey("recurring.id", ondelete="SET NULL"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Set in Python (no reload after commit); offline sync compares it (see sync.py)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)
 
 
 class CalEvent(Base):
@@ -144,6 +150,8 @@ class CalEvent(Base):
     note: Mapped[str] = mapped_column(Text, server_default="")
     remind: Mapped[int | None] = mapped_column(Integer)  # minutes before start; None = no reminder
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Set in Python (no reload after commit); offline sync compares it (see sync.py)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)
 
 
 class CalendarShare(Base):
@@ -199,3 +207,37 @@ class Expense(MoneyEntry, Base):
 
 class Income(MoneyEntry, Base):
     __tablename__ = "incomes"
+
+
+class PushSubscription(Base):
+    """Web Push endpoint of one browser/device; a user can have several."""
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    endpoint: Mapped[str] = mapped_column(Text, unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+    user_agent: Mapped[str] = mapped_column(String(300), server_default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PushSent(Base):
+    """Scheduled notifications already sent (one row per alarm/reminder occurrence), kept a few days."""
+
+    __tablename__ = "push_sent"
+
+    key: Mapped[str] = mapped_column(String(120), primary_key=True)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class PushLater(Base):
+    """One-off notification at a given time (alarm snoozed from the notification)."""
+
+    __tablename__ = "push_later"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    fire_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    payload: Mapped[str] = mapped_column(Text)  # JSON for the service worker

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 // Team panel shell: sidebar menu, user, light/dark theme, alarm ringer. Client-only (routeRules).
+import type { SyncNotice } from '~/composables/useTeam'
+
 definePageMeta({ middleware: 'team' })
 
 const { t, cfg } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { user, mentions, logout, loadUsers, loadAlarms, loadMentions, loadEvents } = useTeam()
+const { user, mentions, online, pending, synced, notices, logout, loadUsers, loadAlarms, loadMentions, loadEvents, startSync, flush } = useTeam()
 const { ready, loadPrefs, pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
@@ -19,8 +21,27 @@ const nav = computed(() => [
   { to: localePath('/panel/settings'), icon: 'gear', label: p.value.nav.settings },
 ])
 const current = computed(() => nav.value.find((n) => n.to === route.path)?.label ?? '')
+// Phone tab bar: expenses + income share one "Finance" tab (switch inside the page)
+const money = computed(() => [localePath('/panel/expenses'), localePath('/panel/income')])
+const tabs = computed(() => [
+  ...nav.value.slice(0, 3).map((n) => ({ ...n, active: route.path === n.to })),
+  { to: money.value[0]!, icon: 'wallet', label: p.value.nav.finance, active: money.value.includes(route.path) },
+])
+const inTabs = (to: string) => tabs.value.some((n) => n.to === to) || money.value.includes(to)
 
 useSeoMeta({ title: () => `${current.value} | ${cfg.brand}`, robots: 'noindex, nofollow' })
+// Edge to edge on notched phones (safe areas are padded below)
+useHead({ meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' }] })
+
+// Installed app: own manifest, worker, install button, update prompt
+const { canInstall, standalone, ios, updateReady, register, install, update } = usePwa()
+useHead(() => ({ link: [{ rel: 'manifest', href: `/panel.webmanifest?lang=${locale.value}`, key: 'manifest' }] }))
+const iosHint = ref(false)
+const showInstall = computed(() => !standalone.value && (canInstall.value || ios.value))
+const installApp = () => (canInstall.value ? install() : (iosHint.value = !iosHint.value))
+// The installed app opens /panel → this language (server/routes/panel.ts)
+watch(locale, (l) => (document.cookie = `panel_lang=${l}; path=/; max-age=31536000; samesite=lax`), { immediate: import.meta.client })
+onMounted(register)
 // Theme (account setting): light | dark | system
 const theme = pref<'light' | 'dark' | 'system'>('theme', 'system')
 const systemDark = ref(false)
@@ -32,7 +53,10 @@ onMounted(() => {
 const dark = computed(() => (theme.value === 'system' ? systemDark.value : theme.value === 'dark'))
 const toggleTheme = () => (theme.value = dark.value ? 'light' : 'dark')
 
-useHead(() => ({ htmlAttrs: { lang: locale.value, class: dark.value ? 'tp-dark' : '' } }))
+useHead(() => ({
+  htmlAttrs: { lang: locale.value, class: dark.value ? 'tp-dark' : '' },
+  meta: [{ name: 'theme-color', content: dark.value ? '#0E0E13' : '#F6F5F1' }],
+}))
 
 // Badge with open mentions; refreshed every minute
 let poll: ReturnType<typeof setInterval> | undefined
@@ -50,17 +74,58 @@ onMounted(() => {
 })
 onBeforeUnmount(() => clearInterval(poll))
 
+// Push notifications are timed and worded on the server: it needs this device's time zone and language
+const tz = pref<string>('tz', '')
+const pushLang = pref<string>('lang', '')
+watch(ready, (ok) => {
+  if (!ok) return
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  if (zone && tz.value !== zone) tz.value = zone
+  if (pushLang.value !== locale.value) pushLang.value = locale.value
+}, { immediate: true })
+watch(locale, (l) => ready.value && (pushLang.value = l))
+// Tap on a notification while the app is open: switch screens (pwa/sw.js)
+onMounted(() => navigator.serviceWorker?.addEventListener('message', (e) => e.data?.type === 'open' && navigateTo(e.data.url)))
+
+// Offline: status chip, sync of waiting changes, honest messages about conflicts
+onMounted(startSync)
+const justSynced = ref(false)
+let syncedTimer: ReturnType<typeof setTimeout> | undefined
+watch(synced, () => {
+  loadAlarms().catch(() => {})
+  loadEvents().catch(() => {})
+  loadMentions().catch(() => {})
+  justSynced.value = true
+  clearTimeout(syncedTimer)
+  syncedTimer = setTimeout(() => (justSynced.value = false), 4000)
+})
+const syncState = computed(() => (!online.value ? 'offline' : pending.value ? 'pending' : justSynced.value ? 'synced' : ''))
+const syncText = computed(() =>
+  syncState.value === 'offline' ? (pending.value ? `${p.value.sync.offline} · ${pending.value}` : p.value.sync.offline)
+  : syncState.value === 'pending' ? `${p.value.sync.pending}: ${pending.value}` : p.value.sync.synced)
+const noticeText = (n: SyncNotice) => `«${n.label || '…'}» — ${p.value.sync[n.kind]}`
+watch(() => notices.value.length, (len, was) => {
+  if (len > was) setTimeout(() => notices.value.shift(), 7000)
+})
+
+const outError = ref(false)
 async function out() {
-  await logout()
-  await navigateTo(localePath('/login'))
+  // Pending offline changes would be lost
+  if (pending.value && !confirm(`${p.value.sync.pending}: ${pending.value}. ${p.value.sync.logoutLoses}`)) return
+  try {
+    await logout()
+    await navigateTo(localePath('/login'))
+  } catch {
+    outError.value = true
+    setTimeout(() => (outError.value = false), 3500)
+  }
 }
 
 const initial = (name = '') => name.trim().charAt(0).toUpperCase() || '?'
 
 // Phone: bottom tab bar with the main sections; "More" opens the sidebar as a sheet
-const TABS = 4
 const sheet = ref(false)
-const moreActive = computed(() => nav.value.slice(TABS).some((n) => n.to === route.path))
+const moreActive = computed(() => !inTabs(route.path))
 watch(() => route.path, () => (sheet.value = false))
 </script>
 
@@ -70,6 +135,7 @@ watch(() => route.path, () => (sheet.value = false))
     <header class="tp-top">
       <NuxtLink class="logo" :to="localePath('/')" :aria-label="cfg.brand"><span class="logo-mark" aria-hidden="true">D</span></NuxtLink>
       <b class="tp-top-title">{{ current }}</b>
+      <button v-if="syncState" type="button" class="tp-sync" :class="syncState" :title="p.sync.hint" @click="flush()"><i />{{ syncText }}</button>
       <span v-if="user" class="tp-avatar sm" :data-c="user.id % 3" :title="user.name || user.username">{{ initial(user.name || user.username) }}</span>
     </header>
 
@@ -80,13 +146,18 @@ watch(() => route.path, () => (sheet.value = false))
       </NuxtLink>
 
       <nav class="tp-nav" :aria-label="p.menu">
-        <NuxtLink v-for="n in nav" :key="n.to" :to="n.to" :class="{ active: route.path === n.to }">
+        <NuxtLink v-for="n in nav" :key="n.to" :to="n.to" :class="{ active: route.path === n.to, 'in-tabs': inTabs(n.to) }">
           <AppIcon :name="n.icon" /><span>{{ n.label }}</span>
           <b v-if="n.icon === 'tasks' && mentions.length" class="tp-badge" :title="p.kanban.forMe">{{ mentions.length }}</b>
         </NuxtLink>
       </nav>
 
       <div class="tp-side-foot">
+        <button v-if="syncState" type="button" class="tp-sync tp-sync-side" :class="syncState" :title="p.sync.hint" @click="flush()"><i />{{ syncText }}</button>
+        <button v-if="showInstall" type="button" class="tp-install" :aria-expanded="ios && !canInstall ? iosHint : undefined" @click="installApp">
+          <AppIcon name="download" />{{ p.app.install }}
+        </button>
+        <p v-if="iosHint" class="tp-ios-hint">{{ p.app.iosHint }}</p>
         <div v-if="user" class="tp-me">
           <span class="tp-avatar" :data-c="user.id % 3">{{ initial(user.name || user.username) }}</span>
           <span class="tp-me-name"><b>{{ user.name || user.username }}</b><small>@{{ user.username }}</small></span>
@@ -115,7 +186,7 @@ watch(() => route.path, () => (sheet.value = false))
 
     <!-- Phone tab bar -->
     <nav class="tp-tabbar" :aria-label="p.menu">
-      <NuxtLink v-for="n in nav.slice(0, TABS)" :key="n.to" :to="n.to" class="tp-tab" :class="{ active: route.path === n.to }">
+      <NuxtLink v-for="n in tabs" :key="n.to" :to="n.to" class="tp-tab" :class="{ active: n.active }">
         <AppIcon :name="n.icon" /><span>{{ n.label }}</span>
         <b v-if="n.icon === 'tasks' && mentions.length" class="tp-badge">{{ mentions.length }}</b>
       </NuxtLink>
@@ -125,15 +196,29 @@ watch(() => route.path, () => (sheet.value = false))
     </nav>
     <Transition name="toast-fade"><div v-if="sheet" class="tp-scrim" @click="sheet = false" /></Transition>
 
+    <!-- Sync messages: offline change overwritten / not applied -->
+    <TransitionGroup tag="div" name="toast-fade" class="tp-notices" role="status">
+      <p v-for="n in notices" :key="n.id" class="tp-notice" :class="n.kind" @click="notices.splice(notices.indexOf(n), 1)">{{ noticeText(n) }}</p>
+      <p v-if="outError" key="out" class="tp-notice rejected">{{ p.sync.logoutOffline }}</p>
+    </TransitionGroup>
+
+    <!-- New deploy: the waiting worker takes over after the click -->
+    <Transition name="toast">
+      <div v-if="updateReady" class="tp-update" role="status">
+        <AppIcon name="spark" /><span>{{ p.app.updateText }}</span>
+        <button type="button" class="btn btn-primary btn-sm" @click="update">{{ p.app.update }}</button>
+      </div>
+    </Transition>
+
     <TeamAlarmRinger />
   </div>
 </template>
 
 <style>
 /* ===== Team panel shell ===== */
-.tp { min-height: 100svh; display: grid; grid-template-columns: 250px minmax(0, 1fr); background: var(--bg); }
+.tp { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: 250px minmax(0, 1fr); background: var(--bg); }
 .tp-side {
-  position: sticky; top: 0; height: 100svh; display: flex; flex-direction: column; gap: 28px; padding: 22px 16px;
+  position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 28px; padding: 22px 16px;
   background: rgba(255, 255, 255, .7); border-right: 1px solid var(--line);
 }
 .tp-side .logo { padding: 4px 8px; }
@@ -196,6 +281,40 @@ watch(() => route.path, () => (sheet.value = false))
 }
 .tp-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(91, 75, 255, .14); }
 
+/* Offline / sync status */
+.tp-sync {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 12px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font-weight: 800; font-size: .78rem;
+}
+.tp-sync i { width: 8px; height: 8px; border-radius: 50%; background: #19C3A6; }
+.tp-sync.offline i { background: #9CA3AF; }
+.tp-sync.pending i { background: #F59E0B; animation: tpPulse 1.6s ease-in-out infinite; }
+@keyframes tpPulse { 50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, .25); } }
+.tp-sync.offline { color: var(--muted); }
+.tp-sync-side { justify-content: center; min-height: 40px; }
+.tp-notices { position: fixed; left: 50%; bottom: 24px; z-index: 305; transform: translateX(-50%); display: grid; gap: 8px; width: min(440px, calc(100vw - 24px)); }
+.tp-notice {
+  padding: 12px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line-2); border-left: 4px solid #F59E0B;
+  box-shadow: var(--shadow-lg); font-weight: 700; font-size: .88rem; cursor: pointer;
+}
+.tp-notice.discarded, .tp-notice.rejected { border-left-color: #E5484D; }
+
+/* Installed app */
+.tp-install {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 14px; border-radius: 14px; cursor: pointer;
+  border: 1px dashed var(--accent); background: rgba(91, 75, 255, .06); color: var(--accent); font-weight: 800; font-size: .9rem;
+}
+.tp-install .ico { width: 17px; height: 17px; }
+.tp-install:hover { background: rgba(91, 75, 255, .12); }
+.tp-ios-hint { margin-top: -6px; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); color: var(--ink-2); font-size: .82rem; font-weight: 600; line-height: 1.45; }
+.tp-update {
+  position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); z-index: 310; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100vw - 24px); padding: 8px 8px 8px 16px;
+  border-radius: 999px; background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow-lg); font-weight: 700; font-size: .9rem;
+}
+.tp-update > .ico { width: 18px; height: 18px; color: var(--accent); }
+.tp-update .btn { min-height: 40px; }
+
 /* Phone-only parts */
 .tp-top, .tp-tabbar, .tp-scrim { display: none; }
 
@@ -221,6 +340,8 @@ watch(() => route.path, () => (sheet.value = false))
   .tp-side .logo { display: none; }
   .tp-nav { grid-template-columns: 1fr 1fr; }
   .tp-nav a { padding: 12px; }
+  .tp-nav a.in-tabs { display: none; }
+  .tp-side-actions .tp-icon-btn { width: 44px; height: 44px; }
   .tp-side-foot { margin-top: 0; }
   .tp.dark .tp-side { background: var(--surface); }
 
@@ -241,9 +362,19 @@ watch(() => route.path, () => (sheet.value = false))
   .tp-tab .tp-badge { position: absolute; top: 2px; left: calc(50% + 6px); margin: 0; min-width: 17px; height: 17px; font-size: .62rem; padding: 0 4px; }
   .tp-scrim { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(18, 18, 22, .32); }
 
-  .tp-main { padding: 18px 16px calc(96px + env(safe-area-inset-bottom)); }
+  .tp-main { padding: 18px max(16px, env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
   .tp-head { margin-bottom: 18px; }
   .tp-toast { bottom: calc(88px + env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); text-align: center; }
+  .tp-notices { bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .tp-sync-side { display: none; }
+  /* iOS zooms into fields with text under 16px */
+  .tp-input { font-size: 16px; }
+  .tp .kb-title-input { font-size: 1.1rem; }
+}
+/* Touch: at least 44 px hit areas without changing the look */
+@media (pointer: coarse) {
+  .tp-icon-btn.sm, .al-switch { position: relative; }
+  .tp-icon-btn.sm::after, .al-switch::after { content: ''; position: absolute; inset: -7px; }
 }
 .toast-fade-enter-active, .toast-fade-leave-active { transition: opacity .25s; }
 .toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; }

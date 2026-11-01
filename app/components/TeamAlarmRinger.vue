@@ -28,7 +28,7 @@ function tick() {
     const key = `${al.id}|${now.toDateString()}|${hm}`
     if (fired.has(key)) continue
     fired.add(key)
-    ring(al.time, al.label)
+    ring(al.time, al.label, `alarm-${al.id}`)
     // One-time alarm switches itself off
     if (!al.days.length) {
       al.enabled = false
@@ -61,7 +61,7 @@ function remindEvents(now: Date) {
       if (fired.has(key)) continue
       fired.add(key)
       const when = k === 0 ? '' : ` · ${start.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}`
-      ring(e.start, `${c.value.reminder}: ${e.title}${when}`)
+      ring(e.start, `${c.value.reminder}: ${e.title}${when}`, `event-${e.id}-${date}`)
     }
   }
 }
@@ -92,7 +92,8 @@ function beep() {
   }
 }
 
-function ring(time: string, label: string) {
+// tag = same as the Web Push of this alarm/reminder: the phone shows one notification, not two
+function ring(time: string, label: string, tag = 'duo-alarm') {
   if (!ringing.value) title.saved = document.title
   ringing.value = { time, label }
   document.title = `⏰ ${time} ${label}`.trim()
@@ -102,9 +103,7 @@ function ring(time: string, label: string) {
   beepTimer = setInterval(beep, 1400)
   clearTimeout(stopTimer)
   stopTimer = setTimeout(silence, 2 * 60 * 1000) // ring at most 2 min
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(`⏰ ${time}`, { body: label || a.value.ringing, tag: 'duo-alarm' })
-  }
+  notifyLocal(`⏰ ${time}`, { body: label || a.value.ringing, tag, requireInteraction: true, data: { url: location.pathname } })
 }
 
 function silence() {
