@@ -22,7 +22,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
 from .db import SessionLocal
-from .models import Alarm, Board, BoardColumn, CalEvent, Card, Expense, PushLater, PushSent, PushSubscription, Recurring, User, UserSettings
+from .models import Alarm, Board, BoardColumn, CalEvent, Card, Expense, PushLater, PushSent, PushSubscription, Recurring, StudyWork, Subject, User, UserSettings
+from .routers.study import current_semester, has_class
 from .sync import utcnow
 
 log = logging.getLogger("push")
@@ -59,7 +60,14 @@ TEXT = {
     },
 }
 # Kinds a user can switch off in settings ("notify" key); alarms ignore quiet hours
-KINDS = ("alarms", "events", "due", "mentions", "assign", "bills", "summary", "evening")
+KINDS = ("alarms", "events", "due", "mentions", "assign", "bills", "summary", "evening", "classes", "study")
+# Kinds of study works and of classes, per language
+STUDY = {
+    "sk": {"assignment": "Zadanie", "project": "Semestrálna práca", "exam": "Skúška", "credit": "Zápočet", "lecture": "Prednáška", "seminar": "Cvičenie", "lab": "Laboratórium", "in": "o {n} dni", "in1": "zajtra", "in0": "dnes"},
+    "cs": {"assignment": "Úkol", "project": "Semestrální práce", "exam": "Zkouška", "credit": "Zápočet", "lecture": "Přednáška", "seminar": "Cvičení", "lab": "Laboratoř", "in": "za {n} dny", "in1": "zítra", "in0": "dnes"},
+    "uk": {"assignment": "Завдання", "project": "Курсова", "exam": "Іспит", "credit": "Залік", "lecture": "Лекція", "seminar": "Семінар", "lab": "Лабораторна", "in": "через {n} дні", "in1": "завтра", "in0": "сьогодні"},
+    "en": {"assignment": "Assignment", "project": "Coursework", "exam": "Exam", "credit": "Credit test", "lecture": "Lecture", "seminar": "Seminar", "lab": "Lab", "in": "in {n} days", "in1": "tomorrow", "in0": "today"},
+}
 
 Builder = Callable[[dict, str], dict]  # (texts, lang) -> payload for the service worker
 
@@ -245,6 +253,37 @@ async def _bills(db: AsyncSession, uid: int, local: datetime) -> None:
         })
 
 
+async def _classes(db: AsyncSession, uid: int, local: datetime) -> None:
+    """Reminder `remind` minutes before each class (setting of the semester)."""
+    sem = await current_semester(db, uid)
+    if sem is None or sem.remind is None:
+        return
+    at = local + timedelta(minutes=sem.remind)
+    for s in (await db.scalars(select(Subject).where(Subject.semester_id == sem.id))).all():
+        for x in s.lessons:
+            if x.start != f"{at:%H:%M}" or not has_class(x, sem, at.date()) or not await _once(db, f"c{x.id}:{at.date()}"):
+                continue
+            await send(db, uid, "classes", lambda t, lang, s=s, x=x: {
+                "title": f"{STUDY[lang][x.kind]}: {s.name}", "body": " · ".join(filter(None, [f"{x.start}–{x.end}", x.room or s.room, s.teacher])),
+                "tag": f"class-{x.id}", "url": f"/{lang}/panel/study",
+            }, ttl=1800)
+
+
+async def _works(db: AsyncSession, uid: int, local: datetime) -> None:
+    """Study deadlines 3 days before, 1 day before and on the day (09:00)."""
+    today = local.date()
+    for w in (await db.scalars(select(StudyWork).where(StudyWork.user_id == uid, StudyWork.status != "done", StudyWork.due >= today, StudyWork.due <= today + timedelta(days=3)))).all():
+        n = (w.due - today).days
+        if n == 2 or not await _once(db, f"w{w.id}:{n}"):
+            continue
+        s = await db.get(Subject, w.subject_id) if w.subject_id else None
+        await send(db, uid, "study", lambda t, lang, w=w, s=s, n=n: {
+            "title": f"{STUDY[lang][w.kind]}: {w.title}"[:120],
+            "body": " · ".join(filter(None, [STUDY[lang][f'in{n}'] if n < 2 else STUDY[lang]['in'].format(n=n), w.due_time, s.name if s else ""])),
+            "tag": f"work-{w.id}", "url": f"/{lang}/panel/study",
+        })
+
+
 def plural(lang: str, n: int, forms: tuple[str, str, str]) -> str:
     if lang == "en":
         i = 0 if n == 1 else 1
@@ -264,13 +303,15 @@ async def _summary(db: AsyncSession, uid: int, local: datetime, evening: bool) -
         return
     user = await db.get(User, uid)
     t = await build_today(db, user, day)
-    deadlines = len(t.tasks.overdue) + len(t.tasks.today)
+    deadlines = len(t.tasks.overdue) + len(t.tasks.today) + sum(w.due <= day for w in t.study)
+    # Classes count as events; the first item is whatever starts first
+    plan = sorted([(e.start, e.title) for e in t.events] + [(c.start, c.subject) for c in t.classes])
 
     def build(texts: dict, lang: str) -> dict:
-        parts = [plural(lang, n, texts[key]) for n, key in ((len(t.events), "events"), (deadlines, "deadlines"), (len(t.money.bills), "bills")) if n]
+        parts = [plural(lang, n, texts[key]) for n, key in ((len(plan), "events"), (deadlines, "deadlines"), (len(t.money.bills), "bills")) if n]
         body = ", ".join(parts) or texts["free"]
-        if t.events:
-            body += f"; {texts['first']} — {t.events[0].start} {t.events[0].title}"
+        if plan:
+            body += f"; {texts['first']} — {plan[0][0]} {plan[0][1]}"
         return {
             "title": f"{texts['tomorrow' if evening else 'today']} · {day:%d.%m.}", "body": body[:220], "tag": f"summary-{day}",
             "url": f"/{lang}/panel/today" + (f"?date={day}" if evening else ""),
@@ -291,10 +332,12 @@ async def tick(now: datetime) -> None:
             local = now.astimezone(tz_of(prefs))
             await _alarms(db, uid, local)
             await _events(db, uid, local)
+            await _classes(db, uid, local)
             hm, n = f"{local:%H:%M}", prefs.get("notify") or {}
             if hm == "09:00":
                 await _due(db, uid, local)
                 await _bills(db, uid, local)
+                await _works(db, uid, local)
             # Morning summary (on by default) and "what is tomorrow" (off by default)
             if n.get("summary") is not False and hm == (n.get("summaryAt") or "07:30"):
                 await _summary(db, uid, local, evening=False)

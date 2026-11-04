@@ -429,6 +429,28 @@ class TodayMoney(BaseModel):
     bills: list[TodayBill] = []
 
 
+class TodayClass(BaseModel):
+    lesson_id: int
+    subject_id: int
+    subject: str
+    color: str
+    start: str
+    end: str
+    kind: str
+    room: str
+
+
+class TodayWork(BaseModel):
+    id: int
+    title: str
+    kind: str
+    subject: str | None
+    color: str | None
+    due: date
+    due_time: str | None
+    status: str
+
+
 class TodayOut(BaseModel):
     date: date
     now: datetime
@@ -437,3 +459,126 @@ class TodayOut(BaseModel):
     events: list[TodayEvent]
     tasks: TodayTasks
     money: TodayMoney
+    classes: list[TodayClass] = []
+    study: list[TodayWork] = []  # not done, due within a week or overdue
+
+
+# Study: semester, subjects with weekly classes, assignments / exams
+StudyKind = Literal["assignment", "project", "exam", "credit"]
+LessonKind = Literal["lecture", "seminar", "lab"]
+Color = Field("#5B4BFF", pattern=r"^#[0-9A-Fa-f]{6}$")
+
+
+class BreakRange(BaseModel):
+    start: date = Field(alias="from")
+    end: date = Field(alias="to")
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+
+class SemesterIn(BaseModel):
+    title: str = Title
+    start: date
+    end: date
+    breaks: list[BreakRange] = Field(default_factory=list, max_length=60)
+    remind: int | None = Field(None, ge=0, le=240)  # minutes before a class
+
+
+class SemesterOut(BaseModel):
+    id: int
+    title: str
+    start: date
+    end: date
+    breaks: list[BreakRange]
+    remind: int | None
+
+
+class StudyLink(BaseModel):
+    title: str = Field("", max_length=60)
+    url: str = Field(max_length=500, pattern=r"^https?://")
+
+
+class SubjectIn(BaseModel):
+    name: str = Title
+    teacher: str = Field("", max_length=120)
+    room: str = Field("", max_length=60)
+    color: str = Color
+    links: list[StudyLink] = Field(default_factory=list, max_length=10)
+    note: str = Field("", max_length=5000)
+
+
+class SubjectPatch(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=120)
+    teacher: str | None = Field(None, max_length=120)
+    room: str | None = Field(None, max_length=60)
+    color: str | None = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
+    links: list[StudyLink] | None = Field(None, max_length=10)
+    note: str | None = Field(None, max_length=5000)
+
+
+class LessonIn(BaseModel):
+    subject_id: int
+    weekday: int = Field(ge=0, le=6)
+    start: str = Field(pattern=TIME_PATTERN)
+    end: str = Field(pattern=TIME_PATTERN)
+    kind: LessonKind = "lecture"
+    room: str = Field("", max_length=60)
+
+
+class LessonOut(LessonIn):
+    id: int
+
+
+class LessonsIn(BaseModel):
+    lessons: list[LessonIn] = Field(max_length=200)
+
+
+class SubjectOut(BaseModel):
+    id: int
+    name: str
+    teacher: str
+    room: str
+    color: str
+    links: list[StudyLink]
+    note: str
+    lessons: list[LessonOut]
+
+
+class WorkIn(BaseModel):
+    subject_id: int | None = None
+    kind: StudyKind = "assignment"
+    title: str = Field(min_length=1, max_length=200)
+    due: date
+    due_time: str | None = Field(None, pattern=TIME_PATTERN)
+    status: Literal["todo", "doing", "done"] = "todo"
+    grade: str = Field("", max_length=20)
+    note: str = Field("", max_length=5000)
+
+
+class WorkPatch(BaseModel):
+    subject_id: int | None = None
+    kind: StudyKind | None = None
+    title: str | None = Field(None, min_length=1, max_length=200)
+    due: date | None = None
+    due_time: str | None = Field(None, pattern=TIME_PATTERN)
+    status: Literal["todo", "doing", "done"] | None = None
+    grade: str | None = Field(None, max_length=20)
+    note: str | None = Field(None, max_length=5000)
+
+
+class WorkOut(Orm):
+    id: int
+    subject_id: int | None
+    kind: str
+    title: str
+    due: date
+    due_time: str | None
+    status: str
+    grade: str
+    note: str
+    updated_at: datetime | None = None
+
+
+class StudyOut(BaseModel):
+    semester: SemesterOut | None
+    subjects: list[SubjectOut]
+    works: list[WorkOut]

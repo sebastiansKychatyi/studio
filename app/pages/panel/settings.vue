@@ -71,7 +71,7 @@ const version = useRuntimeConfig().public.appVersion
 
 // Notifications: this device's subscription + account-wide types and quiet hours (read by the server)
 const { permission, subscribed, serverReady, check, enable, disable, test } = usePush()
-const KINDS = ['alarms', 'events', 'due', 'mentions', 'assign', 'bills'] as const
+const KINDS = ['alarms', 'events', 'classes', 'study', 'due', 'mentions', 'assign', 'bills'] as const
 interface NotifyPrefs { quiet?: boolean; quietFrom?: string; quietTo?: string; summaryAt?: string; eveningAt?: string; [kind: string]: boolean | string | undefined }
 // Daily summaries: morning on by default, evening ("what is tomorrow") off
 const SUMMARIES = [

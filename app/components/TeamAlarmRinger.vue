@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // Rings alarms and calendar reminders while the panel is open.
 // setInterval (not rAF) so it keeps ticking in background tabs.
-import { eventOccursOn } from '~/composables/useTeam'
+import { classesOn, eventOccursOn } from '~/composables/useTeam'
 
 const { t } = useSite()
-const { alarms, events, api } = useTeam()
+const { alarms, events, study, api } = useTeam()
 const a = computed(() => t.value.panel.alarms)
 const c = computed(() => t.value.panel.calendar)
 
@@ -37,6 +37,7 @@ function tick() {
     }
   }
   remindEvents(now)
+  remindClasses(now)
   const due = snoozes.value.find((s) => s.at <= now.getTime())
   if (due) {
     removeSnooze(due, true)
@@ -64,6 +65,20 @@ function remindEvents(now: Date) {
       const when = k === 0 ? '' : ` · ${start.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}`
       ring(e.start, `${c.value.reminder}: ${e.title}${when}`, `event-${e.id}-${date}`)
     }
+  }
+}
+
+// Classes: `remind` minutes (semester setting) before the start, on days with that class
+function remindClasses(now: Date) {
+  const remind = study.value.semester?.remind
+  if (remind === null || remind === undefined) return
+  const at = new Date(now.getTime() + remind * 60000)
+  const hm = `${pad(at.getHours())}:${pad(at.getMinutes())}`
+  for (const { lesson, subject } of classesOn(study.value, ymd(at))) {
+    const key = `cl${lesson.id}|${ymd(at)}`
+    if (lesson.start !== hm || fired.has(key)) continue
+    fired.add(key)
+    ring(lesson.start, `${subject.name}${lesson.room || subject.room ? ` · ${lesson.room || subject.room}` : ''}`, `class-${lesson.id}`)
   }
 }
 

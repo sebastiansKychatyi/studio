@@ -313,7 +313,25 @@ const cs: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    study: {
+      title: 'Studium', subtitle: 'Rozvrh, úkoly a zkoušky na jednom místě.',
+      semester: 'Semestr', newSemester: 'Nový semestr', semesterName: 'Název', semesterPh: 'Zimní semestr', from: 'Od', to: 'Do',
+      breaks: 'Bez výuky', breaksHint: 'Svátky, prázdniny, zkouškové — v tyto dny se hodiny nezobrazují.', addBreak: 'Přidat období', breakDay: 'bez výuky',
+      remind: 'Připomenout před hodinou',
+      emptyTitle: 'Zatím žádný semestr', emptyText: 'Zadejte data semestru, pak předměty a rozvrh — hodiny se objeví v kalendáři i na obrazovce Dnes.',
+      week: 'Týden', noTimetable: 'Rozvrh je prázdný — vyplňte ho tabulkou níže.',
+      deadlines: 'Termíny', addWork: 'Termín', workTitle: 'Co odevzdat', workPh: 'Např. Seminární práce 1', subject: 'Předmět', kind: 'Typ', due: 'Termín', time: 'Čas',
+      noDeadlines: 'Žádné otevřené termíny.', doneList: 'Odevzdané', grade: 'Známka', overdue: 'po termínu', dueToday: 'dnes', dueTomorrow: 'zítra', inDays: 'za dní:',
+      status: { todo: 'Neodevzdáno', doing: 'Rozpracováno', done: 'Odevzdáno' },
+      workKinds: { assignment: 'Úkol', project: 'Semestrální práce', exam: 'Zkouška', credit: 'Zápočet' },
+      kinds: { lecture: 'Přednáška', seminar: 'Cvičení', lab: 'Laboratoř' },
+      subjects: 'Předměty', addSubject: 'Předmět', noSubjects: 'Přidejte předměty — pak jim zadáte hodiny v rozvrhu.', noDetails: 'bez vyučujícího a místnosti',
+      subjectName: 'Název předmětu', teacher: 'Vyučující', room: 'Místnost', links: 'Odkazy (Moodle, Teams…)', linkTitle: 'Název', addLink: 'Přidat odkaz',
+      timetable: 'Rozvrh', editTimetable: 'Upravit rozvrh', timetableHint: 'Všechny hodiny týdne v jedné tabulce — řádek = jedna hodina, opakuje se každý týden semestru.',
+      day: 'Den', start: 'Od', end: 'Do', addRow: 'Přidat hodinu', inCalendar: 'Zobrazit v kalendáři',
+    },
     today: {
+      study: 'Studium', noStudy: 'žádné termíny na týden',
       title: 'Dnes', today: 'Dnes', tomorrow: 'Zítra', tomorrowTitle: 'Plán na zítra',
       night: 'Dobrou noc', morning: 'Dobré ráno', afternoon: 'Dobrý den', evening: 'Dobrý večer',
       noAlarm: 'Budík není nastavený', todayAt: 'dnes v', tomorrowAt: 'zítra v',
@@ -371,6 +389,7 @@ const cs: typeof sk = {
     themeLight: 'Světlý motiv',
     menu: 'Menu panelu',
     nav: {
+      study: 'Studium',
       today: 'Dnes',
       finance: 'Finance',
       tasks: 'Úkoly',
@@ -476,6 +495,7 @@ const cs: typeof sk = {
       share: 'Sdílet',
     },
     calendar: {
+      classes: 'Rozvrh',
       days3: '3 dny',
       noEvents: 'Na tento den nic není.',
       title: 'Kalendář',
@@ -527,7 +547,7 @@ const cs: typeof sk = {
         blocked: 'Zablokováno v prohlížeči — povolte je v nastavení stránky.',
         unsupported: 'Tento prohlížeč oznámení nepodporuje.',
         serverOff: 'Na serveru nejsou nastaveny klíče VAPID — oznámení přijdou, jen dokud je aplikace otevřená.',
-        kinds: { alarms: 'Budíky', events: 'Připomínky z kalendáře', due: 'Termíny úkolů (v 9:00)', mentions: '@zmínky', assign: 'Přiřazené úkoly', bills: 'Měsíční platby (v 9:00)' },
+        kinds: { alarms: 'Budíky', events: 'Připomínky z kalendáře', classes: 'Hodiny (před začátkem)', study: 'Studijní termíny (v 9:00)', due: 'Termíny úkolů (v 9:00)', mentions: '@zmínky', assign: 'Přiřazené úkoly', bills: 'Měsíční platby (v 9:00)' },
         quiet: 'Tiché hodiny (kromě budíků)',
         summary: 'Ranní přehled dne',
         evening: 'Večer: co je zítra',

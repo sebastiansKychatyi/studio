@@ -8,7 +8,7 @@ const { t, cfg } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { user, mentions, online, pending, synced, notices, logout, loadUsers, loadAlarms, loadMentions, loadEvents, startSync, flush } = useTeam()
+const { user, mentions, online, pending, synced, notices, logout, loadUsers, loadAlarms, loadMentions, loadEvents, loadStudy, startSync, flush } = useTeam()
 const { ready, loadPrefs, pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
@@ -16,6 +16,7 @@ const nav = computed(() => [
   { to: localePath('/panel/today'), icon: 'spark', label: p.value.nav.today },
   { to: localePath('/panel'), icon: 'tasks', label: p.value.nav.tasks },
   { to: localePath('/panel/calendar'), icon: 'calendar', label: p.value.nav.calendar },
+  { to: localePath('/panel/study'), icon: 'study', label: p.value.nav.study },
   { to: localePath('/panel/alarms'), icon: 'alarm', label: p.value.nav.alarms },
   { to: localePath('/panel/expenses'), icon: 'wallet', label: p.value.nav.expenses },
   { to: localePath('/panel/income'), icon: 'income', label: p.value.nav.income },
@@ -67,6 +68,7 @@ onMounted(() => {
   loadAlarms().catch(() => {})
   loadMentions().catch(() => {})
   loadEvents().catch(() => {})
+  loadStudy().catch(() => {})
   // Mentions badge + events for reminders (changes from other devices)
   poll = setInterval(() => {
     loadMentions().catch(() => {})
@@ -96,6 +98,7 @@ watch(synced, () => {
   loadAlarms().catch(() => {})
   loadEvents().catch(() => {})
   loadMentions().catch(() => {})
+  loadStudy().catch(() => {})
   justSynced.value = true
   clearTimeout(syncedTimer)
   syncedTimer = setTimeout(() => (justSynced.value = false), 4000)

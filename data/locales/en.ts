@@ -313,7 +313,25 @@ const en: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    study: {
+      title: 'Study', subtitle: 'Timetable, assignments and exams in one place.',
+      semester: 'Semester', newSemester: 'New semester', semesterName: 'Name', semesterPh: 'Winter semester', from: 'From', to: 'To',
+      breaks: 'No classes', breaksHint: 'Holidays, breaks, exam period — no classes are shown on these days.', addBreak: 'Add period', breakDay: 'no classes',
+      remind: 'Remind before a class',
+      emptyTitle: 'No semester yet', emptyText: 'Enter the semester dates, then subjects and the timetable — classes appear in the calendar and on Today.',
+      week: 'Week', noTimetable: 'The timetable is empty — fill it in with the table below.',
+      deadlines: 'Deadlines', addWork: 'Deadline', workTitle: 'What to hand in', workPh: 'E.g. Essay 1', subject: 'Subject', kind: 'Type', due: 'Deadline', time: 'Time',
+      noDeadlines: 'No open deadlines.', doneList: 'Handed in', grade: 'Grade', overdue: 'overdue', dueToday: 'today', dueTomorrow: 'tomorrow', inDays: 'days:',
+      status: { todo: 'Not handed in', doing: 'In progress', done: 'Handed in' },
+      workKinds: { assignment: 'Assignment', project: 'Coursework', exam: 'Exam', credit: 'Credit test' },
+      kinds: { lecture: 'Lecture', seminar: 'Seminar', lab: 'Lab' },
+      subjects: 'Subjects', addSubject: 'Subject', noSubjects: 'Add subjects — then give them classes in the timetable.', noDetails: 'no teacher or room',
+      subjectName: 'Subject name', teacher: 'Teacher', room: 'Room', links: 'Links (Moodle, Teams…)', linkTitle: 'Title', addLink: 'Add link',
+      timetable: 'Timetable', editTimetable: 'Edit timetable', timetableHint: 'All classes of the week in one table — a row is one class, repeated every week of the semester.',
+      day: 'Day', start: 'From', end: 'To', addRow: 'Add class', inCalendar: 'Show in the calendar',
+    },
     today: {
+      study: 'Study', noStudy: 'no deadlines this week',
       title: 'Today', today: 'Today', tomorrow: 'Tomorrow', tomorrowTitle: 'Plan for tomorrow',
       night: 'Good night', morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening',
       noAlarm: 'No alarm set', todayAt: 'today at', tomorrowAt: 'tomorrow at',
@@ -371,6 +389,7 @@ const en: typeof sk = {
     themeLight: 'Light theme',
     menu: 'Panel menu',
     nav: {
+      study: 'Study',
       today: 'Today',
       finance: 'Finance',
       tasks: 'Tasks',
@@ -476,6 +495,7 @@ const en: typeof sk = {
       share: 'Share',
     },
     calendar: {
+      classes: 'Classes',
       days3: '3 days',
       noEvents: 'Nothing planned for this day.',
       title: 'Calendar',
@@ -527,7 +547,7 @@ const en: typeof sk = {
         blocked: 'Blocked in the browser — allow them in the site settings.',
         unsupported: 'This browser does not support notifications.',
         serverOff: 'The server has no VAPID keys — notifications arrive only while the app is open.',
-        kinds: { alarms: 'Alarms', events: 'Calendar reminders', due: 'Task deadlines (at 9:00)', mentions: '@mentions', assign: 'Assigned tasks', bills: 'Monthly payments (at 9:00)' },
+        kinds: { alarms: 'Alarms', events: 'Calendar reminders', classes: 'Classes (before the start)', study: 'Study deadlines (at 9:00)', due: 'Task deadlines (at 9:00)', mentions: '@mentions', assign: 'Assigned tasks', bills: 'Monthly payments (at 9:00)' },
         quiet: 'Quiet hours (except alarms)',
         summary: 'Morning summary of the day',
         evening: 'Evening: what is tomorrow',

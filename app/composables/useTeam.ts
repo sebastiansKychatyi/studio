@@ -61,8 +61,29 @@ export interface TeamToday {
   tasks: { overdue: TodayCard[]; today: TodayCard[]; assigned: TodayCard[] }
   money: { month: string; spent_today: number; spent_month: number; bills: TodayBill[] } // EUR
 }
+// Study: current semester, subjects with weekly classes (lessons), assignments and exams (works)
+export type LessonKind = 'lecture' | 'seminar' | 'lab'
+export type WorkKind = 'assignment' | 'project' | 'exam' | 'credit'
+export interface StudySemester { id: number; title: string; start: string; end: string; breaks: { from: string; to: string }[]; remind: number | null }
+export interface StudyLesson { id: number; subject_id: number; weekday: number; start: string; end: string; kind: LessonKind; room: string }
+export interface StudySubject { id: number; name: string; teacher: string; room: string; color: string; links: { title: string; url: string }[]; note: string; lessons: StudyLesson[] }
+export interface StudyWork { id: number; subject_id: number | null; kind: WorkKind; title: string; due: string; due_time: string | null; status: 'todo' | 'doing' | 'done'; grade: string; note: string; updated_at: string | null }
+export interface TeamStudy { semester: StudySemester | null; subjects: StudySubject[]; works: StudyWork[] }
+
+// Is there this class on the day (YYYY-MM-DD): weekday, semester dates, breaks (same rule as the API)
+export function hasClass(l: StudyLesson, s: StudySemester | null, day: string) {
+  if (!s || day < s.start || day > s.end) return false
+  return new Date(`${day}T12:00:00`).getDay() === l.weekday && !s.breaks.some((b) => day >= b.from && day <= b.to)
+}
+// Classes of a day, sorted, with their subject
+export function classesOn(study: TeamStudy, day: string) {
+  return study.subjects
+    .flatMap((s) => s.lessons.filter((l) => hasClass(l, study.semester, day)).map((l) => ({ lesson: l, subject: s })))
+    .sort((a, b) => a.lesson.start.localeCompare(b.lesson.start))
+}
+
 // Kanban card with a deadline, for the calendar
-export interface TeamDue { id: number; title: string; due_date: string; board_id: number; board_title: string; column_title: string; done: boolean }
+export interface TeamDue { id: number; title: string; due_date: string; board_id: number; board_title: string; column_title: string; done: boolean; study?: boolean }
 export const EXPENSE_CATEGORIES = ['food', 'transport', 'home', 'software', 'tech', 'fun', 'health', 'other'] as const
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
 export const INCOME_CATEGORIES = ['projects', 'salary', 'support', 'sale', 'gift', 'refund', 'other'] as const
@@ -238,8 +259,12 @@ async function enqueue(method: OutboxOp['method'], url: string, body?: Record<st
 // Send waiting changes in order; temp ids become real ones; stops at the first network error
 export function flushOutbox() {
   if (import.meta.server) return Promise.resolve()
-  flushing ??= (async () => {
+  // One tab at a time (installed app + a browser tab share the outbox), and always the stored outbox:
+  // another tab may have sent part of it already
+  const exclusive = (fn: () => Promise<void>) => (navigator.locks ? navigator.locks.request('duo-outbox', fn) : fn())
+  flushing ??= exclusive(async () => {
     const list = await loadOps()
+    list.splice(0, list.length, ...(await outbox.all().catch(() => list)))
     let changed = false
     const notice = (kind: SyncNotice['kind'], label: string) => sync?.notices.value.push({ id: Date.now() + Math.random(), kind, label })
     while (list.length) {
@@ -281,8 +306,9 @@ export function flushOutbox() {
       await outbox.remove(op.seq!)
       if (sync) sync.pending.value = list.length
     }
+    if (sync) sync.pending.value = list.length
     if (changed && sync) sync.synced.value++
-  })().finally(() => (flushing = null))
+  }).finally(() => (flushing = null))
   return flushing
 }
 
@@ -293,6 +319,7 @@ export function useTeam() {
   const alarms = useState<TeamAlarm[]>('team-alarms', () => [])
   const mentions = useState<TeamMention[]>('team-mentions', () => [])
   const events = useState<TeamEvent[]>('team-events', () => [])
+  const study = useState<TeamStudy>('team-study', () => ({ semester: null, subjects: [], works: [] }))
   const online = useState('team-online', () => true)
   const pending = useState('team-pending', () => 0)
   const synced = useState('team-synced', () => 0) // bumped after the outbox was sent: pages reload
@@ -352,6 +379,7 @@ export function useTeam() {
   const loadAlarms = () => load('/alarms', alarms)
   const loadMentions = () => load('/mentions', mentions)
   const loadEvents = () => load('/events', events)
+  const loadStudy = () => load('/study', study)
 
   // From the panel shell: count waiting changes, send them when the network is back
   function startSync() {
@@ -375,7 +403,7 @@ export function useTeam() {
 
   return {
     user, users, alarms, mentions, events, online, pending, synced, notices, waiting,
-    api, peek, refresh, login, logout, loadUsers, loadAlarms, loadMentions, loadEvents, startSync, flush: flushOutbox,
+    study, api, peek, refresh, login, logout, loadUsers, loadAlarms, loadMentions, loadEvents, loadStudy, startSync, flush: flushOutbox,
   }
 }
 

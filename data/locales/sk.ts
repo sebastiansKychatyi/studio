@@ -313,7 +313,25 @@ export default {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    study: {
+      title: 'Štúdium', subtitle: 'Rozvrh, zadania a skúšky na jednom mieste.',
+      semester: 'Semester', newSemester: 'Nový semester', semesterName: 'Názov', semesterPh: 'Zimný semester', from: 'Od', to: 'Do',
+      breaks: 'Bez výučby', breaksHint: 'Sviatky, prázdniny, skúškové — v tieto dni sa hodiny nezobrazujú.', addBreak: 'Pridať obdobie', breakDay: 'bez výučby',
+      remind: 'Pripomenúť pred hodinou',
+      emptyTitle: 'Zatiaľ žiadny semester', emptyText: 'Zadajte dátumy semestra, potom predmety a rozvrh — hodiny sa objavia v kalendári aj na obrazovke Dnes.',
+      week: 'Týždeň', noTimetable: 'Rozvrh je prázdny — vyplňte ho tabuľkou nižšie.',
+      deadlines: 'Termíny', addWork: 'Termín', workTitle: 'Čo odovzdať', workPh: 'Napr. Seminárna práca 1', subject: 'Predmet', kind: 'Typ', due: 'Termín', time: 'Čas',
+      noDeadlines: 'Žiadne otvorené termíny.', doneList: 'Odovzdané', grade: 'Známka', overdue: 'po termíne', dueToday: 'dnes', dueTomorrow: 'zajtra', inDays: 'o dní:',
+      status: { todo: 'Neodovzdané', doing: 'Rozpracované', done: 'Odovzdané' },
+      workKinds: { assignment: 'Zadanie', project: 'Semestrálna práca', exam: 'Skúška', credit: 'Zápočet' },
+      kinds: { lecture: 'Prednáška', seminar: 'Cvičenie', lab: 'Laboratórium' },
+      subjects: 'Predmety', addSubject: 'Predmet', noSubjects: 'Pridajte predmety — potom im zadáte hodiny v rozvrhu.', noDetails: 'bez vyučujúceho a miestnosti',
+      subjectName: 'Názov predmetu', teacher: 'Vyučujúci', room: 'Miestnosť', links: 'Odkazy (Moodle, Teams…)', linkTitle: 'Názov', addLink: 'Pridať odkaz',
+      timetable: 'Rozvrh', editTimetable: 'Upraviť rozvrh', timetableHint: 'Všetky hodiny týždňa v jednej tabuľke — riadok = jedna hodina, opakuje sa každý týždeň semestra.',
+      day: 'Deň', start: 'Od', end: 'Do', addRow: 'Pridať hodinu', inCalendar: 'Zobraziť v kalendári',
+    },
     today: {
+      study: 'Štúdium', noStudy: 'žiadne termíny na týždeň',
       title: 'Dnes', today: 'Dnes', tomorrow: 'Zajtra', tomorrowTitle: 'Plán na zajtra',
       night: 'Dobrú noc', morning: 'Dobré ráno', afternoon: 'Dobrý deň', evening: 'Dobrý večer',
       noAlarm: 'Budík nie je nastavený', todayAt: 'dnes o', tomorrowAt: 'zajtra o',
@@ -371,6 +389,7 @@ export default {
     themeLight: 'Svetlá téma',
     menu: 'Menu panela',
     nav: {
+      study: 'Štúdium',
       today: 'Dnes',
       finance: 'Financie',
       tasks: 'Úlohy',
@@ -476,6 +495,7 @@ export default {
       share: 'Zdieľať',
     },
     calendar: {
+      classes: 'Rozvrh',
       days3: '3 dni',
       noEvents: 'Na tento deň nič nie je.',
       title: 'Kalendár',
@@ -527,7 +547,7 @@ export default {
         blocked: 'Zablokované v prehliadači — povoľte ich v nastaveniach stránky.',
         unsupported: 'Tento prehliadač upozornenia nepodporuje.',
         serverOff: 'Na serveri nie sú nastavené kľúče VAPID — upozornenia prídu, len kým je aplikácia otvorená.',
-        kinds: { alarms: 'Budíky', events: 'Pripomienky z kalendára', due: 'Termíny úloh (o 9:00)', mentions: '@spomenutia', assign: 'Priradené úlohy', bills: 'Mesačné platby (o 9:00)' },
+        kinds: { alarms: 'Budíky', events: 'Pripomienky z kalendára', classes: 'Hodiny (pred začiatkom)', study: 'Študijné termíny (o 9:00)', due: 'Termíny úloh (o 9:00)', mentions: '@spomenutia', assign: 'Priradené úlohy', bills: 'Mesačné platby (o 9:00)' },
         quiet: 'Tiché hodiny (okrem budíkov)',
         summary: 'Ranný prehľad dňa',
         evening: 'Večer: čo je zajtra',

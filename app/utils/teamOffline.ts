@@ -15,6 +15,7 @@ const QUEUEABLE: [string, RegExp][] = [
   ['POST', new RegExp(`^/columns/${ID}/cards$`)], ['PATCH', new RegExp(`^/cards/${ID}$`)], ['DELETE', new RegExp(`^/cards/${ID}$`)],
   ['PATCH', /^\/me\/settings$/],
   ['POST', new RegExp(`^/(expenses|income)/recurring/${ID}/pay$`)],
+  ['POST', /^\/study\/works$/], ['PATCH', new RegExp(`^/study/works/${ID}$`)], ['DELETE', new RegExp(`^/study/works/${ID}$`)],
 ]
 export const queueable = (method: string, url: string) => QUEUEABLE.some(([m, re]) => m === method && re.test(url))
 
@@ -35,6 +36,7 @@ function created(op: OutboxOp, ctx: Ctx): Obj {
   if (op.url === '/alarms') return { id: op.temp, label: '', days: [], enabled: true, ...b, updated_at: null }
   if (op.url === '/events') return { id: op.temp, skip: [], note: '', remind: null, until: null, days: [], ...b, updated_at: null }
   if (op.url.endsWith('/pay')) return { id: op.temp, ...b }
+  if (op.url === '/study/works') return { id: op.temp, subject_id: null, kind: 'assignment', due_time: null, status: 'todo', grade: '', note: '', ...b, updated_at: null }
   if (/^\/(expenses|income)$/.test(op.url)) return money({ id: op.temp, recurring_id: null, note: '', category: 'other', updated_at: null }, b, ctx)
   const col = Number(op.url.split('/')[2])
   return {
@@ -88,6 +90,11 @@ export function overlay(key: string, data: unknown, ops: OutboxOp[], ctx: Ctx): 
       .sort((a, b) => String(b.spent_on).localeCompare(String(a.spent_on)) || (b.id < 0 ? 1e12 : b.id) - (a.id < 0 ? 1e12 : a.id))
   }
   if (/^\/boards\/\d+$/.test(path!)) return board(data as Obj, mine(/^\/(cards|columns)\//), ctx)
+  if (path === '/study') {
+    const s = data as Obj
+    const works = mine(/^\/study\/works/).reduce((l, op) => onList(l, op, '/study/works', ctx), s.works as Obj[])
+    return { ...s, works: works.sort((a, b) => String(a.due).localeCompare(String(b.due))) }
+  }
   if (path === '/me/settings') {
     const out = { ...(data as Obj) }
     for (const op of mine(/^\/me\/settings$/)) {
@@ -143,6 +150,7 @@ export function optimistic(op: OutboxOp, current: Obj | undefined, ctx: Ctx): un
 export function searchKeys(url: string, keys: string[]) {
   const kind = url.split('/')[1]
   if (kind === 'cards') return keys.filter((k) => /^\/boards\/\d+$/.test(k))
+  if (kind === 'study') return keys.filter((k) => k === '/study')
   if (kind === 'expenses' || kind === 'income') return keys.filter((k) => k.startsWith(`/${kind}?`) && k.includes('month='))
   return keys.filter((k) => k === `/${kind}`)
 }
@@ -150,6 +158,8 @@ export function searchKeys(url: string, keys: string[]) {
 // Find an item by id in a cached response (cards sit inside board columns)
 export function findIn(data: unknown, id: number): Obj | undefined {
   if (Array.isArray(data)) return data.find((x) => x?.id === id)
+  const works = (data as Obj | undefined)?.works
+  if (Array.isArray(works)) return works.find((x) => x?.id === id)
   const cols = (data as Obj | undefined)?.columns
   if (Array.isArray(cols)) for (const c of cols) for (const card of c.cards ?? []) if (card.id === id) return card
 }

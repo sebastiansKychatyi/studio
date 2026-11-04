@@ -313,7 +313,25 @@ const uk: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    study: {
+      title: 'Навчання', subtitle: 'Розклад, завдання та іспити в одному місці.',
+      semester: 'Семестр', newSemester: 'Новий семестр', semesterName: 'Назва', semesterPh: 'Зимовий семестр', from: 'З', to: 'До',
+      breaks: 'Без занять', breaksHint: 'Свята, канікули, сесія — у ці дні пари не показуються.', addBreak: 'Додати період', breakDay: 'без занять',
+      remind: 'Нагадати перед парою',
+      emptyTitle: 'Семестру ще немає', emptyText: 'Вкажіть дати семестру, потім предмети й розклад — пари з’являться в календарі та на екрані «Сьогодні».',
+      week: 'Тиждень', noTimetable: 'Розклад порожній — заповніть його таблицею нижче.',
+      deadlines: 'Дедлайни', addWork: 'Дедлайн', workTitle: 'Що здати', workPh: 'Напр. Реферат 1', subject: 'Предмет', kind: 'Тип', due: 'Дедлайн', time: 'Час',
+      noDeadlines: 'Відкритих дедлайнів немає.', doneList: 'Здано', grade: 'Оцінка', overdue: 'прострочено', dueToday: 'сьогодні', dueTomorrow: 'завтра', inDays: 'днів:',
+      status: { todo: 'Не здано', doing: 'У роботі', done: 'Здано' },
+      workKinds: { assignment: 'Завдання', project: 'Курсова', exam: 'Іспит', credit: 'Залік' },
+      kinds: { lecture: 'Лекція', seminar: 'Семінар', lab: 'Лабораторна' },
+      subjects: 'Предмети', addSubject: 'Предмет', noSubjects: 'Додайте предмети — потім вкажете їхні пари в розкладі.', noDetails: 'без викладача й аудиторії',
+      subjectName: 'Назва предмета', teacher: 'Викладач', room: 'Аудиторія', links: 'Посилання (Moodle, Teams…)', linkTitle: 'Назва', addLink: 'Додати посилання',
+      timetable: 'Розклад', editTimetable: 'Редагувати розклад', timetableHint: 'Усі пари тижня в одній таблиці — рядок = одна пара, повторюється щотижня протягом семестру.',
+      day: 'День', start: 'З', end: 'До', addRow: 'Додати пару', inCalendar: 'Показати в календарі',
+    },
     today: {
+      study: 'Навчання', noStudy: 'дедлайнів на тиждень немає',
       title: 'Сьогодні', today: 'Сьогодні', tomorrow: 'Завтра', tomorrowTitle: 'План на завтра',
       night: 'Доброї ночі', morning: 'Доброго ранку', afternoon: 'Добрий день', evening: 'Добрий вечір',
       noAlarm: 'Будильник не стоїть', todayAt: 'сьогодні о', tomorrowAt: 'завтра о',
@@ -371,6 +389,7 @@ const uk: typeof sk = {
     themeLight: 'Світла тема',
     menu: 'Меню панелі',
     nav: {
+      study: 'Навчання',
       today: 'Сьогодні',
       finance: 'Фінанси',
       tasks: 'Задачі',
@@ -476,6 +495,7 @@ const uk: typeof sk = {
       share: 'Поділитися',
     },
     calendar: {
+      classes: 'Пари',
       days3: '3 дні',
       noEvents: 'На цей день нічого немає.',
       title: 'Календар',
@@ -527,7 +547,7 @@ const uk: typeof sk = {
         blocked: 'Заблоковано в браузері — дозвольте їх у налаштуваннях сайту.',
         unsupported: 'Цей браузер не підтримує сповіщення.',
         serverOff: 'На сервері не задано ключі VAPID — сповіщення приходитимуть лише поки застосунок відкритий.',
-        kinds: { alarms: 'Будильники', events: 'Нагадування з календаря', due: 'Дедлайни завдань (о 9:00)', mentions: '@згадки', assign: 'Призначені завдання', bills: 'Щомісячні платежі (о 9:00)' },
+        kinds: { alarms: 'Будильники', events: 'Нагадування з календаря', classes: 'Пари (перед початком)', study: 'Навчальні дедлайни (о 9:00)', due: 'Дедлайни завдань (о 9:00)', mentions: '@згадки', assign: 'Призначені завдання', bills: 'Щомісячні платежі (о 9:00)' },
         quiet: 'Тихі години (крім будильників)',
         summary: 'Ранкове зведення дня',
         evening: 'Увечері: що завтра',

@@ -1,12 +1,15 @@
 <script setup lang="ts">
 // Personal planner: week (hour grid) and month views, weekly repeating events, kanban deadlines.
 // Calendars other people shared with you can be overlaid (read-only).
-import { eventOccursOn as occursOn, type EventDraft, type TeamDue, type TeamEvent, type TeamUser } from '~/composables/useTeam'
+import { classesOn, eventOccursOn as occursOn, type EventDraft, type TeamDue, type TeamEvent, type TeamUser } from '~/composables/useTeam'
 
 const { t } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
-const { api, peek, events, synced } = useTeam() // own events are shared with the reminder ringer
+const { api, peek, events, synced, study } = useTeam() // own events are shared with the reminder ringer
+// Study layer: classes as events, study deadlines next to task deadlines (can be hidden)
+const showStudy = usePrefs().pref<boolean>('calendarStudy', true)
+const hasLessons = computed(() => study.value.subjects.some((x) => x.lessons.length))
 const { pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
@@ -118,7 +121,7 @@ watch(range, () => loadDue().catch(fail))
 watch(synced, () => load())
 
 // Occurrences of events on one day
-interface Occ { ev: TeamEvent; date: string; start: number; end: number; lane: number; lanes: number; owner: number | null }
+interface Occ { ev: TeamEvent; date: string; start: number; end: number; lane: number; lanes: number; owner: number | null; study?: boolean }
 const byDay = computed(() => {
   const map = new Map<string, Occ[]>()
   const days = view.value === 'week' ? weekDays.value : monthDays.value
@@ -129,7 +132,11 @@ const byDay = computed(() => {
     ]
     const list = all
       .filter(([e]) => occursOn(e, day))
-      .map(([ev, owner]) => ({ ev, date: day, start: toMin(ev.start), end: toMin(ev.end), lane: 0, lanes: 1, owner }))
+      .map(([ev, owner]): Occ => ({ ev, date: day, start: toMin(ev.start), end: toMin(ev.end), lane: 0, lanes: 1, owner }))
+      .concat(showStudy.value ? classesOn(study.value, day).map(({ lesson: l, subject: s }): Occ => ({
+        ev: { id: -l.id, title: s.name, date: day, start: l.start, end: l.end, repeat: 'none', days: [], until: null, skip: [], color: s.color, note: '', remind: null },
+        date: day, start: toMin(l.start), end: toMin(l.end), lane: 0, lanes: 1, owner: null, study: true,
+      })) : [])
       .sort((a, b) => a.start - b.start || b.end - a.end)
     // Overlapping events share the width: lanes inside each overlap group
     let group: Occ[] = []
@@ -154,6 +161,14 @@ const byDay = computed(() => {
 const dueByDay = computed(() => {
   const map = new Map<string, TeamDue[]>()
   for (const d of due.value) map.set(d.due_date, [...(map.get(d.due_date) ?? []), d])
+  // Study works (assignments, exams) look like deadlines and open the Study page
+  if (showStudy.value) {
+    for (const w of study.value.works) {
+      const subject = study.value.subjects.find((x) => x.id === w.subject_id)?.name ?? ''
+      const item: TeamDue = { id: -w.id, title: w.title, due_date: w.due, board_id: 0, board_title: subject, column_title: '', done: w.status === 'done', study: true }
+      map.set(w.due, [...(map.get(w.due) ?? []), item])
+    }
+  }
   return map
 })
 const busy = (day: string) => (byDay.value.get(day) ?? []).filter((o) => o.owner === null).reduce((s, o) => s + (o.end - o.start), 0)
@@ -224,7 +239,8 @@ function onGridClick(e: MouseEvent, day: string) {
   const top = e.clientY - (e.currentTarget as HTMLElement).getBoundingClientRect().top
   newAt(day, Math.min(Math.floor(top / HOUR * 2) * 30, 23 * 60))
 }
-function open(o: { ev: TeamEvent; date: string; owner: number | null }) {
+function open(o: { ev: TeamEvent; date: string; owner: number | null; study?: boolean }) {
+  if (o.study) return navigateTo(localePath('/panel/study'))
   if (o.owner !== null) return // someone else's event: read-only
   const { id: _id, skip: _skip, ...draft } = o.ev
   editing.value = { event: o.ev, draft: { ...draft }, occurrence: o.date }
@@ -262,6 +278,7 @@ async function remove() {
 
 // Deadline → open its board
 function openCard(d: TeamDue) {
+  if (d.study) return navigateTo(localePath('/panel/study'))
   openBoards.value = [d.board_id]
   navigateTo(localePath('/panel'))
 }
@@ -319,8 +336,11 @@ onBeforeUnmount(() => clearInterval(clock))
       </div>
     </header>
 
-    <div v-if="sharedToMe.length" class="cal-people">
-      <span>{{ c.overlay }}:</span>
+    <div v-if="sharedToMe.length || hasLessons" class="cal-people">
+      <button v-if="hasLessons" type="button" class="cal-person cal-layer" :class="{ on: showStudy }" :aria-pressed="showStudy" @click="showStudy = !showStudy">
+        <AppIcon name="study" />{{ c.classes }}
+      </button>
+      <span v-if="sharedToMe.length">{{ c.overlay }}:</span>
       <button
         v-for="u in sharedToMe"
         :key="u.id"
@@ -357,7 +377,7 @@ onBeforeUnmount(() => clearInterval(clock))
               :key="d.id"
               type="button"
               class="cal-due-chip"
-              :class="{ done: d.done, late: !d.done && day < today }"
+              :class="{ done: d.done, late: !d.done && day < today, study: d.study }"
               :title="`${c.deadline}: ${d.title} · ${d.board_title} / ${d.column_title}`"
               @click="openCard(d)"
             >
@@ -383,7 +403,7 @@ onBeforeUnmount(() => clearInterval(clock))
               :key="`${o.ev.id}-${day}`"
               type="button"
               class="cal-ev"
-              :class="{ short: o.end - o.start < 45, past: day < today || (day === today && o.end < nowMin), other: o.owner !== null }"
+              :class="{ short: o.end - o.start < 45, past: day < today || (day === today && o.end < nowMin), other: o.owner !== null, study: o.study }"
               :title="o.owner !== null ? `${ownerOf(o.owner)?.name || ownerOf(o.owner)?.username}: ${o.ev.title}` : undefined"
               :style="{
                 '--c': o.ev.color,
@@ -395,7 +415,7 @@ onBeforeUnmount(() => clearInterval(clock))
               @click="open(o)"
             >
               <b><span v-if="o.owner !== null" class="tp-avatar sm cal-ev-who" :data-c="o.owner % 3">{{ initial(ownerOf(o.owner)) }}</span>{{ o.ev.title }}</b>
-              <small>{{ o.ev.start }}–{{ o.ev.end }}<AppIcon v-if="o.ev.repeat === 'weekly'" name="repeat" /><AppIcon v-if="o.ev.remind !== null && o.owner === null" name="bell" /></small>
+              <small>{{ o.ev.start }}–{{ o.ev.end }}<AppIcon v-if="o.study" name="study" /><AppIcon v-if="o.ev.repeat === 'weekly'" name="repeat" /><AppIcon v-if="o.ev.remind !== null && o.owner === null" name="bell" /></small>
             </button>
             <i v-if="day === today" class="cal-now" :style="{ top: `${(nowMin / 60) * HOUR}px` }" />
           </div>
@@ -426,7 +446,7 @@ onBeforeUnmount(() => clearInterval(clock))
             :key="`d${d.id}`"
             type="button"
             class="cal-due-chip"
-            :class="{ done: d.done, late: !d.done && day < today }"
+            :class="{ done: d.done, late: !d.done && day < today, study: d.study }"
             :title="`${c.deadline}: ${d.title}`"
             @click="openCard(d)"
           >
@@ -461,7 +481,7 @@ onBeforeUnmount(() => clearInterval(clock))
         :key="`d${d.id}`"
         type="button"
         class="cal-due-chip"
-        :class="{ done: d.done, late: !d.done && picked < today }"
+        :class="{ done: d.done, late: !d.done && picked < today, study: d.study }"
         @click="openCard(d)"
       >
         <AppIcon name="calendar" />{{ c.deadline }}: {{ d.title }}
@@ -552,6 +572,12 @@ onBeforeUnmount(() => clearInterval(clock))
 }
 .cal-ev.other:hover { transform: none; }
 .cal-ev-who { display: inline-grid !important; width: 16px !important; height: 16px !important; margin-right: 4px; font-size: .55rem !important; vertical-align: -2px; }
+.cal-layer .ico { width: 16px; height: 16px; margin-left: 4px; }
+.cal-layer { padding-left: 8px; }
+.cal-due-chip.study { background: rgba(91, 75, 255, .12); color: var(--accent); }
+.cal-due-chip.study.late { background: #E5484D; color: #fff; }
+.cal-ev.study { border-left-width: 4px; }
+.tp.dark .cal-due-chip.study { background: rgba(139, 127, 255, .18); color: #B9B1FF; }
 .cal-people { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -8px 0 16px; font-size: .85rem; font-weight: 700; color: var(--muted); }
 .cal-person {
   display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 5px; border-radius: 999px; cursor: pointer;

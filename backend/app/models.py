@@ -241,3 +241,70 @@ class PushLater(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     fire_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     payload: Mapped[str] = mapped_column(Text)  # JSON for the service worker
+
+
+class Semester(Base):
+    """Study period; classes repeat weekly between start and end, except on break days."""
+
+    __tablename__ = "semesters"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    start: Mapped[dt.date] = mapped_column(Date)
+    end: Mapped[dt.date] = mapped_column(Date)
+    # No classes: "YYYY-MM-DD" or "YYYY-MM-DD:YYYY-MM-DD" (holidays, exam period), comma separated
+    breaks: Mapped[str] = mapped_column(Text, server_default="")
+    remind: Mapped[int | None] = mapped_column(Integer)  # minutes before a class; None = no reminder
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Subject(Base):
+    __tablename__ = "subjects"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    semester_id: Mapped[int] = mapped_column(ForeignKey("semesters.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    teacher: Mapped[str] = mapped_column(String(120), server_default="")
+    room: Mapped[str] = mapped_column(String(60), server_default="")
+    color: Mapped[str] = mapped_column(String(7), server_default="#5B4BFF")
+    links: Mapped[str] = mapped_column(Text, server_default="[]")  # JSON [{title, url}] (Moodle, Teams…)
+    note: Mapped[str] = mapped_column(Text, server_default="")
+
+    lessons: Mapped[list["Lesson"]] = relationship(
+        lazy="selectin", order_by="Lesson.weekday, Lesson.start", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
+class Lesson(Base):
+    """Weekly class of a subject: lecture, seminar or lab."""
+
+    __tablename__ = "lessons"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id", ondelete="CASCADE"), index=True)
+    weekday: Mapped[int] = mapped_column(Integer)  # JS weekday, 0 = Sunday
+    start: Mapped[str] = mapped_column(String(5))  # HH:MM
+    end: Mapped[str] = mapped_column(String(5))
+    kind: Mapped[str] = mapped_column(String(10), server_default="lecture")  # lecture | seminar | lab
+    room: Mapped[str] = mapped_column(String(60), server_default="")  # empty = the subject's room
+
+
+class StudyWork(Base):
+    """Assignment, coursework, exam or credit test with a deadline."""
+
+    __tablename__ = "study_works"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    subject_id: Mapped[int | None] = mapped_column(ForeignKey("subjects.id", ondelete="SET NULL"), index=True)
+    kind: Mapped[str] = mapped_column(String(12), server_default="assignment")  # assignment | project | exam | credit
+    title: Mapped[str] = mapped_column(String(200))
+    due: Mapped[dt.date] = mapped_column(Date, index=True)
+    due_time: Mapped[str | None] = mapped_column(String(5))  # HH:MM, optional
+    status: Mapped[str] = mapped_column(String(8), server_default="todo")  # todo | doing | done
+    grade: Mapped[str] = mapped_column(String(20), server_default="")
+    note: Mapped[str] = mapped_column(Text, server_default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)

@@ -2,13 +2,13 @@
 // "Today": the whole day on one screen — next alarm, timeline, tasks, money; Today / Tomorrow.
 // Tasks and money come from GET /today (server, user's time zone); events and the alarm are
 // computed from the local data, so offline changes show at once.
-import { eventOccursOn, type Currency, type TeamToday, type TodayBill, type TodayCard } from '~/composables/useTeam'
+import { classesOn, eventOccursOn, type Currency, type StudyWork, type TeamToday, type TodayBill, type TodayCard } from '~/composables/useTeam'
 
 const { t } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { api, user, alarms, events, synced, waiting, online } = useTeam()
+const { api, user, alarms, events, study, synced, waiting, online } = useTeam()
 const { pref } = usePrefs()
 const { list: snoozes } = useSnoozes()
 
@@ -100,10 +100,34 @@ const alarmText = computed(() => {
   return `${when} ${time}${a.label ? ` · ${a.label}` : ''}`
 })
 
-// Timeline: own events of the day, "now" line between past and coming ones
+// Timeline: own events and classes of the day, "now" line between past and coming ones
 const toMin = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5))
-const dayEvents = computed(() =>
-  events.value.filter((e) => eventOccursOn(e, day.value)).sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end)))
+const dayEvents = computed(() => [
+  ...events.value.filter((e) => eventOccursOn(e, day.value)).map((e) => ({
+    key: `e${e.id}`, title: e.title, start: e.start, end: e.end, color: e.color, sub: '', repeat: e.repeat === 'weekly',
+    to: `/panel/calendar?date=${day.value}&event=${e.id}`,
+  })),
+  ...classesOn(study.value, day.value).map(({ lesson: l, subject: s }) => ({
+    key: `c${l.id}`, title: s.name, start: l.start, end: l.end, color: s.color, repeat: false, to: '/panel/study',
+    sub: [t.value.panel.study.kinds[l.kind], l.room || s.room].filter(Boolean).join(' · '),
+  })),
+].sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end)))
+
+// Study: not done, due within a week or overdue; tick = done (works offline)
+const studyWorks = computed(() => {
+  const limit = new Date(`${day.value}T12:00:00`)
+  limit.setDate(limit.getDate() + 7)
+  return study.value.works.filter((w) => w.status !== 'done' && w.due <= ymd(limit))
+})
+const subjectName = (w: StudyWork) => study.value.subjects.find((x) => x.id === w.subject_id)?.name
+const daysLeft = (w: StudyWork) => Math.round((Date.parse(w.due) - Date.parse(day.value)) / 86400000)
+async function workDone(w: StudyWork) {
+  w.status = 'done'
+  await api(`/study/works/${w.id}`, { method: 'PATCH', body: { status: 'done' } }).catch((e) => {
+    w.status = 'todo'
+    failed.value = isOffline(e) ? p.value.offlineOnly : p.value.errorServer
+  })
+}
 const nowMin = computed(() => now.value.getHours() * 60 + now.value.getMinutes())
 const nowAt = computed(() => (isToday.value ? dayEvents.value.findIndex((e) => toMin(e.end) > nowMin.value) : -2))
 
@@ -178,13 +202,13 @@ watch(failed, (v) => v && setTimeout(() => (failed.value = ''), 3500))
     <section class="td-block" :class="{ empty: !dayEvents.length }">
       <h2><AppIcon name="calendar" />{{ d.plan }}<span v-if="!dayEvents.length" class="td-none">{{ d.noEvents }}</span></h2>
       <ol v-if="dayEvents.length" class="td-line">
-        <template v-for="(e, i) in dayEvents" :key="`${e.id}`">
+        <template v-for="(e, i) in dayEvents" :key="e.key">
           <li v-if="i === nowAt" class="td-now"><span>{{ d.now }} · {{ pad(now.getHours()) }}:{{ pad(now.getMinutes()) }}</span></li>
           <li>
-            <NuxtLink :to="localePath(`/panel/calendar?date=${day}&event=${e.id}`)" class="td-ev" :class="{ past: isToday && toMin(e.end) <= nowMin }" :style="{ '--c': e.color }">
+            <NuxtLink :to="localePath(e.to)" class="td-ev" :class="{ past: isToday && toMin(e.end) <= nowMin }" :style="{ '--c': e.color }">
               <span class="td-ev-time">{{ e.start }}<small>{{ e.end }}</small></span>
-              <b>{{ e.title }}</b>
-              <AppIcon v-if="e.repeat === 'weekly'" name="repeat" />
+              <span class="td-ev-text"><b>{{ e.title }}</b><small v-if="e.sub">{{ e.sub }}</small></span>
+              <AppIcon v-if="e.sub" name="study" /><AppIcon v-else-if="e.repeat" name="repeat" />
             </NuxtLink>
           </li>
         </template>
@@ -207,6 +231,20 @@ watch(failed, (v) => v && setTimeout(() => (failed.value = ''), 3500))
           </li>
         </TransitionGroup>
       </div>
+    </section>
+
+    <!-- Study deadlines -->
+    <section v-if="study.semester || study.works.length" class="td-block" :class="{ empty: !studyWorks.length }">
+      <h2><AppIcon name="study" />{{ d.study }}<span v-if="!studyWorks.length" class="td-none">{{ d.noStudy }}</span></h2>
+      <TransitionGroup v-if="studyWorks.length" tag="ul" name="kb-card" class="td-tasks td-study">
+        <li v-for="w in studyWorks" :key="w.id" class="td-task" :class="{ late: daysLeft(w) < 0 }">
+          <button type="button" class="td-check" :title="d.markDone" :aria-label="`${d.markDone}: ${w.title}`" @click="workDone(w)"><AppIcon name="check" /></button>
+          <NuxtLink :to="localePath('/panel/study')" class="td-task-text">
+            <b>{{ w.title }}</b>
+            <small>{{ t.panel.study.workKinds[w.kind] }}<template v-if="subjectName(w)"> · {{ subjectName(w) }}</template> · {{ shortDate(w.due) }}<template v-if="w.due_time"> {{ w.due_time }}</template></small>
+          </NuxtLink>
+        </li>
+      </TransitionGroup>
     </section>
 
     <!-- Money -->
@@ -273,7 +311,11 @@ watch(failed, (v) => v && setTimeout(() => (failed.value = ''), 3500))
   display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px;
   border-radius: 14px; border-left: 4px solid var(--c); background: color-mix(in srgb, var(--c) 10%, var(--surface));
 }
-.td-ev b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-ev-text { min-width: 0; display: grid; line-height: 1.25; }
+.td-ev-text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-ev-text small { color: var(--muted); font-weight: 600; font-size: .76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-study .td-task.late { border-color: rgba(229, 72, 77, .4); }
+.td-study .td-task.late small { color: #E5484D; }
 .td-ev .ico { width: 15px; height: 15px; color: var(--muted); }
 .td-ev-time { display: grid; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .td-ev-time small { color: var(--muted); font-weight: 700; font-size: .75rem; }
