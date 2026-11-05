@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Kanban card editor: title, description with @mentions, deadline, assignee, visibility, column (any board), delete
+// Kanban card editor: title, description with @mentions, deadline, assignee, visibility, column (any board),
+// client / project (CRM) and the time tracking timer, delete
 import type { TeamBoardItem, TeamCard, TeamColumn, TeamUser } from '~/composables/useTeam'
 
 const props = defineProps<{
@@ -23,7 +24,22 @@ const form = reactive({
   column_id: props.card.column_id,
   due_date: props.card.due_date ?? '',
   is_private: props.card.is_private,
+  client_id: props.card.client_id ?? null,
+  project_id: props.card.project_id ?? null,
 })
+
+// CRM link + timer on this task
+const { clients, projects } = useTeam()
+const timer = useTimer()
+const clientProjects = computed(() => projects.value.filter((x) => x.client_id === form.client_id))
+watch(() => form.client_id, (id) => {
+  if (!projects.value.some((x) => x.id === form.project_id && x.client_id === id)) form.project_id = null
+})
+const timing = computed(() => timer.running.value?.card_id === props.card.id)
+function toggleTimer() {
+  if (timing.value) return timer.stop().catch(() => {})
+  timer.start({ card_id: props.card.id, client_id: form.client_id, project_id: form.project_id, note: props.card.title }).catch(() => {})
+}
 
 // Only the author changes visibility; someone else's card cannot go to a private board
 const mine = computed(() => props.card.created_by === null || props.card.created_by === props.meId)
@@ -60,6 +76,8 @@ function save() {
   if (form.column_id !== props.card.column_id) patch.column_id = form.column_id
   if ((form.due_date || null) !== props.card.due_date) patch.due_date = form.due_date || null
   if (form.is_private !== props.card.is_private) patch.is_private = form.is_private
+  if (form.client_id !== (props.card.client_id ?? null)) patch.client_id = form.client_id
+  if (form.project_id !== (props.card.project_id ?? null)) patch.project_id = form.project_id
   if (Object.keys(patch).length) emit('save', patch)
   else emit('close')
 }
@@ -113,6 +131,25 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
           </select>
         </label>
       </div>
+      <div class="tm-row">
+        <label class="tp-field">
+          <span>{{ p.time.client }}</span>
+          <select v-model="form.client_id">
+            <option :value="null">—</option>
+            <option v-for="x in clients" :key="x.id" :value="x.id">{{ x.name }}</option>
+          </select>
+        </label>
+        <label class="tp-field">
+          <span>{{ p.time.project }}</span>
+          <select v-model="form.project_id" :disabled="!form.client_id">
+            <option :value="null">—</option>
+            <option v-for="x in clientProjects" :key="x.id" :value="x.id">{{ x.title }}</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" class="btn btn-sm tm-timer" :class="timing ? 'running' : 'btn-ghost'" @click="toggleTimer">
+        <AppIcon :name="timing ? 'stop' : 'play'" /> {{ timing ? `${p.time.stop} · ${timer.clock.value}` : p.time.startOnTask }}
+      </button>
       <div class="tp-field">
         <span>{{ k.visibility }}</span>
         <div class="tm-vis" role="radiogroup" :aria-label="k.visibility">
@@ -159,7 +196,6 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
 </template>
 
 <style>
-.tm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tm-mention { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 16px; font-size: .82rem; font-weight: 700; color: var(--muted); }
 .tm-mention > span { display: inline-flex; align-items: center; gap: 5px; }
 .tm-mention .ico { width: 15px; height: 15px; }
@@ -185,7 +221,9 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
 .tm-who { display: flex; align-items: center; gap: 6px; margin-top: 2px; color: var(--muted); font-size: .78rem; font-weight: 700; }
 .tm-who .ico { flex: none; width: 14px; height: 14px; }
 .tm-who.warn { color: #C2410C; }
+.tm-timer { margin: -4px 0 14px; min-height: 44px; }
+.tm-timer .ico { width: 15px; height: 15px; }
+.tm-timer.running { background: rgba(229, 72, 77, .12); color: #E5484D; font-variant-numeric: tabular-nums; }
 .tm-due { display: flex; align-items: center; gap: 8px; }
 .tm-due input { flex: 1; }
-@media (max-width: 520px) { .tm-row { grid-template-columns: 1fr; } }
 </style>

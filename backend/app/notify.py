@@ -22,7 +22,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
 from .db import SessionLocal
-from .models import Alarm, Board, BoardColumn, CalEvent, Card, Expense, PushLater, PushSent, PushSubscription, Recurring, StudyWork, Subject, User, UserSettings
+from .models import (
+    Alarm, Board, BoardColumn, CalEvent, Card, Client, ClientLog, Expense, Invoice, PushLater, PushSent, PushSubscription, Recurring, StudyWork, Subject,
+    TimeEntry, User, UserSettings,
+)
 from .routers.study import current_semester, has_class
 from .sync import utcnow
 
@@ -60,7 +63,14 @@ TEXT = {
     },
 }
 # Kinds a user can switch off in settings ("notify" key); alarms ignore quiet hours
-KINDS = ("alarms", "events", "due", "mentions", "assign", "bills", "summary", "evening", "classes", "study")
+KINDS = ("alarms", "events", "due", "mentions", "assign", "bills", "summary", "evening", "classes", "study", "clients", "invoices", "timer")
+# CRM and timer texts, per language
+CRM = {
+    "sk": {"followup": "Ozvať sa", "due": "Splatnosť faktúry dnes", "late": "Faktúra po splatnosti", "timer": "Časovač stále beží", "running": "beží {h} h"},
+    "cs": {"followup": "Ozvat se", "due": "Splatnost faktury dnes", "late": "Faktura po splatnosti", "timer": "Časovač stále běží", "running": "běží {h} h"},
+    "uk": {"followup": "Зв’язатися", "due": "Сьогодні термін оплати", "late": "Рахунок прострочено", "timer": "Таймер досі йде", "running": "іде {h} год"},
+    "en": {"followup": "Get in touch", "due": "Invoice due today", "late": "Invoice overdue", "timer": "Timer still running", "running": "running for {h} h"},
+}
 # Kinds of study works and of classes, per language
 STUDY = {
     "sk": {"assignment": "Zadanie", "project": "Semestrálna práca", "exam": "Skúška", "credit": "Zápočet", "lecture": "Prednáška", "seminar": "Cvičenie", "lab": "Laboratórium", "in": "o {n} dni", "in1": "zajtra", "in0": "dnes"},
@@ -284,6 +294,40 @@ async def _works(db: AsyncSession, uid: int, local: datetime) -> None:
         })
 
 
+async def _clients(db: AsyncSession, uid: int, local: datetime) -> None:
+    """09:00: follow-ups due today, invoices due today and the day after they become overdue."""
+    today = local.date()
+    names = dict((await db.execute(select(Client.id, Client.name).where(Client.user_id == uid))).all())
+    for x in (await db.scalars(select(ClientLog).where(ClientLog.user_id == uid, ClientLog.followup == today, ClientLog.followup_done.is_(False)))).all():
+        if await _once(db, f"f{x.id}"):
+            await send(db, uid, "clients", lambda t, lang, x=x: {
+                "title": f"{CRM[lang]['followup']}: {names.get(x.client_id, '')}", "body": x.text[:200], "tag": f"followup-{x.id}",
+                "url": f"/{lang}/panel/clients?id={x.client_id}",
+            })
+    for i in (await db.scalars(select(Invoice).where(Invoice.user_id == uid, Invoice.paid_on.is_(None), Invoice.due.in_([today, today - timedelta(days=1)])))).all():
+        late = i.due < today
+        if await _once(db, f"i{i.id}:{'late' if late else 'due'}"):
+            await send(db, uid, "invoices", lambda t, lang, i=i, late=late: {
+                "title": f"{CRM[lang]['late' if late else 'due']}: {names.get(i.client_id, '')}",
+                "body": f"{i.number} {i.title} · {i.amount:.2f} {i.currency}".strip(), "tag": f"invoice-{i.id}",
+                "url": f"/{lang}/panel/clients?id={i.client_id}",
+            })
+
+
+async def _timer(db: AsyncSession, uid: int, now: datetime, prefs: dict) -> None:
+    """A timer running for more than N hours (settings, default 4) was probably forgotten."""
+    hours = int((prefs.get("notify") or {}).get("timerHours") or 4)
+    t = await db.scalar(select(TimeEntry).where(TimeEntry.user_id == uid, TimeEntry.end.is_(None)))
+    if t is None:
+        return
+    start = t.start if t.start.tzinfo else t.start.replace(tzinfo=now.tzinfo)
+    if now - start >= timedelta(hours=hours) and await _once(db, f"t{t.id}"):
+        await send(db, uid, "timer", lambda tx, lang: {
+            "title": CRM[lang]["timer"], "body": " · ".join(filter(None, [CRM[lang]["running"].format(h=hours), t.note])), "tag": "timer",
+            "url": f"/{lang}/panel/time",
+        })
+
+
 def plural(lang: str, n: int, forms: tuple[str, str, str]) -> str:
     if lang == "en":
         i = 0 if n == 1 else 1
@@ -333,11 +377,13 @@ async def tick(now: datetime) -> None:
             await _alarms(db, uid, local)
             await _events(db, uid, local)
             await _classes(db, uid, local)
+            await _timer(db, uid, now, prefs)
             hm, n = f"{local:%H:%M}", prefs.get("notify") or {}
             if hm == "09:00":
                 await _due(db, uid, local)
                 await _bills(db, uid, local)
                 await _works(db, uid, local)
+                await _clients(db, uid, local)
             # Morning summary (on by default) and "what is tomorrow" (off by default)
             if n.get("summary") is not False and hm == (n.get("summaryAt") or "07:30"):
                 await _summary(db, uid, local, evening=False)

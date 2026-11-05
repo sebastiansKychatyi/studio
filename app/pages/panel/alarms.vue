@@ -294,7 +294,6 @@ async function askPermission() {
 }
 .al-item.snoozed { grid-template-columns: auto minmax(0, 1fr) auto; border-color: rgba(245, 158, 11, .5); background: color-mix(in srgb, #F59E0B 8%, var(--surface)); }
 .al-item.snoozed .al-item-time { color: #C27803; }
-.al-empty { padding: 30px; text-align: center; color: var(--muted); border-radius: 20px; border: 1px dashed var(--line-2); }
 
 @media (max-width: 960px) { .al-grid { grid-template-columns: 1fr; } }
 @media (max-width: 640px) {

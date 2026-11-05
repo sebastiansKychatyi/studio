@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ..crm import own_client
 from ..db import get_db
 from ..notify import card_changed
 from ..models import Board, BoardColumn, BoardMember, Card, User
@@ -225,8 +226,11 @@ async def create_card(
     column = await _column(db, column_id, user)
     if body.assignee_id is not None and body.assignee_id not in board_people(await db.get(Board, column.board_id)):
         raise HTTPException(422, "Assignee has no access to the board")
+    await own_client(db, user, body.client_id, body.project_id)
     await _lock_columns(db, column_id)
     card = Card(
+        client_id=body.client_id,
+        project_id=body.project_id,
         column_id=column_id,
         title=body.title.strip(),
         description=body.description,
@@ -266,6 +270,10 @@ async def update_card(
         card.description = body.description
     if "due_date" in sent:
         card.due_date = body.due_date
+    if sent & {"client_id", "project_id"}:
+        card.client_id = body.client_id if "client_id" in sent else card.client_id
+        card.project_id = body.project_id if "project_id" in sent else card.project_id
+        await own_client(db, user, card.client_id, card.project_id)
     if body.is_private is not None and body.is_private != card.is_private:
         _owner_only(card, user)
         card.is_private = body.is_private

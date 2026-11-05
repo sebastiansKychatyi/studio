@@ -16,6 +16,8 @@ export interface TeamCard {
   due_date: string | null // YYYY-MM-DD
   is_private: boolean // visible only to created_by
   updated_at: string
+  client_id?: number | null // CRM link (personal client list)
+  project_id?: number | null
 }
 // Open card that mentions or is assigned to the current user
 export interface TeamMention extends TeamCard { board_id: number; board_title: string; column_title: string }
@@ -40,6 +42,7 @@ export interface TeamEvent {
   color: string
   note: string
   remind: number | null // minutes before start
+  client_id?: number | null // meeting with a client
 }
 export type EventDraft = Omit<TeamEvent, 'id' | 'skip'>
 
@@ -60,6 +63,8 @@ export interface TeamToday {
   events: Pick<TeamEvent, 'id' | 'title' | 'start' | 'end' | 'color' | 'repeat' | 'note'>[]
   tasks: { overdue: TodayCard[]; today: TodayCard[]; assigned: TodayCard[] }
   money: { month: string; spent_today: number; spent_month: number; bills: TodayBill[] } // EUR
+  followups?: { id: number; client_id: number; client: string; text: string; followup: string }[]
+  waiting?: { id: number; client_id: number; client: string; title: string; number: string; amount: number; currency: string; due: string; overdue: boolean }[]
 }
 // Study: current semester, subjects with weekly classes (lessons), assignments and exams (works)
 export type LessonKind = 'lecture' | 'seminar' | 'lab'
@@ -81,6 +86,34 @@ export function classesOn(study: TeamStudy, day: string) {
     .flatMap((s) => s.lessons.filter((l) => hasClass(l, study.semester, day)).map((l) => ({ lesson: l, subject: s })))
     .sort((a, b) => a.lesson.start.localeCompare(b.lesson.start))
 }
+
+// CRM (personal): clients, projects, contact history, invoices (expected payments)
+export type ClientStatus = 'lead' | 'active' | 'paused' | 'former'
+export interface TeamClient {
+  id: number; name: string; company: string; email: string; phone: string; telegram: string; website: string; lang: string
+  currency: string; rate: number | null; tags: string[]; note: string; status: ClientStatus; open_invoices?: number; late_invoices?: number
+}
+export interface TeamProject { id: number; client_id: number; title: string; status: 'active' | 'paused' | 'done'; budget: number | null; rate: number | null; start: string | null; end: string | null }
+export interface ClientLogItem { id: number; client_id: number; kind: 'call' | 'email' | 'meeting' | 'message'; day: string; text: string; followup: string | null; followup_done: boolean }
+export interface InvoiceItem { title: string; hours: number | null; rate: number | null; amount: number }
+export interface TeamInvoice {
+  id: number; client_id: number; project_id: number | null; number: string; title: string; amount: number; currency: string
+  issued: string; due: string; paid_on: string | null; income_id: number | null; items: InvoiceItem[]; note: string; status: 'pending' | 'overdue' | 'paid'
+}
+export interface ClientDetail {
+  client: TeamClient; projects: TeamProject[]; log: ClientLogItem[]; invoices: TeamInvoice[]
+  cards: { id: number; title: string; due_date: string | null; board_id: number; board_title: string; column_title: string }[]
+  meetings: { id: number; title: string; date: string; start: string; end: string }[]
+  earned_total: number; earned_month: number; minutes_total: number; minutes_month: number // EUR, minutes
+}
+// Time tracking: end null = the running timer
+export interface TimeEntry { id: number; client_id: number | null; project_id: number | null; card_id: number | null; note: string; start: string; end: string | null; invoice_id: number | null; updated_at?: string | null }
+export interface TimeReport {
+  rows: { client_id: number | null; project_id: number | null; card_id: number | null; title: string; minutes: number; rate: number | null; amount: number | null; currency: string }[]
+  minutes: number; amounts: Record<string, number>; unbilled_minutes: number
+}
+// 125 → "2:05"
+export const hm = (minutes: number) => `${Math.floor(minutes / 60)}:${String(Math.floor(minutes % 60)).padStart(2, '0')}`
 
 // Kanban card with a deadline, for the calendar
 export interface TeamDue { id: number; title: string; due_date: string; board_id: number; board_title: string; column_title: string; done: boolean; study?: boolean }
@@ -108,6 +141,8 @@ export interface TeamMoney {
   note: string
   spent_on: string
   recurring_id: number | null // created from a monthly template
+  client_id?: number | null // income from a client / project
+  project_id?: number | null
 }
 
 // Text split into plain parts and @mentions of known users
@@ -320,6 +355,8 @@ export function useTeam() {
   const mentions = useState<TeamMention[]>('team-mentions', () => [])
   const events = useState<TeamEvent[]>('team-events', () => [])
   const study = useState<TeamStudy>('team-study', () => ({ semester: null, subjects: [], works: [] }))
+  const clients = useState<TeamClient[]>('team-clients', () => [])
+  const projects = useState<TeamProject[]>('team-projects', () => []) // of all clients, for pickers
   const online = useState('team-online', () => true)
   const pending = useState('team-pending', () => 0)
   const synced = useState('team-synced', () => 0) // bumped after the outbox was sent: pages reload
@@ -380,6 +417,8 @@ export function useTeam() {
   const loadMentions = () => load('/mentions', mentions)
   const loadEvents = () => load('/events', events)
   const loadStudy = () => load('/study', study)
+  const loadClients = () => load('/clients', clients)
+  const loadProjects = () => load('/projects', projects)
 
   // From the panel shell: count waiting changes, send them when the network is back
   function startSync() {
@@ -403,7 +442,7 @@ export function useTeam() {
 
   return {
     user, users, alarms, mentions, events, online, pending, synced, notices, waiting,
-    study, api, peek, refresh, login, logout, loadUsers, loadAlarms, loadMentions, loadEvents, loadStudy, startSync, flush: flushOutbox,
+    study, clients, projects, loadClients, loadProjects, api, peek, refresh, login, logout, loadUsers, loadAlarms, loadMentions, loadEvents, loadStudy, startSync, flush: flushOutbox,
   }
 }
 

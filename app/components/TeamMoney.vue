@@ -247,7 +247,9 @@ const formEl = ref<HTMLElement>()
 const editingId = ref<number | null>(null)
 const busy = ref(false)
 const amountError = ref(false)
-const form = reactive({ amount: '', currency: 'EUR' as Currency, category: BUILT_IN.value[0]!, note: '', spent_on: today })
+const form = reactive({ amount: '', currency: 'EUR' as Currency, category: BUILT_IN.value[0]!, note: '', spent_on: today, client_id: null as number | null })
+// Income from a client (CRM totals)
+const { clients } = useTeam()
 
 const parsedAmount = computed(() => Math.round(Number(form.amount.replace(',', '.').replace(/\s/g, '')) * 100) / 100)
 // Preview of the stored EUR value
@@ -260,6 +262,7 @@ function resetForm() {
   amountError.value = false
   form.amount = ''
   form.note = ''
+  form.client_id = null
   form.spent_on = month.value === thisMonth ? today : `${month.value}-01`
 }
 
@@ -270,6 +273,7 @@ function edit(x: TeamMoney) {
   form.category = x.category
   form.note = x.note
   form.spent_on = x.spent_on
+  form.client_id = x.client_id ?? null
   formEl.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
@@ -278,7 +282,7 @@ async function save() {
   amountError.value = !(amount > 0 && amount / rates.value[form.currency] <= 1_000_000)
   if (amountError.value || busy.value || !form.spent_on) return
   busy.value = true
-  const body = { amount, currency: form.currency, category: form.category, note: form.note.trim(), spent_on: form.spent_on }
+  const body = { amount, currency: form.currency, category: form.category, note: form.note.trim(), spent_on: form.spent_on, ...(isIncome.value ? { client_id: form.client_id } : {}) }
   try {
     if (editingId.value) await api(`/${props.kind}/${editingId.value}`, { method: 'PATCH', body })
     else await api(`/${props.kind}`, { method: 'POST', body })
@@ -506,6 +510,13 @@ function exportCsv() {
             </div>
           </Transition>
         </div>
+        <label v-if="isIncome && clients.length" class="tp-field">
+          <span>{{ p.time.client }}</span>
+          <select v-model="form.client_id">
+            <option :value="null">—</option>
+            <option v-for="x in clients" :key="x.id" :value="x.id">{{ x.name }}</option>
+          </select>
+        </label>
         <label class="tp-field">
           <span>{{ e.note }}</span>
           <input v-model="form.note" maxlength="200" :placeholder="e.notePh">

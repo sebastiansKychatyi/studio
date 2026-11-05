@@ -71,7 +71,11 @@ const version = useRuntimeConfig().public.appVersion
 
 // Notifications: this device's subscription + account-wide types and quiet hours (read by the server)
 const { permission, subscribed, serverReady, check, enable, disable, test } = usePush()
-const KINDS = ['alarms', 'events', 'classes', 'study', 'due', 'mentions', 'assign', 'bills'] as const
+const KINDS = ['alarms', 'events', 'classes', 'study', 'due', 'mentions', 'assign', 'bills', 'clients', 'invoices', 'timer'] as const
+// Invoice details (seller), used on the printable invoice; Slovak fields, all optional
+const INVOICE_FIELDS = ['name', 'address', 'ico', 'dic', 'icdph', 'register', 'iban', 'swift', 'bank', 'email', 'phone', 'note', 'prefix', 'dueDays'] as const
+const invoice = pref<Record<string, string>>('invoice', {})
+const setInvoice = (key: string, value: string) => (invoice.value = { ...invoice.value, [key]: value.trim() })
 interface NotifyPrefs { quiet?: boolean; quietFrom?: string; quietTo?: string; summaryAt?: string; eveningAt?: string; [kind: string]: boolean | string | undefined }
 // Daily summaries: morning on by default, evening ("what is tomorrow") off
 const SUMMARIES = [
@@ -192,6 +196,10 @@ function openBoard(id: number) {
             <span>{{ st.notify.kinds[kind] }}</span>
           </label>
         </div>
+        <div class="st-row">
+          <span>{{ st.notify.timerHours }}</span>
+          <input type="number" class="tp-input st-at" min="1" max="24" :value="notify.timerHours || 4" :aria-label="st.notify.timerHours" @change="setNotify({ timerHours: ($event.target as HTMLInputElement).value })">
+        </div>
         <div v-for="s in SUMMARIES" :key="s.key" class="st-row">
           <label class="st-kind">
             <input type="checkbox" class="kb-check" :checked="s.on(notify)" @change="setNotify({ [s.key]: ($event.target as HTMLInputElement).checked })">
@@ -219,6 +227,19 @@ function openBoard(id: number) {
           <summary>{{ st.notify.limitsTitle }}</summary>
           <p v-for="(line, i) in st.notify.limits" :key="i">{{ line }}</p>
         </details>
+      </section>
+
+      <!-- Invoice details -->
+      <section class="st-card st-wide">
+        <h2><AppIcon name="doc" /> {{ st.invoice.title }}</h2>
+        <p class="st-note">{{ st.invoice.hint }}</p>
+        <div class="st-invoice">
+          <label v-for="f in INVOICE_FIELDS" :key="f" class="tp-field" :class="{ wide: f === 'address' || f === 'note' }">
+            <span>{{ st.invoice.fields[f] }}</span>
+            <textarea v-if="f === 'address' || f === 'note'" :value="invoice[f] ?? ''" rows="2" maxlength="400" @change="setInvoice(f, ($event.target as HTMLTextAreaElement).value)" />
+            <input v-else :value="invoice[f] ?? (f === 'dueDays' ? '14' : '')" :inputmode="f === 'dueDays' ? 'numeric' : undefined" maxlength="120" @change="setInvoice(f, ($event.target as HTMLInputElement).value)">
+          </label>
+        </div>
       </section>
 
       <!-- Calendar access -->
@@ -303,6 +324,10 @@ function openBoard(id: number) {
 .st-quiet .tp-input, .st-at { width: 120px; }
 .st-at:disabled { opacity: .5; }
 .st-quiet .tp-input:disabled { opacity: .5; }
+.st-invoice { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0 12px; }
+.st-invoice .wide { grid-column: 1 / -1; }
+.st-invoice textarea { resize: vertical; font: inherit; }
+.tp.dark .st-invoice input, .tp.dark .st-invoice textarea { background: var(--field); color: var(--ink); }
 .st-limits { margin-top: 12px; font-size: .84rem; color: var(--ink-2); }
 .st-limits summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 800; color: var(--accent); }
 .st-limits p { margin-top: 8px; line-height: 1.5; }

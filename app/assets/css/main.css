@@ -730,3 +730,68 @@ h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; line-height: 
 .kb-access-name b { font-size: .88rem; }
 .kb-access-name small { color: var(--muted); font-size: .74rem; }
 .kb-check { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+
+/* Team panel: cards and inline forms shared by Study, Clients, Time */
+.sd-card { padding: 18px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); animation: tpUp .6s var(--ease) both; }
+.sd-card h2 { display: flex; align-items: center; gap: 8px; font-size: .95rem; font-weight: 800; }
+.sd-card h2 .ico { width: 17px; height: 17px; color: var(--accent); }
+.sd-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.sd-muted { color: var(--muted); font-size: .88rem; font-weight: 600; }
+.sd-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.sd-workform { margin-bottom: 12px; padding: 14px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line-2); }
+@media (max-width: 640px) {
+  .sd-card { padding: 14px 12px; }
+  .sd-grid3 { grid-template-columns: 1fr; gap: 0; }
+}
+
+/* Team panel: controls used by several pages (were in single components) */
+/* from TeamRecurring.vue */
+.rc-pay {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--ink); color: #fff; font-weight: 800; font-size: .82rem; transition: background .2s, transform .3s var(--ease);
+}
+.rc-pay .ico { width: 15px; height: 15px; }
+.rc-pay:hover { background: var(--accent); transform: translateY(-1px); }
+.rc-income .rc-pay:hover { background: #0E9F85; }
+.rc-pay:disabled { opacity: .6; cursor: progress; }
+
+/* from TeamEventModal.vue */
+.ev-remind { display: flex; flex-wrap: wrap; gap: 6px; }
+.ev-remind button {
+  display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-2); background: var(--field, #fff); color: var(--ink-2); font-weight: 700; font-size: .8rem;
+  transition: background .2s, color .2s, border-color .2s;
+}
+.ev-remind button .ico { width: 13px; height: 13px; }
+.ev-remind button:hover { border-color: var(--c); }
+.ev-remind button.on { background: var(--c); border-color: var(--c); color: #fff; }
+.ev-remind-custom { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.ev-remind-custom input { width: 110px; }
+.ev-remind-custom span { color: var(--muted); font-weight: 700; font-size: .85rem; }
+
+/* from alarms.vue */
+.al-empty { padding: 30px; text-align: center; color: var(--muted); border-radius: 20px; border: 1px dashed var(--line-2); }
+
+/* from TeamCardModal.vue */
+.tm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .tm-row { grid-template-columns: 1fr; } }
+/* from panel/index.vue: empty state, counters, add buttons, list transitions */
+.kb-empty {
+  display: grid; justify-items: center; gap: 10px; max-width: 460px; margin: 40px auto; padding: 44px 28px; text-align: center;
+  border-radius: var(--radius); background: var(--surface); border: 1px dashed var(--line-2); animation: tpUp .7s var(--ease) both;
+}
+.kb-empty-icon { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 18px; background: #EEEBFF; color: var(--accent); margin-bottom: 6px; }
+.kb-empty-icon .ico { width: 28px; height: 28px; }
+.kb-empty h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; }
+.kb-empty p { color: var(--muted); margin-bottom: 10px; }
+.kb-count { padding: 1px 8px; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: .75rem; font-weight: 800; }
+.kb-card-move { transition: transform .35s var(--ease); }
+.kb-card-enter-active { transition: opacity .35s, transform .35s var(--ease); }
+.kb-card-enter-from { opacity: 0; transform: translateY(8px) scale(.97); }
+.kb-card-leave-active { display: none; }
+.kb-add {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 0; cursor: pointer;
+  background: transparent; color: var(--muted); font-weight: 700; font-size: .9rem; transition: background .2s, color .2s;
+}
+.kb-add:hover { background: var(--surface); color: var(--ink); }
+.kb-add .ico { width: 16px; height: 16px; }

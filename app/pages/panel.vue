@@ -8,7 +8,10 @@ const { t, cfg } = useSite()
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
-const { user, mentions, online, pending, synced, notices, logout, loadUsers, loadAlarms, loadMentions, loadEvents, loadStudy, startSync, flush } = useTeam()
+const { user, mentions, online, pending, synced, notices, clients, logout, loadUsers, loadAlarms, loadMentions, loadEvents, loadStudy, loadClients, loadProjects, startSync, flush } = useTeam()
+// Running timer: visible on every screen
+const timer = useTimer()
+const timerLabel = computed(() => clients.value.find((c) => c.id === timer.running.value?.client_id)?.name || timer.running.value?.note || '')
 const { ready, loadPrefs, pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
@@ -17,6 +20,8 @@ const nav = computed(() => [
   { to: localePath('/panel'), icon: 'tasks', label: p.value.nav.tasks },
   { to: localePath('/panel/calendar'), icon: 'calendar', label: p.value.nav.calendar },
   { to: localePath('/panel/study'), icon: 'study', label: p.value.nav.study },
+  { to: localePath('/panel/clients'), icon: 'briefcase', label: p.value.nav.clients },
+  { to: localePath('/panel/time'), icon: 'clock', label: p.value.nav.time },
   { to: localePath('/panel/alarms'), icon: 'alarm', label: p.value.nav.alarms },
   { to: localePath('/panel/expenses'), icon: 'wallet', label: p.value.nav.expenses },
   { to: localePath('/panel/income'), icon: 'income', label: p.value.nav.income },
@@ -69,6 +74,10 @@ onMounted(() => {
   loadMentions().catch(() => {})
   loadEvents().catch(() => {})
   loadStudy().catch(() => {})
+  loadClients().catch(() => {})
+  loadProjects().catch(() => {})
+  timer.load().catch(() => {})
+  timer.tick()
   // Mentions badge + events for reminders (changes from other devices)
   poll = setInterval(() => {
     loadMentions().catch(() => {})
@@ -99,6 +108,8 @@ watch(synced, () => {
   loadEvents().catch(() => {})
   loadMentions().catch(() => {})
   loadStudy().catch(() => {})
+  loadClients().catch(() => {})
+  timer.load().catch(() => {})
   justSynced.value = true
   clearTimeout(syncedTimer)
   syncedTimer = setTimeout(() => (justSynced.value = false), 4000)
@@ -140,6 +151,7 @@ watch(() => route.path, () => (sheet.value = false))
       <NuxtLink class="logo" :to="localePath('/')" :aria-label="cfg.brand"><span class="logo-mark" aria-hidden="true">D</span></NuxtLink>
       <b class="tp-top-title">{{ current }}</b>
       <button v-if="syncState" type="button" class="tp-sync" :class="syncState" :title="p.sync.hint" @click="flush()"><i />{{ syncText }}</button>
+      <NuxtLink v-if="timer.running.value" :to="localePath('/panel/time')" class="tp-timer" :title="timerLabel"><AppIcon name="clock" />{{ timer.clock.value }}</NuxtLink>
       <span v-if="user" class="tp-avatar sm" :data-c="user.id % 3" :title="user.name || user.username">{{ initial(user.name || user.username) }}</span>
     </header>
 
@@ -157,6 +169,10 @@ watch(() => route.path, () => (sheet.value = false))
       </nav>
 
       <div class="tp-side-foot">
+        <div v-if="timer.running.value" class="tp-timer tp-timer-side">
+          <NuxtLink :to="localePath('/panel/time')"><AppIcon name="clock" /><b>{{ timer.clock.value }}</b><small>{{ timerLabel }}</small></NuxtLink>
+          <button type="button" class="tp-icon-btn sm" :title="p.time.stop" :aria-label="p.time.stop" @click="timer.stop().catch(() => {})"><AppIcon name="stop" /></button>
+        </div>
         <button v-if="syncState" type="button" class="tp-sync tp-sync-side" :class="syncState" :title="p.sync.hint" @click="flush()"><i />{{ syncText }}</button>
         <button v-if="showInstall" type="button" class="tp-install" :aria-expanded="ios && !canInstall ? iosHint : undefined" @click="installApp">
           <AppIcon name="download" />{{ p.app.install }}
@@ -215,6 +231,7 @@ watch(() => route.path, () => (sheet.value = false))
     </Transition>
 
     <TeamAlarmRinger />
+    <TeamQuickAdd />
   </div>
 </template>
 
@@ -303,6 +320,24 @@ watch(() => route.path, () => (sheet.value = false))
 }
 .tp-notice.discarded, .tp-notice.rejected { border-left-color: #E5484D; }
 
+/* Print (invoice, time report): only the page content */
+@media print {
+  .tp { display: block; background: #fff; }
+  .tp-side, .tp-top, .tp-tabbar, .tp-scrim, .tp-notices, .tp-update, .tp-toast, .ring-overlay { display: none !important; }
+  .tp-main { padding: 0 !important; }
+  html.tp-dark, .tp.dark { background: #fff; color: #111; }
+}
+
+/* Running timer */
+.tp-timer {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border-radius: 999px; white-space: nowrap;
+  background: rgba(229, 72, 77, .12); color: #E5484D; font-weight: 800; font-size: .8rem; font-variant-numeric: tabular-nums;
+}
+.tp-timer .ico { width: 15px; height: 15px; animation: tpPulse 2s ease-in-out infinite; border-radius: 50%; }
+.tp-timer-side { display: flex; justify-content: space-between; padding: 6px 6px 6px 12px; border-radius: 14px; }
+.tp-timer-side a { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; min-width: 0; color: inherit; }
+.tp-timer-side small { grid-column: 2; color: var(--ink-2); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Installed app */
 .tp-install {
   display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 14px; border-radius: 14px; cursor: pointer;
@@ -370,7 +405,7 @@ watch(() => route.path, () => (sheet.value = false))
   .tp-head { margin-bottom: 18px; }
   .tp-toast { bottom: calc(88px + env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); text-align: center; }
   .tp-notices { bottom: calc(88px + env(safe-area-inset-bottom)); }
-  .tp-sync-side { display: none; }
+  .tp-sync-side, .tp-timer-side { display: none; }
   /* iOS zooms into fields with text under 16px */
   .tp-input { font-size: 16px; }
   .tp .kb-title-input { font-size: 1.1rem; }

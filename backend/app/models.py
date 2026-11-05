@@ -88,6 +88,9 @@ class Card(Base):
     due_date: Mapped[date | None] = mapped_column(Date)
     # Private cards are visible only to created_by
     is_private: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+    # CRM link (the client list is personal: only its owner sees the name)
+    client_id: Mapped[int | None] = mapped_column(ForeignKey("clients.id", ondelete="SET NULL"))
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -124,6 +127,9 @@ class MoneyEntry:
     spent_on: Mapped[date] = mapped_column(Date, index=True)  # entry date (also for income)
     # Set when created from a monthly template ("paid" / "received")
     recurring_id: Mapped[int | None] = mapped_column(ForeignKey("recurring.id", ondelete="SET NULL"), index=True)
+    # Income from a client / project (CRM totals)
+    client_id: Mapped[int | None] = mapped_column(ForeignKey("clients.id", ondelete="SET NULL"), index=True)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     # Set in Python (no reload after commit); offline sync compares it (see sync.py)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)
@@ -149,6 +155,7 @@ class CalEvent(Base):
     color: Mapped[str] = mapped_column(String(7), server_default="#5B4BFF")
     note: Mapped[str] = mapped_column(Text, server_default="")
     remind: Mapped[int | None] = mapped_column(Integer)  # minutes before start; None = no reminder
+    client_id: Mapped[int | None] = mapped_column(ForeignKey("clients.id", ondelete="SET NULL"))  # meeting with a client
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     # Set in Python (no reload after commit); offline sync compares it (see sync.py)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)
@@ -306,5 +313,98 @@ class StudyWork(Base):
     status: Mapped[str] = mapped_column(String(8), server_default="todo")  # todo | doing | done
     grade: Mapped[str] = mapped_column(String(20), server_default="")
     note: Mapped[str] = mapped_column(Text, server_default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)
+
+
+# ===== CRM (personal) =====
+class Client(Base):
+    __tablename__ = "clients"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    company: Mapped[str] = mapped_column(String(120), server_default="")
+    email: Mapped[str] = mapped_column(String(200), server_default="", index=True)
+    phone: Mapped[str] = mapped_column(String(60), server_default="")
+    telegram: Mapped[str] = mapped_column(String(60), server_default="")
+    website: Mapped[str] = mapped_column(String(200), server_default="")
+    lang: Mapped[str] = mapped_column(String(5), server_default="")  # language of communication
+    currency: Mapped[str] = mapped_column(String(3), server_default="EUR")
+    rate: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))  # default hourly rate in `currency`
+    tags: Mapped[str] = mapped_column(String(300), server_default="")  # comma separated
+    note: Mapped[str] = mapped_column(Text, server_default="")
+    status: Mapped[str] = mapped_column(String(8), server_default="active")  # lead | active | paused | former
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)
+
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(8), server_default="active")  # active | paused | done
+    budget: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))  # fixed price in the client currency
+    rate: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))  # hourly; None = rate of the client
+    start: Mapped[dt.date | None] = mapped_column(Date)
+    end: Mapped[dt.date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ClientLog(Base):
+    """Contact history: call / email / meeting / message, optionally "contact again on"."""
+
+    __tablename__ = "client_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10), server_default="message")  # call | email | meeting | message
+    day: Mapped[dt.date] = mapped_column(Date)
+    text: Mapped[str] = mapped_column(Text, server_default="")
+    followup: Mapped[dt.date | None] = mapped_column(Date, index=True)  # reminder on Today + push
+    followup_done: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Invoice(Base):
+    """Amount a client owes: entered by hand or made from tracked time; paying it creates an income entry."""
+
+    __tablename__ = "invoices"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
+    number: Mapped[str] = mapped_column(String(40), server_default="")
+    title: Mapped[str] = mapped_column(String(200))
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))  # in `currency`
+    currency: Mapped[str] = mapped_column(String(3), server_default="EUR")
+    issued: Mapped[dt.date] = mapped_column(Date)
+    due: Mapped[dt.date] = mapped_column(Date, index=True)
+    paid_on: Mapped[dt.date | None] = mapped_column(Date)
+    income_id: Mapped[int | None] = mapped_column(ForeignKey("incomes.id", ondelete="SET NULL"))
+    items: Mapped[str] = mapped_column(Text, server_default="[]")  # JSON [{title, hours, rate, amount}] for the PDF
+    note: Mapped[str] = mapped_column(Text, server_default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TimeEntry(Base):
+    """Tracked time; end None = the running timer (one per user)."""
+
+    __tablename__ = "time_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[int | None] = mapped_column(ForeignKey("clients.id", ondelete="SET NULL"), index=True)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
+    card_id: Mapped[int | None] = mapped_column(ForeignKey("cards.id", ondelete="SET NULL"))
+    note: Mapped[str] = mapped_column(String(300), server_default="")
+    start: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    invoice_id: Mapped[int | None] = mapped_column(ForeignKey("invoices.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)

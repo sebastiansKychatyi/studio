@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..config import settings
+from ..crm import own_client
 from ..db import get_db
 from ..models import Board, BoardColumn, CalendarShare, CalEvent, User
 from ..schemas import CalendarAccessOut, DueCard, EventIn, EventOut, EventPatch, MembersIn, SkipIn, UserOut
@@ -33,6 +34,7 @@ def _out(e: CalEvent) -> EventOut:
         note=e.note,
         remind=e.remind,
         updated_at=e.updated_at,
+        client_id=e.client_id,
     )
 
 
@@ -93,6 +95,7 @@ async def set_calendar_access(body: MembersIn, user: User = Depends(current_user
 
 @router.post("/events", response_model=EventOut, status_code=201)
 async def create_event(body: EventIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    await own_client(db, user, body.client_id)
     data = body.model_dump()
     data["days"] = ",".join(map(str, data["days"])) if body.repeat == "weekly" else ""
     e = CalEvent(user_id=user.id, **data)
@@ -113,6 +116,9 @@ async def update_event(
         value = getattr(body, field)
         if field == "days":
             e.days = ",".join(map(str, value or []))
+        elif field == "client_id":
+            await own_client(db, user, value)
+            e.client_id = value
         elif field in ("until", "remind"):
             setattr(e, field, value)  # may be cleared
         elif value is not None:

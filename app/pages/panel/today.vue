@@ -114,6 +114,31 @@ const dayEvents = computed(() => [
 ].sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end)))
 
 // Study: not done, due within a week or overdue; tick = done (works offline)
+// Timer and clients: follow-ups due, invoices still unpaid
+const timer = useTimer()
+const { clients } = useTeam()
+const clientName = (id: number | null) => clients.value.find((x) => x.id === id)?.name ?? ''
+const followups = computed(() => (data.value?.followups ?? []).filter((x) => !doneIds.value.has(-x.id)))
+const unpaid = computed(() => (data.value?.waiting ?? []).filter((x) => !paidIds.value.has(-x.id)))
+async function followupDone(id: number) {
+  doneIds.value = new Set([...doneIds.value, -id])
+  await api(`/client-log/${id}`, { method: 'PATCH', body: { followup_done: true } }).catch(() => doneIds.value.delete(-id))
+}
+async function invoicePaid(id: number) {
+  paidIds.value = new Set([...paidIds.value, -id])
+  await api(`/invoices/${id}/pay`, { method: 'POST', body: {} }).catch((e) => {
+    paidIds.value.delete(-id)
+    failed.value = isOffline(e) ? p.value.offlineOnly : p.value.errorServer
+  })
+}
+const fmtMoney = (n: number, cur: string) => {
+  try {
+    return new Intl.NumberFormat(locale.value, { style: 'currency', currency: cur, currencyDisplay: 'narrowSymbol' }).format(n)
+  } catch {
+    return `${n.toFixed(2)} ${cur}`
+  }
+}
+
 const studyWorks = computed(() => {
   const limit = new Date(`${day.value}T12:00:00`)
   limit.setDate(limit.getDate() + 7)
@@ -168,14 +193,6 @@ async function pay(b: TodayBill) {
   })
 }
 
-// Quick add
-const fab = ref(false)
-const quick = computed(() => [
-  { icon: 'tasks', label: d.value.addTask, to: localePath('/panel?new=task') },
-  { icon: 'calendar', label: d.value.addEvent, to: localePath(`/panel/calendar?new=event&date=${day.value}`) },
-  { icon: 'wallet', label: d.value.addExpense, to: localePath('/panel/expenses?new=expense') },
-  { icon: 'alarm', label: d.value.addAlarm, to: localePath('/panel/alarms?new=alarm') },
-])
 watch(failed, (v) => v && setTimeout(() => (failed.value = ''), 3500))
 </script>
 
@@ -233,6 +250,42 @@ watch(failed, (v) => v && setTimeout(() => (failed.value = ''), 3500))
       </div>
     </section>
 
+    <!-- Timer -->
+    <section v-if="isToday" class="td-block td-timer" :class="{ empty: !timer.running.value, on: timer.running.value }">
+      <h2>
+        <AppIcon name="clock" />{{ t.panel.time.title }}
+        <template v-if="timer.running.value">
+          <b class="td-clock">{{ timer.clock.value }}</b>
+          <small class="td-none">{{ clientName(timer.running.value.client_id) || timer.running.value.note }}</small>
+          <button type="button" class="rc-pay td-stop" @click="timer.stop().catch(() => {})"><AppIcon name="stop" />{{ t.panel.time.stop }}</button>
+        </template>
+        <NuxtLink v-else :to="localePath('/panel/time')" class="rc-pay td-start"><AppIcon name="play" />{{ t.panel.time.start }}</NuxtLink>
+      </h2>
+    </section>
+
+    <!-- Clients: contact again, waiting for payment -->
+    <section v-if="followups.length || unpaid.length" class="td-block">
+      <h2><AppIcon name="briefcase" />{{ t.panel.clients.title }}</h2>
+      <div v-if="followups.length" class="td-group">
+        <h3>{{ d.contact }} <span class="kb-count">{{ followups.length }}</span></h3>
+        <ul class="td-tasks">
+          <li v-for="x in followups" :key="x.id" class="td-task">
+            <button type="button" class="td-check" :title="d.markDone" :aria-label="`${d.markDone}: ${x.client}`" @click="followupDone(x.id)"><AppIcon name="check" /></button>
+            <NuxtLink :to="localePath(`/panel/clients?id=${x.client_id}`)" class="td-task-text"><b>{{ x.client }}</b><small>{{ x.text }}</small></NuxtLink>
+          </li>
+        </ul>
+      </div>
+      <div v-if="unpaid.length" class="td-group">
+        <h3>{{ d.waiting }} <span class="kb-count">{{ unpaid.length }}</span></h3>
+        <ul class="td-bills">
+          <li v-for="x in unpaid" :key="x.id" :class="{ late: x.overdue }">
+            <NuxtLink :to="localePath(`/panel/clients?id=${x.client_id}`)" class="td-bill-text"><b>{{ x.client }} · {{ fmtMoney(x.amount, x.currency) }}</b><small>{{ x.number }} {{ x.title }} · {{ x.overdue ? d.billLate : shortDate(x.due) }}</small></NuxtLink>
+            <button type="button" class="rc-pay" @click="invoicePaid(x.id)"><AppIcon name="check" />{{ t.panel.clients.paid }}</button>
+          </li>
+        </ul>
+      </div>
+    </section>
+
     <!-- Study deadlines -->
     <section v-if="study.semester || study.works.length" class="td-block" :class="{ empty: !studyWorks.length }">
       <h2><AppIcon name="study" />{{ d.study }}<span v-if="!studyWorks.length" class="td-none">{{ d.noStudy }}</span></h2>
@@ -263,16 +316,6 @@ watch(failed, (v) => v && setTimeout(() => (failed.value = ''), 3500))
       </ul>
     </section>
 
-    <!-- Quick add -->
-    <div class="td-fab" :class="{ open: fab }">
-      <Transition name="fade-x">
-        <nav v-if="fab" class="td-fab-menu" :aria-label="d.add">
-          <NuxtLink v-for="q in quick" :key="q.icon" :to="q.to"><AppIcon :name="q.icon" />{{ q.label }}</NuxtLink>
-        </nav>
-      </Transition>
-      <button type="button" class="td-fab-btn" :aria-label="d.add" :aria-expanded="fab" @click="fab = !fab"><AppIcon :name="fab ? 'close' : 'plus'" /></button>
-    </div>
-    <Transition name="toast-fade"><div v-if="fab" class="td-scrim" @click="fab = false" /></Transition>
 
     <Transition name="toast"><div v-if="failed" class="tp-toast" role="status">{{ failed }}</div></Transition>
   </div>
@@ -314,6 +357,12 @@ watch(failed, (v) => v && setTimeout(() => (failed.value = ''), 3500))
 .td-ev-text { min-width: 0; display: grid; line-height: 1.25; }
 .td-ev-text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .td-ev-text small { color: var(--muted); font-weight: 600; font-size: .76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-timer h2 { flex-wrap: wrap; }
+.td-timer.on { border-color: rgba(229, 72, 77, .4); }
+.td-clock { color: #E5484D; font-variant-numeric: tabular-nums; }
+.td-start, .td-stop { margin-left: auto; min-height: 40px; }
+.td-stop { background: #E5484D; }
+.td-timer .td-none { margin-left: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .td-study .td-task.late { border-color: rgba(229, 72, 77, .4); }
 .td-study .td-task.late small { color: #E5484D; }
 .td-ev .ico { width: 15px; height: 15px; color: var(--muted); }
@@ -356,23 +405,7 @@ watch(failed, (v) => v && setTimeout(() => (failed.value = ''), 3500))
 .td-bills li.late small { color: #E5484D; }
 .td-bills .rc-pay { min-height: 40px; }
 
-/* Quick add button (above the phone tab bar) */
-.td-fab { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: 28px; z-index: 65; display: grid; justify-items: end; gap: 10px; }
-.td-fab-btn {
-  display: grid; place-items: center; width: 56px; height: 56px; border-radius: 18px; border: 0; cursor: pointer;
-  background: var(--accent); color: #fff; box-shadow: 0 12px 30px -10px rgba(91, 75, 255, .7); transition: transform .3s var(--ease);
-}
-.td-fab-btn .ico { width: 24px; height: 24px; }
-.td-fab.open .td-fab-btn { transform: rotate(90deg); }
-.td-fab-menu { display: grid; gap: 6px; }
-.td-fab-menu a {
-  display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; border-radius: 14px; justify-self: end;
-  background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow); font-weight: 800; font-size: .92rem;
-}
-.td-fab-menu .ico { width: 18px; height: 18px; color: var(--accent); }
-.td-scrim { position: fixed; inset: 0; z-index: 64; background: rgba(18, 18, 22, .25); }
 @media (max-width: 860px) {
-  .td-fab { bottom: calc(86px + env(safe-area-inset-bottom)); }
   .td { padding-bottom: 60px; }
 }
 @media (max-width: 400px) {

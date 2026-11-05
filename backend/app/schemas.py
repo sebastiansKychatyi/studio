@@ -35,6 +35,8 @@ class CardIn(BaseModel):
     assignee_id: int | None = None
     due_date: date | None = None
     is_private: bool = False
+    client_id: int | None = None
+    project_id: int | None = None
 
 
 class CardPatch(BaseModel):
@@ -45,6 +47,8 @@ class CardPatch(BaseModel):
     position: int | None = Field(None, ge=0)
     due_date: date | None = None
     is_private: bool | None = None
+    client_id: int | None = None
+    project_id: int | None = None
 
 
 class CardOut(Orm):
@@ -58,6 +62,8 @@ class CardOut(Orm):
     due_date: date | None
     is_private: bool
     updated_at: datetime
+    client_id: int | None = None
+    project_id: int | None = None
 
 
 class MentionOut(CardOut):
@@ -177,6 +183,8 @@ class ExpenseIn(BaseModel):
     category: str = CategoryKey
     note: str = Field("", max_length=200)
     spent_on: date
+    client_id: int | None = None
+    project_id: int | None = None
 
 
 class ExpensePatch(BaseModel):
@@ -185,6 +193,8 @@ class ExpensePatch(BaseModel):
     category: str | None = Field(None, min_length=1, max_length=20)
     note: str | None = Field(None, max_length=200)
     spent_on: date | None = None
+    client_id: int | None = None
+    project_id: int | None = None
 
 
 class IncomeIn(ExpenseIn):
@@ -230,6 +240,8 @@ class MoneyOut(Orm):
     spent_on: date
     recurring_id: int | None = None
     updated_at: datetime | None = None
+    client_id: int | None = None
+    project_id: int | None = None
 
 
 # Monthly templates (category is checked against the kind in the router)
@@ -285,6 +297,7 @@ class EventIn(BaseModel):
     color: str = Field("#5B4BFF", pattern=r"^#[0-9A-Fa-f]{6}$")
     note: str = Field("", max_length=5000)
     remind: int | None = Field(None, ge=0, le=10080)  # minutes before, up to a week
+    client_id: int | None = None
 
     _days = field_validator("days")(_check_days)
 
@@ -300,6 +313,7 @@ class EventPatch(BaseModel):
     color: str | None = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
     note: str | None = Field(None, max_length=5000)
     remind: int | None = Field(None, ge=0, le=10080)
+    client_id: int | None = None
 
     _days = field_validator("days")(_check_days)
 
@@ -318,6 +332,7 @@ class EventOut(BaseModel):
     note: str
     remind: int | None
     updated_at: datetime | None = None
+    client_id: int | None = None
 
 
 class SkipIn(BaseModel):
@@ -461,6 +476,28 @@ class TodayOut(BaseModel):
     money: TodayMoney
     classes: list[TodayClass] = []
     study: list[TodayWork] = []  # not done, due within a week or overdue
+    followups: list["TodayFollowup"] = []  # "contact again" due by this day
+    waiting: list["TodayInvoice"] = []  # unpaid invoices (overdue first)
+
+
+class TodayFollowup(BaseModel):
+    id: int
+    client_id: int
+    client: str
+    text: str
+    followup: date
+
+
+class TodayInvoice(BaseModel):
+    id: int
+    client_id: int
+    client: str
+    title: str
+    number: str
+    amount: float
+    currency: str
+    due: date
+    overdue: bool
 
 
 # Study: semester, subjects with weekly classes, assignments / exams
@@ -582,3 +619,269 @@ class StudyOut(BaseModel):
     semester: SemesterOut | None
     subjects: list[SubjectOut]
     works: list[WorkOut]
+
+
+# ===== CRM =====
+ClientStatus = Literal["lead", "active", "paused", "former"]
+Money = Field(None, ge=0, le=Decimal("100000000"), decimal_places=2)
+
+
+class ClientIn(BaseModel):
+    name: str = Title
+    company: str = Field("", max_length=120)
+    email: str = Field("", max_length=200)
+    phone: str = Field("", max_length=60)
+    telegram: str = Field("", max_length=60)
+    website: str = Field("", max_length=200)
+    lang: str = Field("", max_length=5)
+    currency: str = Field("EUR", pattern=r"^[A-Z]{3}$")
+    rate: Decimal | None = Money
+    tags: list[str] = Field(default_factory=list, max_length=20)
+    note: str = Field("", max_length=10000)
+    status: ClientStatus = "active"
+
+
+class ClientPatch(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=120)
+    company: str | None = Field(None, max_length=120)
+    email: str | None = Field(None, max_length=200)
+    phone: str | None = Field(None, max_length=60)
+    telegram: str | None = Field(None, max_length=60)
+    website: str | None = Field(None, max_length=200)
+    lang: str | None = Field(None, max_length=5)
+    currency: str | None = Field(None, pattern=r"^[A-Z]{3}$")
+    rate: Decimal | None = Money
+    tags: list[str] | None = Field(None, max_length=20)
+    note: str | None = Field(None, max_length=10000)
+    status: ClientStatus | None = None
+
+
+class ClientOut(Orm):
+    id: int
+    name: str
+    company: str
+    email: str
+    phone: str
+    telegram: str
+    website: str
+    lang: str
+    currency: str
+    rate: float | None
+    tags: list[str] | str
+    note: str
+    status: str
+
+
+class ClientListItem(ClientOut):
+    open_invoices: int = 0
+    late_invoices: int = 0
+
+
+class ProjectIn(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    status: Literal["active", "paused", "done"] = "active"
+    budget: Decimal | None = Money
+    rate: Decimal | None = Money
+    start: date | None = None
+    end: date | None = None
+
+
+class ProjectPatch(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=160)
+    status: Literal["active", "paused", "done"] | None = None
+    budget: Decimal | None = Money
+    rate: Decimal | None = Money
+    start: date | None = None
+    end: date | None = None
+
+
+class ProjectOut(Orm):
+    id: int
+    client_id: int
+    title: str
+    status: str
+    budget: float | None
+    rate: float | None
+    start: date | None
+    end: date | None
+
+
+class ClientLogIn(BaseModel):
+    kind: Literal["call", "email", "meeting", "message"] = "message"
+    day: date
+    text: str = Field("", max_length=10000)
+    followup: date | None = None
+
+
+class ClientLogPatch(BaseModel):
+    text: str | None = Field(None, max_length=10000)
+    followup: date | None = None
+    followup_done: bool | None = None
+
+
+class ClientLogOut(Orm):
+    id: int
+    client_id: int
+    kind: str
+    day: date
+    text: str
+    followup: date | None
+    followup_done: bool
+
+
+class InvoiceItem(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    hours: float | None = Field(None, ge=0, le=10000)
+    rate: float | None = Field(None, ge=0)
+    amount: float = Field(ge=0)
+
+
+class InvoiceIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    project_id: int | None = None
+    number: str = Field("", max_length=40)
+    amount: Decimal | None = Money  # None = sum of items
+    currency: str | None = Field(None, pattern=r"^[A-Z]{3}$")
+    issued: date | None = None
+    due: date | None = None  # None = issued + due days from the invoice settings
+    items: list[InvoiceItem] = Field(default_factory=list, max_length=100)
+    note: str = Field("", max_length=2000)
+
+
+class InvoicePatch(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=200)
+    number: str | None = Field(None, max_length=40)
+    amount: Decimal | None = Money
+    due: date | None = None
+    note: str | None = Field(None, max_length=2000)
+
+
+class PayInvoiceIn(BaseModel):
+    paid_on: date | None = None
+
+
+class InvoiceOut(Orm):
+    id: int
+    client_id: int
+    project_id: int | None
+    number: str
+    title: str
+    amount: float
+    currency: str
+    issued: date
+    due: date
+    paid_on: date | None
+    income_id: int | None
+    items: list[InvoiceItem] | str
+    note: str
+    status: str = "pending"  # pending | overdue | paid
+
+
+class OpenCard(BaseModel):
+    id: int
+    title: str
+    due_date: date | None
+    board_id: int
+    board_title: str
+    column_title: str
+
+
+class MeetingOut(BaseModel):
+    id: int
+    title: str
+    date: date
+    start: str
+    end: str
+
+
+class ClientDetail(BaseModel):
+    client: ClientOut
+    projects: list[ProjectOut]
+    log: list[ClientLogOut]
+    invoices: list[InvoiceOut]
+    cards: list[OpenCard]
+    meetings: list[MeetingOut]
+    earned_total: float  # EUR
+    earned_month: float
+    minutes_total: int
+    minutes_month: int
+
+
+# ===== Time tracking =====
+class TimeStartIn(BaseModel):
+    client_id: int | None = None
+    project_id: int | None = None
+    card_id: int | None = None
+    note: str = Field("", max_length=300)
+    start: datetime | None = None  # offline start: the moment it was pressed
+
+
+class TimeStopIn(BaseModel):
+    end: datetime | None = None
+
+
+class TimeIn(BaseModel):
+    client_id: int | None = None
+    project_id: int | None = None
+    card_id: int | None = None
+    note: str = Field("", max_length=300)
+    start: datetime
+    end: datetime
+
+
+class TimePatch(BaseModel):
+    client_id: int | None = None
+    project_id: int | None = None
+    card_id: int | None = None
+    note: str | None = Field(None, max_length=300)
+    start: datetime | None = None
+    end: datetime | None = None
+
+
+class TimeOut(Orm):
+    id: int
+    client_id: int | None
+    project_id: int | None
+    card_id: int | None
+    note: str
+    start: datetime
+    end: datetime | None
+    invoice_id: int | None
+    updated_at: datetime | None = None
+
+    # Always with a time zone (SQLite returns naive UTC values)
+    @field_validator("start", "end", "updated_at")
+    @classmethod
+    def _utc(cls, v: datetime | None) -> datetime | None:
+        return v.replace(tzinfo=dt.timezone.utc) if v is not None and v.tzinfo is None else v
+
+
+class ReportRow(BaseModel):
+    client_id: int | None
+    project_id: int | None
+    card_id: int | None
+    title: str  # card title or note
+    minutes: int
+    rate: float | None
+    amount: float | None
+    currency: str
+
+
+class TimeReport(BaseModel):
+    rows: list[ReportRow]
+    minutes: int
+    amounts: dict[str, float]  # per currency
+    unbilled_minutes: int
+
+
+class TimeInvoiceIn(BaseModel):
+    client_id: int
+    project_id: int | None = None
+    start: date = Field(alias="from")
+    end: date = Field(alias="to")
+    title: str = Field("", max_length=200)
+    model_config = ConfigDict(populate_by_name=True)
+
+
+# Forward references (TodayOut lists types defined after it)
+TodayOut.model_rebuild()

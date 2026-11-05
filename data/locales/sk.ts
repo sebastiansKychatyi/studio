@@ -313,6 +313,37 @@ export default {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    quick: {
+      title: 'Rýchly zápis', placeholder: 'Napr. káva 3.5€ · zajtra 14:00 call s Annou', examples: 'Výdavok, príjem, udalosť, úloha, budík alebo termín — jedným riadkom, aj offline.',
+      kinds: { expense: 'Výdavok', income: 'Príjem', event: 'Udalosť', task: 'Úloha', alarm: 'Budík', work: 'Študijný termín' },
+      unknown: 'Neviem, čo to je', clarify: 'Nie som si istý — vyberte typ:', until: 'do', noAmount: 'chýba suma', noTime: 'chýba čas', noDate: 'chýba dátum',
+      missing: { expense: 'Dopíšte sumu, napr. 12 €.', income: 'Dopíšte sumu, napr. +500 €.', event: 'Dopíšte názov.', task: 'Dopíšte, čo treba urobiť.', alarm: 'Dopíšte čas, napr. 6:30.', work: 'Dopíšte dátum, napr. 15.12.' },
+      saved: 'Uložené', event: 'Udalosť', noBoard: 'Najprv vytvorte nástenku s úlohami.', forms: 'Celý formulár',
+    },
+    clients: {
+      title: 'Klienti', subtitle: 'Kontakty, projekty, história komunikácie a platby.', newClient: 'Nový klient', client: 'Klient', search: 'Hľadať meno, firmu, e-mail…', all: 'Všetci',
+      empty: 'Zatiaľ žiadni klienti.', nothingFound: 'Nič sa nenašlo.', openShort: 'neuhradené', lateShort: 'po splatnosti',
+      status: 'Stav', statuses: { lead: 'Záujemca', active: 'Aktívny', paused: 'Pauza', former: 'Bývalý' },
+      name: 'Meno', company: 'Firma', phone: 'Telefón', website: 'Web', rate: 'Hodinová sadzba', currency: 'Mena', lang: 'Jazyk komunikácie', tags: 'Štítky', tagsPh: 'web, e-shop, údržba',
+      earnedTotal: 'Zarobené spolu', earnedMonth: 'Tento mesiac', hoursTotal: 'Hodiny spolu', hoursMonth: 'Hodiny tento mesiac', startTimer: 'Spustiť časovač',
+      invoices: 'Faktúry a platby', addInvoice: 'Platba', invoiceTitle: 'Za čo', amount: 'Suma', dueDate: 'Splatnosť', project: 'Projekt', noInvoices: 'Žiadne faktúry.',
+      invStatus: { pending: 'Čaká sa', overdue: 'Po splatnosti', paid: 'Uhradené' }, due: 'splatné', paid: 'Uhradené', unpay: 'Zrušiť úhradu', pdf: 'Faktúra (PDF)', savePdf: 'Uložiť ako PDF',
+      noSeller: 'Na faktúre chýbajú vaše údaje — vyplňte ich v nastaveniach.',
+      history: 'História komunikácie', kinds: { call: 'Hovor', email: 'E-mail', meeting: 'Stretnutie', message: 'Správa' }, logPh: 'Čo sme dohodli…', date: 'Dátum',
+      again: 'Ozvať sa o', days: 'dní', noAgain: 'Bez pripomienky', contactOn: 'Ozvať sa', done: 'Hotovo',
+      projects: 'Projekty', addProject: 'Projekt', projectTitle: 'Názov projektu', budget: 'Rozpočet', noProjects: 'Žiadne projekty.', noRate: 'bez sadzby', projectStatus: 'Zmeniť stav',
+      projStatus: { active: 'Beží', paused: 'Pauza', done: 'Hotový' },
+      tasks: 'Otvorené úlohy', noTasks: 'Žiadne úlohy priradené klientovi.', meetings: 'Najbližšie stretnutia', noMeetings: 'Žiadne naplánované stretnutia.',
+    },
+    time: {
+      title: 'Čas', subtitle: 'Časovač, záznamy, výkaz a faktúra z odpracovaného času.', start: 'Štart', stop: 'Stop', startOnTask: 'Merať čas na úlohe',
+      client: 'Klient', project: 'Projekt', note: 'Poznámka', notePh: 'Na čom pracujem', noClient: 'Bez klienta', noProject: 'Bez projektu', allClients: 'Všetci klienti', allProjects: 'Všetky projekty',
+      period: 'Obdobie', periods: { week: 'Tento týždeň', month: 'Tento mesiac', last: 'Minulý mesiac', custom: 'Vlastné' }, from: 'Od', to: 'Do',
+      report: 'Výkaz', total: 'Spolu', amount: 'Suma', unbilled: 'Nevyfakturované', task: 'Úloha', hours: 'Hodiny', rate: 'Sadzba', currency: 'Mena', empty: 'Za toto obdobie nič.',
+      entries: 'Záznamy', entry: 'Záznam', addByHand: 'Pridať ručne', billed: 'vyfakturované',
+      makeInvoice: 'Vystaviť faktúru z nevyfakturovaného času', pickClient: 'Na faktúru vyberte klienta vo filtri.', nothingToBill: 'Za toto obdobie nie je nič na fakturáciu.', noRate: 'Nastavte hodinovú sadzbu klienta alebo projektu.',
+    },
+    invoiceDoc: { title: 'Faktúra', issued: 'Dátum vystavenia', due: 'Dátum splatnosti', vs: 'Variabilný symbol', seller: 'Dodávateľ', buyer: 'Odberateľ', ico: 'IČO', dic: 'DIČ', icdph: 'IČ DPH', item: 'Popis', qty: 'Množstvo', price: 'Cena', sum: 'Spolu', total: 'Spolu na úhradu', payment: 'Platba', transfer: 'Prevodom na účet', paid: 'Uhradené' },
     study: {
       title: 'Štúdium', subtitle: 'Rozvrh, zadania a skúšky na jednom mieste.',
       semester: 'Semester', newSemester: 'Nový semester', semesterName: 'Názov', semesterPh: 'Zimný semester', from: 'Od', to: 'Do',
@@ -331,6 +362,7 @@ export default {
       day: 'Deň', start: 'Od', end: 'Do', addRow: 'Pridať hodinu', inCalendar: 'Zobraziť v kalendári',
     },
     today: {
+      contact: 'Ozvať sa', waiting: 'Čakáme na platbu',
       study: 'Štúdium', noStudy: 'žiadne termíny na týždeň',
       title: 'Dnes', today: 'Dnes', tomorrow: 'Zajtra', tomorrowTitle: 'Plán na zajtra',
       night: 'Dobrú noc', morning: 'Dobré ráno', afternoon: 'Dobrý deň', evening: 'Dobrý večer',
@@ -354,6 +386,7 @@ export default {
       logoutOffline: 'Odhlásenie potrebuje internet.',
     },
     app: {
+      quick: 'Rýchly zápis',
       name: 'Duo Studio — tímový panel',
       description: 'Úlohy, kalendár, budíky a financie — aj bez internetu.',
       newTask: 'Nová úloha',
@@ -389,6 +422,8 @@ export default {
     themeLight: 'Svetlá téma',
     menu: 'Menu panela',
     nav: {
+      clients: 'Klienti',
+      time: 'Čas',
       study: 'Štúdium',
       today: 'Dnes',
       finance: 'Financie',
@@ -538,6 +573,10 @@ export default {
       m: 'min',
     },
     settings: {
+      invoice: {
+        title: 'Údaje na faktúre', hint: 'Vaše údaje dodávateľa. Polia sú voľné — právnu správnosť faktúry (DPH, náležitosti) si overte sami.',
+        fields: { name: 'Meno / firma', address: 'Adresa', ico: 'IČO', dic: 'DIČ', icdph: 'IČ DPH', register: 'Zápis v registri', iban: 'IBAN', swift: 'SWIFT', bank: 'Banka', email: 'E-mail', phone: 'Telefón', note: 'Poznámka na faktúre (napr. Nie som platiteľ DPH)', prefix: 'Predpona čísla', dueDays: 'Splatnosť (dni)' },
+      },
       calPrivate: 'Váš kalendár vidíte len vy (zdieľanie je vypnuté).',
       notify: {
         title: 'Upozornenia',
@@ -547,8 +586,9 @@ export default {
         blocked: 'Zablokované v prehliadači — povoľte ich v nastaveniach stránky.',
         unsupported: 'Tento prehliadač upozornenia nepodporuje.',
         serverOff: 'Na serveri nie sú nastavené kľúče VAPID — upozornenia prídu, len kým je aplikácia otvorená.',
-        kinds: { alarms: 'Budíky', events: 'Pripomienky z kalendára', classes: 'Hodiny (pred začiatkom)', study: 'Študijné termíny (o 9:00)', due: 'Termíny úloh (o 9:00)', mentions: '@spomenutia', assign: 'Priradené úlohy', bills: 'Mesačné platby (o 9:00)' },
+        kinds: { alarms: 'Budíky', clients: 'Klienti: ozvať sa (o 9:00)', invoices: 'Faktúry: splatnosť a omeškanie', timer: 'Zabudnutý časovač', events: 'Pripomienky z kalendára', classes: 'Hodiny (pred začiatkom)', study: 'Študijné termíny (o 9:00)', due: 'Termíny úloh (o 9:00)', mentions: '@spomenutia', assign: 'Priradené úlohy', bills: 'Mesačné platby (o 9:00)' },
         quiet: 'Tiché hodiny (okrem budíkov)',
+        timerHours: 'Zabudnutý časovač po (hodín)',
         summary: 'Ranný prehľad dňa',
         evening: 'Večer: čo je zajtra',
         test: 'Poslať testovacie upozornenie',

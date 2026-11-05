@@ -12,7 +12,7 @@ const SHELL = 'shell' // last panel page (SPA shell, same for every panel URL)
 const FONTS = 'fonts'
 const PANEL = new RegExp(`^/(${LANGS.join('|')})/panel(/|$)`)
 // PWA start URL and shortcuts: /panel?go=… → the panel page in the last used language
-const GO = { task: '/panel?new=task', alarm: '/panel/alarms?new=alarm', expense: '/panel/expenses?new=expense' }
+const GO = { quick: '/panel/today?quick=1', task: '/panel?new=task', alarm: '/panel/alarms?new=alarm', expense: '/panel/expenses?new=expense' }
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

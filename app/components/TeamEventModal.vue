@@ -15,7 +15,8 @@ const p = computed(() => t.value.panel)
 const c = computed(() => t.value.panel.calendar)
 const WEEK = [1, 2, 3, 4, 5, 6, 0] // Monday first, JS weekday numbers
 
-const form = reactive<EventDraft>({ ...props.draft, days: [...props.draft.days] })
+const form = reactive<EventDraft>({ client_id: null, ...props.draft, days: [...props.draft.days] })
+const { clients } = useTeam()
 
 // Reminder: presets or own number of minutes
 const PRESETS = [5, 10, 15, 30, 60, 1440]
@@ -165,6 +166,14 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
           />
         </div>
       </div>
+      <!-- Meeting with a client (CRM) -->
+      <label v-if="clients.length" class="tp-field">
+        <span>{{ p.time.client }}</span>
+        <select v-model="form.client_id">
+          <option :value="null">—</option>
+          <option v-for="x in clients" :key="x.id" :value="x.id">{{ x.name }}</option>
+        </select>
+      </label>
       <label class="tp-field">
         <span>{{ c.note }}</span>
         <textarea v-model="form.note" rows="2" maxlength="5000" :placeholder="c.notePh" />
@@ -199,18 +208,6 @@ onBeforeUnmount(() => removeEventListener('keydown', onKey))
 .ev-days .al-day.on { background: var(--c); border-color: var(--c); }
 .ev textarea { resize: vertical; font: inherit; }
 .ev-del { display: flex; flex-wrap: wrap; gap: 6px; }
-.ev-remind { display: flex; flex-wrap: wrap; gap: 6px; }
-.ev-remind button {
-  display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--line-2); background: var(--field, #fff); color: var(--ink-2); font-weight: 700; font-size: .8rem;
-  transition: background .2s, color .2s, border-color .2s;
-}
-.ev-remind button .ico { width: 13px; height: 13px; }
-.ev-remind button:hover { border-color: var(--c); }
-.ev-remind button.on { background: var(--c); border-color: var(--c); color: #fff; }
-.ev-remind-custom { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-.ev-remind-custom input { width: 110px; }
-.ev-remind-custom span { color: var(--muted); font-weight: 700; font-size: .85rem; }
 @media (max-width: 520px) {
   .ev-row { grid-template-columns: 1fr 1fr; }
   .ev-row .tp-field:first-child { grid-column: 1 / -1; }

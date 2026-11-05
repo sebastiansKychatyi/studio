@@ -313,6 +313,37 @@ const en: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    quick: {
+      title: 'Quick add', placeholder: 'E.g. coffee 3.5€ · tomorrow 14:00 call with Anna', examples: 'Expense, income, event, task, alarm or deadline — in one line, offline too.',
+      kinds: { expense: 'Expense', income: 'Income', event: 'Event', task: 'Task', alarm: 'Alarm', work: 'Study deadline' },
+      unknown: 'Not sure what this is', clarify: 'Not sure — pick the type:', until: 'by', noAmount: 'no amount', noTime: 'no time', noDate: 'no date',
+      missing: { expense: 'Add an amount, e.g. 12 €.', income: 'Add an amount, e.g. +500 €.', event: 'Add a title.', task: 'Add what to do.', alarm: 'Add a time, e.g. 6:30.', work: 'Add a date, e.g. 15.12.' },
+      saved: 'Saved', event: 'Event', noBoard: 'Create a board for tasks first.', forms: 'Full form',
+    },
+    clients: {
+      title: 'Clients', subtitle: 'Contacts, projects, contact history and payments.', newClient: 'New client', client: 'Client', search: 'Search name, company, e-mail…', all: 'All',
+      empty: 'No clients yet.', nothingFound: 'Nothing found.', openShort: 'unpaid', lateShort: 'overdue',
+      status: 'Status', statuses: { lead: 'Lead', active: 'Active', paused: 'Paused', former: 'Former' },
+      name: 'Name', company: 'Company', phone: 'Phone', website: 'Website', rate: 'Hourly rate', currency: 'Currency', lang: 'Language', tags: 'Tags', tagsPh: 'website, e-shop, support',
+      earnedTotal: 'Earned in total', earnedMonth: 'This month', hoursTotal: 'Hours in total', hoursMonth: 'Hours this month', startTimer: 'Start timer',
+      invoices: 'Invoices and payments', addInvoice: 'Payment', invoiceTitle: 'For what', amount: 'Amount', dueDate: 'Due', project: 'Project', noInvoices: 'No invoices.',
+      invStatus: { pending: 'Waiting', overdue: 'Overdue', paid: 'Paid' }, due: 'due', paid: 'Paid', unpay: 'Undo payment', pdf: 'Invoice (PDF)', savePdf: 'Save as PDF',
+      noSeller: 'Your details are missing on the invoice — fill them in in Settings.',
+      history: 'Contact history', kinds: { call: 'Call', email: 'E-mail', meeting: 'Meeting', message: 'Message' }, logPh: 'What we agreed on…', date: 'Date',
+      again: 'Get in touch in', days: 'days', noAgain: 'No reminder', contactOn: 'Get in touch', done: 'Done',
+      projects: 'Projects', addProject: 'Project', projectTitle: 'Project name', budget: 'Budget', noProjects: 'No projects.', noRate: 'no rate', projectStatus: 'Change status',
+      projStatus: { active: 'Running', paused: 'Paused', done: 'Done' },
+      tasks: 'Open tasks', noTasks: 'No tasks linked to the client.', meetings: 'Next meetings', noMeetings: 'No meetings planned.',
+    },
+    time: {
+      title: 'Time', subtitle: 'Timer, entries, report and an invoice from tracked time.', start: 'Start', stop: 'Stop', startOnTask: 'Track time on this task',
+      client: 'Client', project: 'Project', note: 'Note', notePh: 'What I am working on', noClient: 'No client', noProject: 'No project', allClients: 'All clients', allProjects: 'All projects',
+      period: 'Period', periods: { week: 'This week', month: 'This month', last: 'Last month', custom: 'Custom' }, from: 'From', to: 'To',
+      report: 'Report', total: 'Total', amount: 'Amount', unbilled: 'Not invoiced', task: 'Task', hours: 'Hours', rate: 'Rate', currency: 'Currency', empty: 'Nothing in this period.',
+      entries: 'Entries', entry: 'Entry', addByHand: 'Add by hand', billed: 'invoiced',
+      makeInvoice: 'Invoice the time not invoiced yet', pickClient: 'Choose a client in the filter to make an invoice.', nothingToBill: 'Nothing to invoice in this period.', noRate: 'Set an hourly rate for the client or the project.',
+    },
+    invoiceDoc: { title: 'Invoice', issued: 'Issue date', due: 'Due date', vs: 'Payment reference', seller: 'Seller', buyer: 'Buyer', ico: 'Company ID', dic: 'Tax ID', icdph: 'VAT ID', item: 'Description', qty: 'Quantity', price: 'Price', sum: 'Total', total: 'Total due', payment: 'Payment', transfer: 'Bank transfer', paid: 'Paid' },
     study: {
       title: 'Study', subtitle: 'Timetable, assignments and exams in one place.',
       semester: 'Semester', newSemester: 'New semester', semesterName: 'Name', semesterPh: 'Winter semester', from: 'From', to: 'To',
@@ -331,6 +362,7 @@ const en: typeof sk = {
       day: 'Day', start: 'From', end: 'To', addRow: 'Add class', inCalendar: 'Show in the calendar',
     },
     today: {
+      contact: 'Get in touch', waiting: 'Waiting for payment',
       study: 'Study', noStudy: 'no deadlines this week',
       title: 'Today', today: 'Today', tomorrow: 'Tomorrow', tomorrowTitle: 'Plan for tomorrow',
       night: 'Good night', morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening',
@@ -354,6 +386,7 @@ const en: typeof sk = {
       logoutOffline: 'Logging out needs internet.',
     },
     app: {
+      quick: 'Quick add',
       name: 'Duo Studio — team panel',
       description: 'Tasks, calendar, alarms and money — even offline.',
       newTask: 'New task',
@@ -389,6 +422,8 @@ const en: typeof sk = {
     themeLight: 'Light theme',
     menu: 'Panel menu',
     nav: {
+      clients: 'Clients',
+      time: 'Time',
       study: 'Study',
       today: 'Today',
       finance: 'Finance',
@@ -538,6 +573,10 @@ const en: typeof sk = {
       m: 'min',
     },
     settings: {
+      invoice: {
+        title: 'Invoice details', hint: 'Your seller details. Fields are free text — check the legal correctness of invoices (VAT, required items) yourself.',
+        fields: { name: 'Name / company', address: 'Address', ico: 'Company ID (IČO)', dic: 'Tax ID (DIČ)', icdph: 'VAT ID (IČ DPH)', register: 'Register entry', iban: 'IBAN', swift: 'SWIFT', bank: 'Bank', email: 'E-mail', phone: 'Phone', note: 'Note on the invoice (e.g. not a VAT payer)', prefix: 'Number prefix', dueDays: 'Due in (days)' },
+      },
       calPrivate: 'Only you can see your calendar (sharing is off).',
       notify: {
         title: 'Notifications',
@@ -547,8 +586,9 @@ const en: typeof sk = {
         blocked: 'Blocked in the browser — allow them in the site settings.',
         unsupported: 'This browser does not support notifications.',
         serverOff: 'The server has no VAPID keys — notifications arrive only while the app is open.',
-        kinds: { alarms: 'Alarms', events: 'Calendar reminders', classes: 'Classes (before the start)', study: 'Study deadlines (at 9:00)', due: 'Task deadlines (at 9:00)', mentions: '@mentions', assign: 'Assigned tasks', bills: 'Monthly payments (at 9:00)' },
+        kinds: { alarms: 'Alarms', clients: 'Clients: get in touch (at 9:00)', invoices: 'Invoices: due and overdue', timer: 'Forgotten timer', events: 'Calendar reminders', classes: 'Classes (before the start)', study: 'Study deadlines (at 9:00)', due: 'Task deadlines (at 9:00)', mentions: '@mentions', assign: 'Assigned tasks', bills: 'Monthly payments (at 9:00)' },
         quiet: 'Quiet hours (except alarms)',
+        timerHours: 'Forgotten timer after (hours)',
         summary: 'Morning summary of the day',
         evening: 'Evening: what is tomorrow',
         test: 'Send a test notification',

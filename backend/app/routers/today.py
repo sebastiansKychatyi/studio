@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..db import get_db
-from ..models import Alarm, Board, BoardColumn, CalEvent, Expense, Recurring, StudyWork, Subject, User
+from ..models import Alarm, Board, BoardColumn, CalEvent, Client, ClientLog, Expense, Invoice, Recurring, StudyWork, Subject, User
 from ..notify import occurs, prefs_of, tz_of
-from ..schemas import TodayAlarm, TodayBill, TodayCard, TodayClass, TodayEvent, TodayMoney, TodayOut, TodayTasks, TodayWork
+from ..schemas import TodayAlarm, TodayBill, TodayCard, TodayClass, TodayEvent, TodayFollowup, TodayInvoice, TodayMoney, TodayOut, TodayTasks, TodayWork
 from ..security import current_user
 from .kanban import can_see_board, can_see_card
 from .study import current_semester, has_class
@@ -104,9 +104,23 @@ async def build_today(db: AsyncSession, user: User, day: date | None = None) -> 
         s = subjects.get(w.subject_id) or (await db.get(Subject, w.subject_id) if w.subject_id else None)
         study.append(TodayWork(id=w.id, title=w.title, kind=w.kind, subject=s.name if s else None, color=s.color if s else None, due=w.due, due_time=w.due_time, status=w.status))
 
+    # Clients: follow-ups due by this day, invoices still unpaid
+    names = dict((await db.execute(select(Client.id, Client.name).where(Client.user_id == user.id))).all())
+    followups = [
+        TodayFollowup(id=x.id, client_id=x.client_id, client=names.get(x.client_id, ""), text=x.text, followup=x.followup)
+        for x in (await db.scalars(select(ClientLog).where(
+            ClientLog.user_id == user.id, ClientLog.followup.isnot(None), ClientLog.followup <= day, ClientLog.followup_done.is_(False)
+        ).order_by(ClientLog.followup))).all()
+    ]
+    waiting = [
+        TodayInvoice(id=i.id, client_id=i.client_id, client=names.get(i.client_id, ""), title=i.title, number=i.number, amount=float(i.amount),
+                     currency=i.currency, due=i.due, overdue=i.due < day)
+        for i in (await db.scalars(select(Invoice).where(Invoice.user_id == user.id, Invoice.paid_on.is_(None)).order_by(Invoice.due))).all()
+    ]
+
     return TodayOut(
         date=day, now=now, tz=str(tz), next_alarm=await next_alarm(db, user.id, now), events=events, tasks=tasks, money=money,
-        classes=classes, study=study,
+        classes=classes, study=study, followups=followups, waiting=waiting,
     )
 
 

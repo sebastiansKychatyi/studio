@@ -411,17 +411,10 @@ async function saveTable() {
 .sd { display: grid; gap: 14px; max-width: 980px; }
 .sd .tp-head { margin-bottom: 4px; }
 .sd .btn .ico { width: 16px; height: 16px; }
-.sd-card { padding: 18px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); animation: tpUp .6s var(--ease) both; }
-.sd-card h2 { display: flex; align-items: center; gap: 8px; font-size: .95rem; font-weight: 800; }
-.sd-card h2 .ico { width: 17px; height: 17px; color: var(--accent); }
-.sd-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-.sd-muted { color: var(--muted); font-size: .88rem; font-weight: 600; }
 .sd-form { display: grid; gap: 2px; }
-.sd-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .sd-when { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; }
 .sd-break { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 .sd-break .tp-input { flex: 1; min-width: 0; }
-.sd-workform { margin-bottom: 12px; padding: 14px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line-2); }
 
 .sd-week { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .sd-day { display: grid; align-content: start; gap: 6px; padding: 10px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line); }
@@ -475,8 +468,6 @@ async function saveTable() {
 .tp.dark .sd-day h3 small { background: rgba(245, 158, 11, .16); color: #FBBF5A; }
 
 @media (max-width: 640px) {
-  .sd-card { padding: 14px 12px; }
-  .sd-grid3 { grid-template-columns: 1fr; gap: 0; }
   .sd-week { grid-template-columns: 1fr; }
   .sd-week-label { min-width: 0; font-size: .85rem; }
   .sd-subjects { grid-template-columns: 1fr; }

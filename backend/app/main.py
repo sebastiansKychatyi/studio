@@ -13,7 +13,7 @@ from . import notify
 from .config import settings
 from .db import engine
 from .models import Base
-from .routers import alarms, auth, events, kanban, money, push, settings as settings_router, study, today
+from .routers import alarms, auth, clients, events, kanban, money, push, settings as settings_router, study, time, today
 
 PREFIX = "/api/team"
 
@@ -30,6 +30,14 @@ ADDED_COLUMNS = [
     ("events", "updated_at", "TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP"),
     ("expenses", "updated_at", "TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP"),
     ("incomes", "updated_at", "TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+    # CRM links (nullable: existing rows stay as they are)
+    ("cards", "client_id", "INTEGER REFERENCES clients(id) ON DELETE SET NULL"),
+    ("cards", "project_id", "INTEGER REFERENCES projects(id) ON DELETE SET NULL"),
+    ("events", "client_id", "INTEGER REFERENCES clients(id) ON DELETE SET NULL"),
+    ("expenses", "client_id", "INTEGER REFERENCES clients(id) ON DELETE SET NULL"),
+    ("expenses", "project_id", "INTEGER REFERENCES projects(id) ON DELETE SET NULL"),
+    ("incomes", "client_id", "INTEGER REFERENCES clients(id) ON DELETE SET NULL"),
+    ("incomes", "project_id", "INTEGER REFERENCES projects(id) ON DELETE SET NULL"),
 ]
 
 
@@ -87,7 +95,8 @@ app = FastAPI(
     openapi_url=f"{PREFIX}/openapi.json" if settings.docs else None,
 )
 
-for r in (auth.router, kanban.router, alarms.router, money.router, events.router, settings_router.router, push.router, today.router, study.router):
+for r in (auth.router, kanban.router, alarms.router, money.router, events.router, settings_router.router, push.router, today.router, study.router,
+          clients.router, time.router):
     app.include_router(r, prefix=PREFIX)
 
 

@@ -15,6 +15,8 @@ const QUEUEABLE: [string, RegExp][] = [
   ['POST', new RegExp(`^/columns/${ID}/cards$`)], ['PATCH', new RegExp(`^/cards/${ID}$`)], ['DELETE', new RegExp(`^/cards/${ID}$`)],
   ['PATCH', /^\/me\/settings$/],
   ['POST', new RegExp(`^/(expenses|income)/recurring/${ID}/pay$`)],
+  ['POST', /^\/time\/(start|stop)$/], ['POST', /^\/time$/], ['PATCH', new RegExp(`^/time/${ID}$`)], ['DELETE', new RegExp(`^/time/${ID}$`)],
+  ['POST', new RegExp(`^/clients/${ID}/log$`)], ['PATCH', new RegExp(`^/client-log/${ID}$`)],
   ['POST', /^\/study\/works$/], ['PATCH', new RegExp(`^/study/works/${ID}$`)], ['DELETE', new RegExp(`^/study/works/${ID}$`)],
 ]
 export const queueable = (method: string, url: string) => QUEUEABLE.some(([m, re]) => m === method && re.test(url))
@@ -36,6 +38,8 @@ function created(op: OutboxOp, ctx: Ctx): Obj {
   if (op.url === '/alarms') return { id: op.temp, label: '', days: [], enabled: true, ...b, updated_at: null }
   if (op.url === '/events') return { id: op.temp, skip: [], note: '', remind: null, until: null, days: [], ...b, updated_at: null }
   if (op.url.endsWith('/pay')) return { id: op.temp, ...b }
+  if (op.url === '/time/start' || op.url === '/time') return { id: op.temp, client_id: null, project_id: null, card_id: null, note: '', end: null, invoice_id: null, ...b }
+  if (/^\/clients\/-?\d+\/log$/.test(op.url)) return { id: op.temp, client_id: Number(op.url.split('/')[2]), followup: null, followup_done: false, ...b }
   if (op.url === '/study/works') return { id: op.temp, subject_id: null, kind: 'assignment', due_time: null, status: 'todo', grade: '', note: '', ...b, updated_at: null }
   if (/^\/(expenses|income)$/.test(op.url)) return money({ id: op.temp, recurring_id: null, note: '', category: 'other', updated_at: null }, b, ctx)
   const col = Number(op.url.split('/')[2])
@@ -71,7 +75,7 @@ function onList(list: Obj[], op: OutboxOp, base: string, ctx: Ctx) {
 
 // Waiting changes laid over a cached or fresh GET response
 export function overlay(key: string, data: unknown, ops: OutboxOp[], ctx: Ctx): unknown {
-  if (!ops.length || data == null) return data
+  if (!ops.length || (data == null && key !== '/time/running')) return data
   const [path, qs] = key.split('?')
   const query = new URLSearchParams(qs)
   const mine = (prefix: RegExp) => ops.filter((op) => prefix.test(op.url))
@@ -90,6 +94,11 @@ export function overlay(key: string, data: unknown, ops: OutboxOp[], ctx: Ctx): 
       .sort((a, b) => String(b.spent_on).localeCompare(String(a.spent_on)) || (b.id < 0 ? 1e12 : b.id) - (a.id < 0 ? 1e12 : a.id))
   }
   if (/^\/boards\/\d+$/.test(path!)) return board(data as Obj, mine(/^\/(cards|columns)\//), ctx)
+  // Timer started / stopped offline: the last such change decides
+  if (path === '/time/running') {
+    const last = mine(/^\/time\/(start|stop)$/).at(-1)
+    return !last ? data : last.url === '/time/stop' ? null : created(last, ctx)
+  }
   if (path === '/study') {
     const s = data as Obj
     const works = mine(/^\/study\/works/).reduce((l, op) => onList(l, op, '/study/works', ctx), s.works as Obj[])
@@ -138,7 +147,7 @@ function board(data: Obj, ops: OutboxOp[], ctx: Ctx) {
 
 // Optimistic answer for a queued change (what the page gets back instead of the server reply)
 export function optimistic(op: OutboxOp, current: Obj | undefined, ctx: Ctx): unknown {
-  if (op.method === 'DELETE') return null
+  if (op.method === 'DELETE' || op.url === '/time/stop') return null
   if (op.method === 'POST' && !op.url.endsWith('/skip')) return created(op, ctx)
   if (op.url === '/me/settings') return overlay('/me/settings', current ?? {}, [op], ctx)
   if (!current) return { id: targetId(op.url), ...op.body }

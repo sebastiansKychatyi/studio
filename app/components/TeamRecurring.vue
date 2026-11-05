@@ -311,14 +311,6 @@ async function removeTemplate() {
 .rc-text small { color: var(--muted); font-weight: 600; font-size: .76rem; }
 .rc-text em { font-style: normal; color: #E5484D; font-weight: 800; }
 .rc-text:hover b { color: var(--accent); }
-.rc-pay {
-  flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 0; cursor: pointer;
-  background: var(--ink); color: #fff; font-weight: 800; font-size: .82rem; transition: background .2s, transform .3s var(--ease);
-}
-.rc-pay .ico { width: 15px; height: 15px; }
-.rc-pay:hover { background: var(--accent); transform: translateY(-1px); }
-.rc-income .rc-pay:hover { background: #0E9F85; }
-.rc-pay:disabled { opacity: .6; cursor: progress; }
 .rc-done { flex: none; display: grid; justify-items: end; line-height: 1.2; white-space: nowrap; }
 .rc-done small { font-size: .72rem; font-weight: 800; color: #0E9F85; }
 .rc-done b { font-size: .9rem; font-variant-numeric: tabular-nums; }

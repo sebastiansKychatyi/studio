@@ -35,6 +35,7 @@ export default defineEventHandler((event) => {
       { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
     ],
     shortcuts: [
+      { name: a.quick, url: '/panel?go=quick', icons: [png('/pwa/shortcut-task.png', 96)] },
       { name: a.newTask, url: '/panel?go=task', icons: [png('/pwa/shortcut-task.png', 96)] },
       { name: a.newAlarm, url: '/panel?go=alarm', icons: [png('/pwa/shortcut-alarm.png', 96)] },
       { name: a.newExpense, url: '/panel?go=expense', icons: [png('/pwa/shortcut-expense.png', 96)] },

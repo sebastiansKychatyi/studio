@@ -9,6 +9,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
+from ..crm import own_client
 from ..db import get_db
 from ..models import CustomCategory, Expense, Income, MoneyEntry, Recurring, User
 from ..schemas import (
@@ -239,7 +240,10 @@ def money_routes(
     @r.post("", response_model=MoneyOut, status_code=201)
     async def create_entry(body: body_in, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):  # type: ignore[valid-type]
         await check_category(db, user, body.category)
-        entry = model(user_id=user.id, category=body.category, note=body.note.strip(), spent_on=body.spent_on)
+        await own_client(db, user, body.client_id, body.project_id)
+        entry = model(
+            user_id=user.id, category=body.category, note=body.note.strip(), spent_on=body.spent_on, client_id=body.client_id, project_id=body.project_id
+        )
         _convert(entry, body.amount, body.currency)
         db.add(entry)
         await db.commit()
@@ -263,6 +267,10 @@ def money_routes(
             entry.note = body.note.strip()
         if body.spent_on is not None:
             entry.spent_on = body.spent_on
+        if body.model_fields_set & {"client_id", "project_id"}:
+            entry.client_id = body.client_id if "client_id" in body.model_fields_set else entry.client_id
+            entry.project_id = body.project_id if "project_id" in body.model_fields_set else entry.project_id
+            await own_client(db, user, entry.client_id, entry.project_id)
         # New amount or currency → convert again with the current rate
         if body.amount is not None or body.currency is not None:
             _convert(entry, body.amount or entry.original_amount, body.currency or entry.currency)
