@@ -883,5 +883,122 @@ class TimeInvoiceIn(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+# ===== Project monitoring =====
+def _as_utc(v: datetime | None) -> datetime | None:
+    # SQLite returns naive UTC values
+    return v.replace(tzinfo=dt.timezone.utc) if v is not None and v.tzinfo is None else v
+
+
+class MonitorProjectIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    description: str = Field("", max_length=2000)
+    enabled: bool = True
+
+
+class MonitorProjectPatch(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=80)
+    description: str | None = Field(None, max_length=2000)
+    enabled: bool | None = None
+
+
+class MonitorEnvIn(BaseModel):
+    project_id: int
+    name: str = Field(min_length=1, max_length=80)
+    kind: Literal["production", "test"] = "production"
+    base_url: str = Field(max_length=300, pattern=r"^https?://")
+    api_token: str = Field("", max_length=300)  # empty = the environment stays disabled
+    webhook_secret: str = Field("", max_length=300)
+    enabled: bool = True
+    poll_interval_seconds: int = Field(60, ge=15, le=3600)
+
+
+class MonitorEnvPatch(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=80)
+    kind: Literal["production", "test"] | None = None
+    base_url: str | None = Field(None, max_length=300, pattern=r"^https?://")
+    api_token: str | None = Field(None, max_length=300)  # empty / missing = keep the saved one
+    webhook_secret: str | None = Field(None, max_length=300)  # "" with clear_webhook = remove
+    clear_webhook: bool = False
+    enabled: bool | None = None
+    poll_interval_seconds: int | None = Field(None, ge=15, le=3600)
+
+
+class MonitorEnvOut(BaseModel):
+    """Never contains the token or the secret, only whether they are set."""
+
+    id: int
+    project_id: int
+    name: str
+    kind: str
+    base_url: str
+    enabled: bool
+    poll_interval_seconds: int
+    has_token: bool
+    has_webhook: bool
+    state: str
+    status: str
+    fail_count: int
+    last_poll_at: datetime | None
+    last_ok_at: datetime | None
+    last_error: str
+    down_since: datetime | None
+    degraded_since: datetime | None
+    token_invalid: bool
+    snapshot: dict | None  # last /status answer
+
+    _utc = field_validator("last_poll_at", "last_ok_at", "down_since", "degraded_since")(_as_utc)
+
+
+class MonitorProjectOut(BaseModel):
+    id: int
+    name: str
+    description: str
+    enabled: bool
+    envs: list[MonitorEnvOut]
+
+
+class MonitorEventOut(Orm):
+    id: int
+    at: datetime
+    kind: str
+    text: str
+
+    _utc = field_validator("at")(_as_utc)
+
+
+class MonitorErrorOut(Orm):
+    id: int
+    env_id: int
+    remote_id: int
+    source: str
+    level: str
+    logger_name: str
+    message: str
+    traceback: str
+    path: str
+    method: str
+    user_id: int | None
+    count: int
+    first_seen_at: datetime | None
+    last_seen_at: datetime | None
+    resolved: bool
+    mailed_at: datetime | None
+    via: str
+
+    _utc = field_validator("first_seen_at", "last_seen_at", "mailed_at")(_as_utc)
+
+
+class MonitorSettingsIn(BaseModel):
+    recipients: str = Field("", max_length=2000)  # comma separated; empty = MONITORING_ALERT_EMAILS
+
+
+class MonitorSettingsOut(BaseModel):
+    recipients: str
+    default_recipients: str
+    smtp: bool  # SMTP configured
+    encrypted: bool  # MONITORING_SECRET_KEY set
+    errors_interval: int
+
+
 # Forward references (TodayOut lists types defined after it)
 TodayOut.model_rebuild()

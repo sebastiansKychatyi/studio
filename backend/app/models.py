@@ -2,7 +2,7 @@ import datetime as dt
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from .sync import utcnow
@@ -408,3 +408,97 @@ class TimeEntry(Base):
     invoice_id: Mapped[int | None] = mapped_column(ForeignKey("invoices.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)
+
+
+# ===== e-Drivebook monitoring (see monitoring.py) =====
+class MonitorProject(Base):
+    """A monitored web application (e-Drivebook, …); its environments follow the shared monitoring contract."""
+
+    __tablename__ = "monitor_projects"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    description: Mapped[str] = mapped_column(Text, server_default="", default="")
+    enabled: Mapped[bool] = mapped_column(Boolean, server_default="true", default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MonitorEnv(Base):
+    """One environment of a project and its last known state. Token and secret never leave the server."""
+
+    __tablename__ = "monitor_envs"
+    __table_args__ = (UniqueConstraint("project_id", "name"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)  # also in the webhook URL
+    project_id: Mapped[int] = mapped_column(ForeignKey("monitor_projects.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))  # e-drivebook.com, k2drive.com…
+    kind: Mapped[str] = mapped_column(String(10), server_default="production", default="production")  # production | test
+    base_url: Mapped[str] = mapped_column(String(300))  # …/v1/monitoring/external
+    # Encrypted with MONITORING_SECRET_KEY when it is set ("enc:" prefix), see monitoring.seal
+    api_token: Mapped[str] = mapped_column(Text, server_default="", default="")  # empty = cannot be enabled
+    webhook_secret: Mapped[str] = mapped_column(Text, server_default="", default="")  # empty = no webhook, e-mails from polling
+    enabled: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+    poll_interval_seconds: Mapped[int] = mapped_column(Integer, server_default="60", default=60)
+    # State: unknown | up | degraded | down | off (API turned off there)
+    state: Mapped[str] = mapped_column(String(10), server_default="unknown", default="unknown")
+    status: Mapped[str] = mapped_column(String(10), server_default="")  # last "status" from /status
+    fail_count: Mapped[int] = mapped_column(Integer, server_default="0", default=0)  # failed polls in a row
+    last_poll_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_ok_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str] = mapped_column(Text, server_default="", default="")
+    down_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    degraded_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    degraded_alerted: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+    token_invalid: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)  # 401 e-mail sent
+    snapshot: Mapped[str] = mapped_column(Text, server_default="", default="")  # last /status body (JSON)
+    errors_cursor: Mapped[str] = mapped_column(String(40), server_default="", default="")  # since= for /errors
+    errors_polled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MonitorEvent(Base):
+    """History of an environment: state changes, e-mails, webhooks."""
+
+    __tablename__ = "monitor_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    env_id: Mapped[int] = mapped_column(ForeignKey("monitor_envs.id", ondelete="CASCADE"), index=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    kind: Mapped[str] = mapped_column(String(10))  # state | mail | webhook | info
+    text: Mapped[str] = mapped_column(Text)
+
+
+class MonitorError(Base):
+    """Error group reported by a project (one row per remote id; count grows)."""
+
+    __tablename__ = "monitor_errors"
+    __table_args__ = (UniqueConstraint("env_id", "remote_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    env_id: Mapped[int] = mapped_column(ForeignKey("monitor_envs.id", ondelete="CASCADE"), index=True)
+    remote_id: Mapped[int] = mapped_column(Integer)
+    source: Mapped[str] = mapped_column(String(20), server_default="")
+    level: Mapped[str] = mapped_column(String(20), server_default="")
+    logger_name: Mapped[str] = mapped_column(String(200), server_default="")
+    message: Mapped[str] = mapped_column(Text, server_default="")
+    traceback: Mapped[str] = mapped_column(Text, server_default="")
+    path: Mapped[str] = mapped_column(String(500), server_default="")
+    method: Mapped[str] = mapped_column(String(10), server_default="")
+    user_id: Mapped[int | None] = mapped_column(Integer)
+    count: Mapped[int] = mapped_column(Integer, server_default="1")
+    first_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    resolved: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+    mailed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # our last e-mail about it
+    via: Mapped[str] = mapped_column(String(8), server_default="poll")  # poll | webhook
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow)
+
+
+class MonitorSettings(Base):
+    """Single row: alert recipients (empty = MONITORING_ALERT_EMAILS from .env)."""
+
+    __tablename__ = "monitor_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    recipients: Mapped[str] = mapped_column(Text, server_default="")
+    seeded: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)  # first projects added once

@@ -313,6 +313,30 @@ export default {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    monitoring: {
+      title: 'Monitoring projektov', subtitle: 'Stav mojich webových aplikácií, chyby a logy; e-maily pri problémoch.',
+      denied: 'Monitoring je len pre správcov (MONITORING_ADMINS).', tabs: { overview: 'Prehľad', errors: 'Chyby', logs: 'Logy', settings: 'Nastavenia' },
+      states: { unknown: 'neznámy', up: 'beží', degraded: 's problémami', down: 'neodpovedá', off: 'API vypnuté' },
+      kinds: { production: 'produkcia', test: 'test' }, uptime: 'beží', lastOk: 'posledná úspešná kontrola pred', downFor: 'nefunguje',
+      badToken: 'Neplatný token (401)', errorsOpen: 'Otvorené chyby', noToken: 'Chýba API token — prostredie je vypnuté',
+      noProjects: 'Zatiaľ žiadne projekty.', noEnvs: 'Zatiaľ žiadne prostredia.', addProject: 'Pridať projekt', addEnv: 'Pridať prostredie',
+      checkNow: 'Skontrolovať teraz', noSnapshot: 'Zatiaľ žiadna úspešná odpoveď /status.', checks: 'Kontroly', metrics: 'Metriky',
+      errors1h: 'Chyby za hodinu', errors24h: 'Chyby za 24 h', scheduler: 'Plánovač', running: 'beží', stopped: 'zastavený', job: 'Úloha',
+      lastRun: 'Posledný beh', nextRun: 'Ďalší beh', result: 'Výsledok', runs: 'Behy / chyby', stale: 'zaseknutá', containers: 'Kontajnery',
+      service: 'Služba', state: 'Stav', health: 'Zdravie', image: 'Image', history: 'História', project: 'Projekt', projects: 'Projekty',
+      metricLabels: { bookings_created_24h: 'Vytvorené rezervácie za 24 h', bookings_cancelled_24h: 'Zrušené za 24 h', lessons_today: 'Jazdy dnes', lessons_next_7d_without_car: 'Jazdy bez auta (7 dní)', active_slot_offers: 'Aktívne ponuky' },
+      allProjects: 'Všetky projekty', environment: 'Prostredie', allEnvs: 'Všetky prostredia', source: 'Zdroj', allSources: 'Všetky zdroje',
+      openOnly: 'Len otvorené', noErrors: 'Žiadne chyby.', first: 'prvýkrát', resolved: 'vyriešené', tail: 'Riadky', search: 'Hľadať v logu',
+      loadLogs: 'Načítať', lines: 'riadkov', logsFailed: 'Logy sa nepodarilo načítať.', disabled: '(vypnuté)', token: 'token', webhook: 'webhook',
+      set: 'nastavený', notSet: 'nie', every: 'každých', alerts: 'Upozornenia e-mailom', recipients: 'Príjemcovia (oddelení čiarkou)',
+      smtpOk: 'SMTP je nastavené', noSmtp: 'SMTP nie je nastavené — e-maily sa len zapíšu do logu', encrypted: 'tokeny šifrované',
+      notEncrypted: 'tokeny nešifrované (MONITORING_SECRET_KEY)', testMail: 'Testovací e-mail', mailSent: 'Odoslané',
+      mailFailed: 'E-mail sa nepodarilo odoslať (pozri log servera).', saved: 'Uložené', copy: 'Kopírovať', copied: 'Skopírované', name: 'Názov',
+      description: 'Popis', envName: 'Názov (napr. e-drivebook.com)', kind: 'Typ', pollInterval: 'Kontrola každých (s)', enabled: 'Zapnuté',
+      keep: 'uložené — nechaj prázdne', optional: 'nepovinné', tokenLater: 'môžeš doplniť neskôr', clearWebhook: 'Odstrániť webhook secret',
+      secretsHint: 'Token a secret sú uložené len na serveri a do prehliadača sa nikdy nevracajú.', needToken: 'Bez API tokenu sa prostredie nedá zapnúť.',
+      nameUsed: 'Tento názov už existuje.', invalid: 'Skontroluj polia (URL začína http:// alebo https://, interval 15–3600 s).',
+    },
     quick: {
       title: 'Rýchly zápis', placeholder: 'Napr. káva 3.5€ · zajtra 14:00 call s Annou', examples: 'Výdavok, príjem, udalosť, úloha, budík alebo termín — jedným riadkom, aj offline.',
       kinds: { expense: 'Výdavok', income: 'Príjem', event: 'Udalosť', task: 'Úloha', alarm: 'Budík', work: 'Študijný termín' },
@@ -422,6 +446,7 @@ export default {
     themeLight: 'Svetlá téma',
     menu: 'Menu panela',
     nav: {
+      monitoring: 'Monitoring',
       clients: 'Klienti',
       time: 'Čas',
       study: 'Štúdium',

@@ -5,6 +5,7 @@
     python -m app.cli list
     python -m app.cli remove roman
     python -m app.cli vapid          # key pair for Web Push (put into backend/.env)
+    python -m app.cli fernet         # MONITORING_SECRET_KEY (encrypts monitoring tokens in the DB)
 """
 
 import argparse
@@ -51,6 +52,13 @@ def _vapid() -> int:
     return 0
 
 
+def _fernet() -> int:
+    from cryptography.fernet import Fernet
+
+    print(f"MONITORING_SECRET_KEY={Fernet.generate_key().decode()}")
+    return 0
+
+
 async def main(args: argparse.Namespace) -> int:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -92,5 +100,6 @@ if __name__ == "__main__":
     sub.add_parser("remove", help="delete a user").add_argument("username")
     sub.add_parser("list", help="list users")
     sub.add_parser("vapid", help="print a new Web Push key pair")
+    sub.add_parser("fernet", help="print a new MONITORING_SECRET_KEY")
     args = p.parse_args()
-    sys.exit(_vapid() if args.cmd == "vapid" else asyncio.run(main(args)))
+    sys.exit(_vapid() if args.cmd == "vapid" else _fernet() if args.cmd == "fernet" else asyncio.run(main(args)))

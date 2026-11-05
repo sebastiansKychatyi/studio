@@ -313,6 +313,31 @@ const uk: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    monitoring: {
+      title: 'Моніторинг проєктів', subtitle: 'Стан моїх вебзастосунків, помилки й логи; листи, коли щось не так.',
+      denied: 'Моніторинг лише для адміністраторів (MONITORING_ADMINS).',
+      tabs: { overview: 'Огляд', errors: 'Помилки', logs: 'Логи', settings: 'Налаштування' },
+      states: { unknown: 'невідомо', up: 'працює', degraded: 'з проблемами', down: 'не відповідає', off: 'API вимкнено' },
+      kinds: { production: 'продакшн', test: 'тест' }, uptime: 'працює', lastOk: 'останнє успішне опитування', downFor: 'не працює',
+      badToken: 'Невірний токен (401)', errorsOpen: 'Відкриті помилки', noToken: 'Немає API-токена — середовище вимкнене', noProjects: 'Ще немає проєктів.',
+      noEnvs: 'Ще немає середовищ.', addProject: 'Додати проєкт', addEnv: 'Додати середовище', checkNow: 'Перевірити зараз',
+      noSnapshot: 'Ще немає успішної відповіді /status.', checks: 'Перевірки', metrics: 'Метрики', errors1h: 'Помилки за годину',
+      errors24h: 'Помилки за 24 год', scheduler: 'Планувальник', running: 'працює', stopped: 'зупинений', job: 'Завдання', lastRun: 'Останній запуск',
+      nextRun: 'Наступний запуск', result: 'Результат', runs: 'Запуски / збої', stale: 'завис', containers: 'Контейнери', service: 'Сервіс', state: 'Стан',
+      health: 'Здоровʼя', image: 'Образ', history: 'Історія', project: 'Проєкт', projects: 'Проєкти', allProjects: 'Усі проєкти', environment: 'Середовище',
+      metricLabels: { bookings_created_24h: 'Створені бронювання за 24 год', bookings_cancelled_24h: 'Скасовані за 24 год', lessons_today: 'Заняття сьогодні', lessons_next_7d_without_car: 'Заняття без авто (7 днів)', active_slot_offers: 'Активні пропозиції' },
+      allEnvs: 'Усі середовища', source: 'Джерело', allSources: 'Усі джерела', openOnly: 'Лише відкриті', noErrors: 'Помилок немає.', first: 'вперше',
+      resolved: 'вирішено', tail: 'Рядки', search: 'Пошук у лозі', loadLogs: 'Завантажити', lines: 'рядків', logsFailed: 'Не вдалося завантажити логи.',
+      disabled: '(вимкнено)', token: 'токен', webhook: 'webhook', set: 'є', notSet: 'немає', every: 'кожні', alerts: 'Сповіщення поштою',
+      recipients: 'Отримувачі (через кому)', smtpOk: 'SMTP налаштовано', noSmtp: 'SMTP не налаштовано — листи лише пишуться в лог',
+      encrypted: 'токени зашифровані', notEncrypted: 'токени не зашифровані (MONITORING_SECRET_KEY)', testMail: 'Тестовий лист', mailSent: 'Надіслано',
+      mailFailed: 'Не вдалося надіслати лист (див. лог сервера).', saved: 'Збережено', copy: 'Копіювати', copied: 'Скопійовано', name: 'Назва',
+      description: 'Опис', envName: 'Назва (напр. e-drivebook.com)', kind: 'Тип', pollInterval: 'Опитувати кожні (с)', enabled: 'Увімкнено',
+      keep: 'збережено — залиш порожнім', optional: 'необовʼязково', tokenLater: 'можна додати пізніше', clearWebhook: 'Видалити webhook secret',
+      secretsHint: 'Токен і secret зберігаються лише на сервері й ніколи не повертаються в браузер.',
+      needToken: 'Без API-токена середовище не можна увімкнути.', nameUsed: 'Така назва вже є.',
+      invalid: 'Перевір поля (URL починається з http:// або https://, інтервал 15–3600 с).',
+    },
     quick: {
       title: 'Швидкий запис', placeholder: 'Напр. кава 3.5€ · завтра 14:00 дзвінок з Анною', examples: 'Витрата, дохід, подія, завдання, будильник або дедлайн — одним рядком, навіть офлайн.',
       kinds: { expense: 'Витрата', income: 'Дохід', event: 'Подія', task: 'Завдання', alarm: 'Будильник', work: 'Навчальний дедлайн' },
@@ -422,6 +447,7 @@ const uk: typeof sk = {
     themeLight: 'Світла тема',
     menu: 'Меню панелі',
     nav: {
+      monitoring: 'Моніторинг',
       clients: 'Клієнти',
       time: 'Час',
       study: 'Навчання',

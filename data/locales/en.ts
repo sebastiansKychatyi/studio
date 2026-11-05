@@ -313,6 +313,30 @@ const en: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    monitoring: {
+      title: 'Project monitoring', subtitle: 'State of my web apps, errors and logs; e-mails when something is wrong.',
+      denied: 'Monitoring is for admins only (MONITORING_ADMINS).', tabs: { overview: 'Overview', errors: 'Errors', logs: 'Logs', settings: 'Settings' },
+      states: { unknown: 'unknown', up: 'up', degraded: 'degraded', down: 'not answering', off: 'API turned off' },
+      kinds: { production: 'production', test: 'test' }, uptime: 'up for', lastOk: 'last good poll', downFor: 'down for', badToken: 'Invalid token (401)',
+      errorsOpen: 'Open errors', noToken: 'No API token — the environment is off', noProjects: 'No projects yet.', noEnvs: 'No environments yet.',
+      addProject: 'Add project', addEnv: 'Add environment', checkNow: 'Check now', noSnapshot: 'No successful /status answer yet.', checks: 'Checks',
+      metrics: 'Metrics', errors1h: 'Errors in the last hour', errors24h: 'Errors in 24 h', scheduler: 'Scheduler', running: 'running', stopped: 'stopped',
+      job: 'Job', lastRun: 'Last run', nextRun: 'Next run', result: 'Result', runs: 'Runs / failures', stale: 'stale', containers: 'Containers',
+      service: 'Service', state: 'State', health: 'Health', image: 'Image', history: 'History', project: 'Project', projects: 'Projects',
+      allProjects: 'All projects', environment: 'Environment', allEnvs: 'All environments', source: 'Source', allSources: 'All sources',
+      metricLabels: { bookings_created_24h: 'Bookings created in 24 h', bookings_cancelled_24h: 'Cancelled in 24 h', lessons_today: 'Lessons today', lessons_next_7d_without_car: 'Lessons without a car (7 days)', active_slot_offers: 'Active slot offers' },
+      openOnly: 'Open only', noErrors: 'No errors.', first: 'first', resolved: 'resolved', tail: 'Lines', search: 'Search the log', loadLogs: 'Load',
+      lines: 'lines', logsFailed: 'Could not load the logs.', disabled: '(off)', token: 'token', webhook: 'webhook', set: 'set', notSet: 'no',
+      every: 'every', alerts: 'E-mail alerts', recipients: 'Recipients (comma separated)', smtpOk: 'SMTP is configured',
+      noSmtp: 'SMTP is not configured — e-mails are only written to the log', encrypted: 'tokens encrypted',
+      notEncrypted: 'tokens not encrypted (MONITORING_SECRET_KEY)', testMail: 'Test e-mail', mailSent: 'Sent',
+      mailFailed: 'Could not send the e-mail (see the server log).', saved: 'Saved', copy: 'Copy', copied: 'Copied', name: 'Name',
+      description: 'Description', envName: 'Name (e.g. e-drivebook.com)', kind: 'Type', pollInterval: 'Poll every (s)', enabled: 'Enabled',
+      keep: 'saved — leave empty to keep', optional: 'optional', tokenLater: 'can be added later', clearWebhook: 'Remove the webhook secret',
+      secretsHint: 'The token and the secret are stored on the server only and never sent back to the browser.',
+      needToken: 'Without an API token the environment cannot be enabled.', nameUsed: 'This name already exists.',
+      invalid: 'Check the fields (URL starts with http:// or https://, interval 15–3600 s).',
+    },
     quick: {
       title: 'Quick add', placeholder: 'E.g. coffee 3.5€ · tomorrow 14:00 call with Anna', examples: 'Expense, income, event, task, alarm or deadline — in one line, offline too.',
       kinds: { expense: 'Expense', income: 'Income', event: 'Event', task: 'Task', alarm: 'Alarm', work: 'Study deadline' },
@@ -422,6 +446,7 @@ const en: typeof sk = {
     themeLight: 'Light theme',
     menu: 'Panel menu',
     nav: {
+      monitoring: 'Monitoring',
       clients: 'Clients',
       time: 'Time',
       study: 'Study',

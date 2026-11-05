@@ -9,11 +9,11 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI
 from sqlalchemy import inspect, text
 
-from . import notify
+from . import monitoring, notify
 from .config import settings
-from .db import engine
+from .db import SessionLocal, engine
 from .models import Base
-from .routers import alarms, auth, clients, events, kanban, money, push, settings as settings_router, study, time, today
+from .routers import alarms, auth, clients, events, kanban, money, monitoring as monitoring_router, push, settings as settings_router, study, time, today
 
 PREFIX = "/api/team"
 
@@ -79,11 +79,16 @@ async def lifespan(_: FastAPI):
         await conn.run_sync(_upgrade)
     # Web Push scheduler (alarms, reminders, deadlines) when VAPID keys are set
     scheduler = asyncio.create_task(notify.run_scheduler()) if notify.enabled() else None
+    # Project monitoring (polls the environments set up in the panel; first project added once)
+    async with SessionLocal() as db:
+        await monitoring.seed(db)
+    monitor = asyncio.create_task(monitoring.run_monitor())
     yield
-    if scheduler:
-        scheduler.cancel()
-        with suppress(asyncio.CancelledError):
-            await scheduler
+    for task in (scheduler, monitor):
+        if task:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
     await engine.dispose()
 
 
@@ -96,7 +101,7 @@ app = FastAPI(
 )
 
 for r in (auth.router, kanban.router, alarms.router, money.router, events.router, settings_router.router, push.router, today.router, study.router,
-          clients.router, time.router):
+          clients.router, time.router, monitoring_router.router):
     app.include_router(r, prefix=PREFIX)
 
 

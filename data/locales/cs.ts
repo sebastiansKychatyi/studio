@@ -313,6 +313,29 @@ const cs: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    monitoring: {
+      title: 'Monitoring projektů', subtitle: 'Stav mých webových aplikací, chyby a logy; e-maily při problémech.',
+      denied: 'Monitoring je jen pro správce (MONITORING_ADMINS).', tabs: { overview: 'Přehled', errors: 'Chyby', logs: 'Logy', settings: 'Nastavení' },
+      states: { unknown: 'neznámý', up: 'běží', degraded: 's problémy', down: 'neodpovídá', off: 'API vypnuté' },
+      kinds: { production: 'produkce', test: 'test' }, uptime: 'běží', lastOk: 'poslední úspěšná kontrola před', downFor: 'nefunguje',
+      badToken: 'Neplatný token (401)', errorsOpen: 'Otevřené chyby', noToken: 'Chybí API token — prostředí je vypnuté', noProjects: 'Zatím žádné projekty.',
+      noEnvs: 'Zatím žádná prostředí.', addProject: 'Přidat projekt', addEnv: 'Přidat prostředí', checkNow: 'Zkontrolovat teď',
+      noSnapshot: 'Zatím žádná úspěšná odpověď /status.', checks: 'Kontroly', metrics: 'Metriky', errors1h: 'Chyby za hodinu', errors24h: 'Chyby za 24 h',
+      scheduler: 'Plánovač', running: 'běží', stopped: 'zastavený', job: 'Úloha', lastRun: 'Poslední běh', nextRun: 'Další běh', result: 'Výsledek',
+      runs: 'Běhy / chyby', stale: 'zaseknutá', containers: 'Kontejnery', service: 'Služba', state: 'Stav', health: 'Zdraví', image: 'Image',
+      history: 'Historie', project: 'Projekt', projects: 'Projekty', allProjects: 'Všechny projekty', environment: 'Prostředí', allEnvs: 'Všechna prostředí',
+      metricLabels: { bookings_created_24h: 'Vytvořené rezervace za 24 h', bookings_cancelled_24h: 'Zrušené za 24 h', lessons_today: 'Jízdy dnes', lessons_next_7d_without_car: 'Jízdy bez auta (7 dní)', active_slot_offers: 'Aktivní nabídky' },
+      source: 'Zdroj', allSources: 'Všechny zdroje', openOnly: 'Jen otevřené', noErrors: 'Žádné chyby.', first: 'poprvé', resolved: 'vyřešeno',
+      tail: 'Řádky', search: 'Hledat v logu', loadLogs: 'Načíst', lines: 'řádků', logsFailed: 'Logy se nepodařilo načíst.', disabled: '(vypnuto)',
+      token: 'token', webhook: 'webhook', set: 'nastaven', notSet: 'ne', every: 'každých', alerts: 'Upozornění e-mailem',
+      recipients: 'Příjemci (oddělení čárkou)', smtpOk: 'SMTP je nastavené', noSmtp: 'SMTP není nastavené — e-maily se jen zapíšou do logu',
+      encrypted: 'tokeny šifrované', notEncrypted: 'tokeny nešifrované (MONITORING_SECRET_KEY)', testMail: 'Testovací e-mail', mailSent: 'Odesláno',
+      mailFailed: 'E-mail se nepodařilo odeslat (viz log serveru).', saved: 'Uloženo', copy: 'Kopírovat', copied: 'Zkopírováno', name: 'Název',
+      description: 'Popis', envName: 'Název (např. e-drivebook.com)', kind: 'Typ', pollInterval: 'Kontrola každých (s)', enabled: 'Zapnuto',
+      keep: 'uloženo — nech prázdné', optional: 'nepovinné', tokenLater: 'lze doplnit později', clearWebhook: 'Odstranit webhook secret',
+      secretsHint: 'Token a secret jsou uložené jen na serveru a do prohlížeče se nikdy nevracejí.', needToken: 'Bez API tokenu nelze prostředí zapnout.',
+      nameUsed: 'Tento název už existuje.', invalid: 'Zkontroluj pole (URL začíná http:// nebo https://, interval 15–3600 s).',
+    },
     quick: {
       title: 'Rychlý zápis', placeholder: 'Např. káva 3.5€ · zítra 14:00 call s Annou', examples: 'Výdaj, příjem, událost, úkol, budík nebo termín — jedním řádkem, i offline.',
       kinds: { expense: 'Výdaj', income: 'Příjem', event: 'Událost', task: 'Úkol', alarm: 'Budík', work: 'Studijní termín' },
@@ -422,6 +445,7 @@ const cs: typeof sk = {
     themeLight: 'Světlý motiv',
     menu: 'Menu panelu',
     nav: {
+      monitoring: 'Monitoring',
       clients: 'Klienti',
       time: 'Čas',
       study: 'Studium',

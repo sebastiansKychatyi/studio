@@ -15,6 +15,9 @@ const timerLabel = computed(() => clients.value.find((c) => c.id === timer.runni
 const { ready, loadPrefs, pref } = usePrefs()
 
 const p = computed(() => t.value.panel)
+const monitorAllowed = ref(false)
+const { api: teamApi } = useTeam()
+onMounted(() => teamApi<{ allowed: boolean }>('/monitoring/access').then((r) => (monitorAllowed.value = r.allowed)).catch(() => {}))
 const nav = computed(() => [
   { to: localePath('/panel/today'), icon: 'spark', label: p.value.nav.today },
   { to: localePath('/panel'), icon: 'tasks', label: p.value.nav.tasks },
@@ -25,6 +28,8 @@ const nav = computed(() => [
   { to: localePath('/panel/alarms'), icon: 'alarm', label: p.value.nav.alarms },
   { to: localePath('/panel/expenses'), icon: 'wallet', label: p.value.nav.expenses },
   { to: localePath('/panel/income'), icon: 'income', label: p.value.nav.income },
+  // Project monitoring: only for its admins (MONITORING_ADMINS)
+  ...(monitorAllowed.value ? [{ to: localePath('/panel/monitoring'), icon: 'chart', label: p.value.nav.monitoring }] : []),
   { to: localePath('/panel/settings'), icon: 'gear', label: p.value.nav.settings },
 ])
 const current = computed(() => nav.value.find((n) => n.to === route.path)?.label ?? '')

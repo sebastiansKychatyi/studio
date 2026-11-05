@@ -117,6 +117,27 @@ Domain and package live in `android/app/src/main/res/values/strings.xml` and `an
 
 **Calendar privacy**: calendars are visible only to their owner while `CALENDAR_SHARING=false` (default, `backend/.env`); set it to `true` to let owners share theirs in Settings (shares saved earlier come back).
 
+### Project monitoring
+
+Panel → **Monitoring** (only for users in `MONITORING_ADMINS`; empty = every panel user) watches my web apps. A **project** (e-Drivebook, …) has several **environments** (`production` / `test`), each with its own `base_url`, API token, optional webhook secret and poll interval. New projects and environments are added in Monitoring → Settings, no code changes. On first start the API adds the project *e-Drivebook* with `e-drivebook.com` (production) and `k2drive.com` (test), both off until their token is entered.
+
+Every project implements the same contract under its `base_url` (Bearer token, 10 s timeout; 401 = wrong token, 404 = API turned off there): `GET /status` (required: `status` ok|degraded|down, `time`, `checks`; optional: `version`, `uptime_seconds`, `errors`, `bookings` shown as *Metrics*, `scheduler`, `containers` — missing blocks are not shown), `GET /errors?since=&state=all&limit=200`, `GET /logs?service=&tail=&q=` (services from `containers`, otherwise only `backend`). The API (`backend/app/monitoring.py`, same process as the notification scheduler) polls and sends e-mails:
+
+- `/status` every `poll_interval_seconds` of the environment (default 60): **DOWN** after 3 failed polls in a row (or an answer without `status`/`time`/`checks`) or `status=down` → one e-mail "НЕ ОТВЕЧАЕТ", then one "снова работает" with the downtime; **degraded** for more than 10 min → one e-mail with failed checks and stale/error jobs; 401 → one "неверный токен" e-mail (not DOWN); 404 → gray card.
+- `/errors` every `MONITORING_ERRORS_INTERVAL` s (default 120) with a `since` cursor (newest `last_seen_at`); new or grown errors (same id, higher count) are saved. E-mail from polling only when the environment has no webhook secret; at most one e-mail per error per 30 min.
+- Webhook `POST /api/team/monitoring/webhook/<environment id>`: `X-Drivebook-Signature: sha256=<HMAC-SHA256 of the raw body with that environment's secret>`; wrong or missing → 401; `type=test` → logged in the history; `type=error` → saved and e-mailed. Polling stays the safety net.
+
+Tokens and secrets stay on the server (encrypted in the DB with `MONITORING_SECRET_KEY`); the panel only shows whether they are set. If the key changes, enter the tokens again.
+
+**Setup**
+
+1. `backend/.env`: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_SECURITY` (`starttls` / `ssl` / `none`); `MONITORING_SECRET_KEY` (`python -m app.cli fernet`); optional `MONITORING_ALERT_EMAILS`, `MONITORING_ADMINS`, `MONITORING_ERRORS_INTERVAL`. Without SMTP nothing is sent; the history shows "NOT sent (SMTP)".
+2. Panel → Monitoring → Settings → edit `e-drivebook.com` / `k2drive.com`: API token (= the monitoring token of that e-Drivebook server), webhook secret (optional, = its webhook secret), turn on. Another project: *Add project* → *Add environment*.
+3. On the project side: `MONITORING_WEBHOOK_URL=https://<this site>/api/team/monitoring/webhook/<environment id>` (Settings shows the URL with a copy button once a secret is set).
+4. Recipients: Settings → *Recipients* (comma separated; empty = `MONITORING_ALERT_EMAILS`) → *Test e-mail*.
+
+**Manual check**: *Check now* on the environment; the project's "send test webhook" should appear in the history as "test webhook received". Tests (mocked HTTP, in-memory SQLite, needs `pip install aiosqlite` — only for the tests): `cd backend && python -m unittest discover -s tests -v`.
+
 Architecture: the Nuxt pages are client-only (`routeRules`, noindex). Nuxt proxies `/api/team/**` to a **FastAPI + PostgreSQL** backend in `backend/` (`server/api/team/[...path].ts`, target `NUXT_TEAM_API_URL`), so the session cookie stays first-party (httpOnly, 30 days). Passwords are bcrypt; 10 failed logins per 15 min per IP.
 
 ### Backend setup
