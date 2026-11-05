@@ -470,14 +470,15 @@ async function copy(text: string) {
 
 <style>
 /* ===== Project monitoring ===== */
-.mo { display: grid; gap: 12px; max-width: 1100px; }
+/* minmax(0): wide tables scroll inside their card instead of widening the page */
+.mo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; max-width: 1100px; }
 .mo .btn .ico { width: 16px; height: 16px; }
 .mo-tabs { flex-wrap: wrap; }
 .mo-project { display: grid; gap: 8px; }
 .mo-project.off { opacity: .7; }
 .mo-project-name { font-size: .86rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .mo-project-name small { font-weight: 700; text-transform: none; }
-.mo-envs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.mo-envs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 10px; }
 .mo-env {
   display: flex; align-items: flex-start; gap: 10px; padding: 14px; border-radius: 18px; cursor: pointer; text-align: left;
   background: var(--surface); border: 1px solid var(--line); border-left: 5px solid #9CA3AF; color: var(--ink);
@@ -501,15 +502,15 @@ async function copy(text: string) {
 .mo-dot.down { background: #E5484D; animation: tpPulse 1.6s ease-in-out infinite; }
 .mo-err-count { flex: none; min-width: 28px; padding: 2px 8px; border-radius: 999px; background: var(--bg-2); text-align: center; font-weight: 800; font-size: .8rem; }
 .mo-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-.mo-bar h2 { font-size: 1.05rem; font-weight: 800; overflow-wrap: anywhere; }
+.mo-bar h2 { min-width: 0; font-size: 1.05rem; font-weight: 800; overflow-wrap: anywhere; }
 .mo-bar h2 small { color: var(--muted); font-weight: 600; font-size: .78rem; overflow-wrap: anywhere; }
-.mo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.mo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 12px; }
 .mo-checks { display: grid; gap: 6px; margin-top: 8px; }
 .mo-checks li { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 8px; font-size: .9rem; }
 .mo-checks .mo-dot { margin: 0; }
 .mo-checks small { color: var(--muted); font-weight: 600; overflow-wrap: anywhere; }
 .mo-checks li.bad small { color: #E5484D; }
-.mo-nums { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 8px; }
+.mo-nums { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr)); gap: 8px; margin-top: 8px; }
 .mo-nums div { padding: 8px 10px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); }
 .mo-nums div.warn { border-color: rgba(245, 158, 11, .6); }
 .mo-nums dt { color: var(--muted); font-size: .72rem; font-weight: 700; }
@@ -550,5 +551,8 @@ async function copy(text: string) {
 .mo-enabled input { width: 22px !important; height: 22px; }
 @media (max-width: 640px) {
   .mo-events li { grid-template-columns: 1fr; gap: 0; }
+  .mo-nums { grid-template-columns: 1fr 1fr; }
+  .mo-bar h2 small { display: block; }
+  .mo-bar .btn { width: 100%; justify-content: center; }
 }
 </style>
