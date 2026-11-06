@@ -85,14 +85,15 @@ const site = {
       phone: '+421 951 508 228',
       colors: ['#5B4BFF', '#9F8CFF'] as [string, string],
       // Short list (cards, chips)
-      skills: ['Python', 'FastAPI', 'Odoo 18', 'PostgreSQL', 'Vue.js / Nuxt 3', 'TypeScript', 'Docker', 'AI automation'],
+      skills: ['Python', 'FastAPI', 'Vue.js / Nuxt', 'PostgreSQL', 'TypeScript', 'Docker', 'Claude Code', 'AI automation'],
       // Full stack by group (profile, résumé)
       skillGroups: [
-        { k: 'Backend', v: ['Python', 'FastAPI', 'Odoo 18 (ERP, ORM, OWL)', 'SQLAlchemy', 'Alembic', 'REST API', 'API integrations', 'OAuth2 / JWT', 'Laravel (PHP)'] },
-        { k: 'Frontend', v: ['Vue.js', 'Nuxt 3', 'TypeScript', 'JavaScript', 'Pinia', 'HTML / CSS'] },
+        { k: 'Backend', v: ['Python', 'FastAPI', 'SQLAlchemy', 'Alembic', 'REST API', 'Webhooks', 'API integrations', 'OAuth2 / JWT', 'Laravel (PHP)', 'Odoo 18'] },
+        { k: 'Frontend', v: ['Vue.js 3', 'Nuxt 3 / 4', 'TypeScript', 'JavaScript', 'Pinia', 'Tailwind', 'PWA'] },
+        { k: 'AI & Automation', v: ['Claude Code', 'Cursor', 'MCP', 'Claude skills', 'LLM APIs', 'Telegram bots'] },
         { k: 'Data & DevOps', v: ['PostgreSQL', 'MySQL', 'Docker / Compose', 'Linux (Ubuntu)', 'Caddy', 'GitHub Actions (CI/CD)', 'Git', 'pytest'] },
       ],
-      terminal: ['whoami', 'Bc. Sebastian Kychatyi', 'role', 'Python Backend / Full-Stack', 'stack', 'FastAPI · Odoo 18 · PostgreSQL · Nuxt 3', 'status', 'open to work ✓'],
+      terminal: ['whoami', 'Bc. Sebastian Kychatyi', 'role', 'Full-Stack Developer', 'stack', 'FastAPI · Vue / Nuxt · PostgreSQL · Claude Code', 'status', 'open to work ✓'],
       links: {
         github: 'https://github.com/sebastiansKychatyi',
         linkedin: 'https://www.linkedin.com/in/sebastian-kychatyi-16aa7a272/',

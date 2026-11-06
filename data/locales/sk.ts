@@ -44,7 +44,7 @@ export default {
     people: {
       p1: {
         role: 'Python backend & full-stack developer',
-        bio: 'FastAPI, Odoo 18, PostgreSQL a Nuxt 3. Postavil skladový systém v Odoo pre e-commerce firmu a vlastný SaaS pre autoškoly e-drivebook. V štúdiu má na starosti backend, integrácie a AI automatizácie.',
+        bio: 'FastAPI, Vue / Nuxt, PostgreSQL a AI nástroje ako Claude Code. Postavil vlastný SaaS pre autoškoly e-drivebook, ktorý denne používajú 3 platiace autoškoly, a skladové nástroje a napojenia na kuriérov pre e-commerce firmu. V štúdiu má na starosti backend, integrácie a AI automatizácie.',
       },
       p2: {
         role: 'Full-stack inžinier (Next.js · React · FastAPI)',
@@ -252,22 +252,22 @@ export default {
     },
     people: {
       p1: {
-        metaTitle: 'Bc. Sebastian Kychatyi — Python backend / full-stack developer | Nitra',
-        metaDescription: 'Python backend a full-stack developer: FastAPI, Odoo 18, PostgreSQL, Vue.js / Nuxt 3. Skladový systém v Odoo 18, vlastný SaaS pre autoškoly e-drivebook, weby a AI automatizácia.',
+        metaTitle: 'Bc. Sebastian Kychatyi — Full-stack developer (Python, Vue / Nuxt) | Nitra',
+        metaDescription: 'Full-stack developer: Python / FastAPI, Vue.js / Nuxt, PostgreSQL, vývoj s AI (Claude Code). Vlastný SaaS pre autoškoly e-drivebook, interné nástroje, integrácie a AI automatizácia.',
         headline: 'Programujem systémy, na ktorých bežia skutočné firmy.',
-        intro: 'Python backend a full-stack developer zameraný na firemné systémy — ERP, e-commerce a SaaS. Funkciu dotiahnem od databázovej schémy cez rozhranie až po nasadenie.',
+        intro: 'Full-stack developer (Python / FastAPI + Vue / Nuxt). Robím produkty a interné nástroje a dotiahnem ich k reálnym používateľom. Pracujem s AI (Claude Code) a kódu, ktorý napíše, rozumiem a viem ho opraviť.',
         bio: [
-          'Postavil som skladový systém v Odoo 18 pre e-commerce firmu a od nuly vytvoril SaaS pre autoškoly e-drivebook, ktorý je v produkcii a denne ho používajú 3 platiace autoškoly.',
+          'Od nuly som vytvoril SaaS pre autoškoly e-drivebook, ktorý je v produkcii a denne ho používajú 3 platiace autoškoly. Pre e-commerce firmu som robil skladové nástroje, napojenia na API kuriérov a FastAPI mikroslužbu.',
           'Študujem magisterský program Aplikovaná informatika na UKF v Nitre. V Duo Studio mám na starosti backend, integrácie a AI automatizácie.',
         ],
         facts: [
           { k: 'Lokalita', v: 'Nitra, Slovensko' },
           { k: 'Práca', v: 'Hybridne v Bratislave alebo remote' },
-          { k: 'Zameranie', v: 'Backend · Full-stack · ERP' },
+          { k: 'Zameranie', v: 'Full-stack · Integrácie · AI automatizácia' },
         ],
         timeline: [
           { year: '04/2025 – dnes', title: 'Full-Stack Developer · e-drivebook (vlastný produkt)', text: 'SaaS pre autoškoly od požiadaviek po nasadenie, denne ho používajú 3 platiace autoškoly. FastAPI, PostgreSQL (SQLAlchemy, Alembic), OAuth2/JWT: evidencia žiakov, automatické plánovanie jázd, priebeh výcviku a údržba vozidiel. Dashboardy v Nuxt 3, Docker Compose, Caddy, CI/CD cez GitHub Actions.' },
-          { year: '04/2026 – 10/2026', title: 'Odoo Developer · Adelle Davis s.r.o.', text: 'Bratislava, hybridne. Vlastný skladový systém v Odoo 18 (Python, OWL): skladové pozície, príjem, vychystávanie a balenie so skenovaním čiarových kódov. Zásielky a štítky cez API kuriérov (SPS, Packeta, GLS), konektor WooCommerce ↔ Odoo, zákaznícka podpora v Odoo a FastAPI mikroslužba na výber krabice.' },
+          { year: '04/2026 – 10/2026', title: 'Python Developer · Adelle Davis s.r.o.', text: 'Bratislava, hybridne. Vlastný skladový systém v Odoo 18 (Python, OWL): skladové pozície, príjem, vychystávanie a balenie so skenovaním čiarových kódov. Zásielky a štítky cez API kuriérov (SPS, Packeta, GLS), konektor WooCommerce ↔ Odoo, zákaznícka podpora v Odoo a FastAPI mikroslužba na výber krabice.' },
           { year: '10/2025 – 07/2026', title: 'Backend Developer · SHARKRISE s.r.o.', text: 'Remote, kontrakt. Mobilná hra Difference Mania (Laravel, MySQL): refaktoring hernej logiky pred spustením a rozšírenie backendu o nový obsah.' },
         ],
         education: [
@@ -278,7 +278,7 @@ export default {
           { k: 'Ukrajinčina', v: 'materinský jazyk' },
           { k: 'Ruština', v: 'C2' },
           { k: 'Slovenčina', v: 'B2' },
-          { k: 'Angličtina', v: 'B1' },
+          { k: 'Angličtina', v: 'B2' },
         ],
       },
       p2: {

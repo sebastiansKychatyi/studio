@@ -45,7 +45,7 @@ const cs: typeof sk = {
     people: {
       p1: {
         role: 'Python backend & full-stack developer',
-        bio: 'FastAPI, Odoo 18, PostgreSQL a Nuxt 3. Postavil skladový systém v Odoo pro e-commerce firmu a vlastní SaaS pro autoškoly e-drivebook. Ve studiu má na starosti backend, integrace a AI automatizace.',
+        bio: 'FastAPI, Vue / Nuxt, PostgreSQL a AI nástroje jako Claude Code. Postavil vlastní SaaS pro autoškoly e-drivebook, který denně používají 3 platící autoškoly, a skladové nástroje a napojení na kurýry pro e-commerce firmu. Ve studiu má na starosti backend, integrace a AI automatizace.',
       },
       p2: {
         role: 'Full-stack inženýr (Next.js · React · FastAPI)',
@@ -252,22 +252,22 @@ const cs: typeof sk = {
     },
     people: {
       p1: {
-        metaTitle: 'Bc. Sebastian Kychatyi — Python backend / full-stack developer',
-        metaDescription: 'Python backend a full-stack developer: FastAPI, Odoo 18, PostgreSQL, Vue.js / Nuxt 3. Skladový systém v Odoo 18, vlastní SaaS pro autoškoly e-drivebook, weby a AI automatizace.',
+        metaTitle: 'Bc. Sebastian Kychatyi — Full-stack developer (Python, Vue / Nuxt)',
+        metaDescription: 'Full-stack developer: Python / FastAPI, Vue.js / Nuxt, PostgreSQL, vývoj s AI (Claude Code). Vlastní SaaS pro autoškoly e-drivebook, interní nástroje, integrace a AI automatizace.',
         headline: 'Programuji systémy, na kterých běží skutečné firmy.',
-        intro: 'Python backend a full-stack developer zaměřený na firemní systémy — ERP, e-commerce a SaaS. Funkci dotáhnu od databázového schématu přes rozhraní až po nasazení.',
+        intro: 'Full-stack developer (Python / FastAPI + Vue / Nuxt). Dělám produkty a interní nástroje a dotáhnu je k reálným uživatelům. Pracuji s AI (Claude Code) a kódu, který napíše, rozumím a umím ho opravit.',
         bio: [
-          'Postavil jsem skladový systém v Odoo 18 pro e-commerce firmu a od nuly vytvořil SaaS pro autoškoly e-drivebook, který je v produkci a denně ho používají 3 platící autoškoly.',
+          'Od nuly jsem vytvořil SaaS pro autoškoly e-drivebook, který je v produkci a denně ho používají 3 platící autoškoly. Pro e-commerce firmu jsem dělal skladové nástroje, napojení na API kurýrů a FastAPI mikroslužbu.',
           'Studuji magisterský program Aplikovaná informatika na UKF v Nitře. V Duo Studio mám na starosti backend, integrace a AI automatizace.',
         ],
         facts: [
           { k: 'Lokalita', v: 'Nitra, Slovensko' },
           { k: 'Práce', v: 'Hybridně v Bratislavě nebo remote' },
-          { k: 'Zaměření', v: 'Backend · Full-stack · ERP' },
+          { k: 'Zaměření', v: 'Full-stack · Integrace · AI automatizace' },
         ],
         timeline: [
           { year: '04/2025 – dosud', title: 'Full-Stack Developer · e-drivebook (vlastní produkt)', text: 'SaaS pro autoškoly od požadavků po nasazení, denně ho používají 3 platící autoškoly. FastAPI, PostgreSQL (SQLAlchemy, Alembic), OAuth2/JWT: evidence žáků, automatické plánování jízd, průběh výcviku a údržba vozidel. Dashboardy v Nuxt 3, Docker Compose, Caddy, CI/CD přes GitHub Actions.' },
-          { year: '04/2026 – 10/2026', title: 'Odoo Developer · Adelle Davis s.r.o.', text: 'Bratislava, hybridně. Vlastní skladový systém v Odoo 18 (Python, OWL): skladové pozice, příjem, vychystávání a balení se skenováním čárových kódů. Zásilky a štítky přes API kurýrů (SPS, Packeta, GLS), konektor WooCommerce ↔ Odoo, zákaznická podpora v Odoo a FastAPI mikroslužba pro výběr krabice.' },
+          { year: '04/2026 – 10/2026', title: 'Python Developer · Adelle Davis s.r.o.', text: 'Bratislava, hybridně. Vlastní skladový systém v Odoo 18 (Python, OWL): skladové pozice, příjem, vychystávání a balení se skenováním čárových kódů. Zásilky a štítky přes API kurýrů (SPS, Packeta, GLS), konektor WooCommerce ↔ Odoo, zákaznická podpora v Odoo a FastAPI mikroslužba pro výběr krabice.' },
           { year: '10/2025 – 07/2026', title: 'Backend Developer · SHARKRISE s.r.o.', text: 'Remote, kontrakt. Mobilní hra Difference Mania (Laravel, MySQL): refaktoring herní logiky před spuštěním a rozšíření backendu o nový obsah.' },
         ],
         education: [
@@ -278,7 +278,7 @@ const cs: typeof sk = {
           { k: 'Ukrajinština', v: 'rodný jazyk' },
           { k: 'Ruština', v: 'C2' },
           { k: 'Slovenština', v: 'B2' },
-          { k: 'Angličtina', v: 'B1' },
+          { k: 'Angličtina', v: 'B2' },
         ],
       },
       p2: {

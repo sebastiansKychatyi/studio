@@ -45,7 +45,7 @@ const uk: typeof sk = {
     people: {
       p1: {
         role: 'Python backend & full-stack розробник',
-        bio: 'FastAPI, Odoo 18, PostgreSQL і Nuxt 3. Створив складську систему в Odoo для e-commerce компанії та власний SaaS для автошкіл e-drivebook. У студії відповідає за бекенд, інтеграції та AI-автоматизацію.',
+        bio: 'FastAPI, Vue / Nuxt, PostgreSQL і AI-інструменти на кшталт Claude Code. Створив власний SaaS для автошкіл e-drivebook, яким щодня користуються 3 платні автошколи, а також складські інструменти й інтеграції з курʼєрами для e-commerce компанії. У студії відповідає за бекенд, інтеграції та AI-автоматизацію.',
       },
       p2: {
         role: 'Full-stack інженер (Next.js · React · FastAPI)',
@@ -252,22 +252,22 @@ const uk: typeof sk = {
     },
     people: {
       p1: {
-        metaTitle: 'Bc. Sebastian Kychatyi — Python backend / full-stack розробник',
-        metaDescription: 'Python backend і full-stack розробник: FastAPI, Odoo 18, PostgreSQL, Vue.js / Nuxt 3. Складська система в Odoo 18, власний SaaS для автошкіл e-drivebook, сайти та AI-автоматизація.',
+        metaTitle: 'Bc. Sebastian Kychatyi — Full-stack розробник (Python, Vue / Nuxt)',
+        metaDescription: 'Full-stack розробник: Python / FastAPI, Vue.js / Nuxt, PostgreSQL, розробка з AI (Claude Code). Власний SaaS для автошкіл e-drivebook, внутрішні інструменти, інтеграції та AI-автоматизація.',
         headline: 'Розробляю системи, на яких працюють реальні компанії.',
-        intro: 'Python backend і full-stack розробник, що спеціалізується на бізнес-системах — ERP, e-commerce та SaaS. Доводжу функцію від схеми бази даних до інтерфейсу та деплою.',
+        intro: 'Full-stack розробник (Python / FastAPI + Vue / Nuxt). Роблю продукти й внутрішні інструменти і доводжу їх до реальних користувачів. Працюю з AI (Claude Code), розумію код, який він пише, і вмію його виправити.',
         bio: [
-          'Створив складську систему в Odoo 18 для e-commerce компанії та з нуля розробив SaaS для автошкіл e-drivebook — він у продакшені, і ним щодня користуються 3 автошколи, які за нього платять.',
+          'З нуля розробив SaaS для автошкіл e-drivebook. Він у продакшені, і ним щодня користуються 3 автошколи, які за нього платять. Для e-commerce компанії робив складські інструменти, інтеграції з API курʼєрів і FastAPI-мікросервіс.',
           'Навчаюся в магістратурі з прикладної інформатики в UKF у Нітрі. У Duo Studio відповідаю за бекенд, інтеграції та AI-автоматизацію.',
         ],
         facts: [
           { k: 'Локація', v: 'Нітра, Словаччина' },
           { k: 'Формат роботи', v: 'Гібрид у Братиславі або віддалено' },
-          { k: 'Напрям', v: 'Backend · Full-stack · ERP' },
+          { k: 'Напрям', v: 'Full-stack · Інтеграції · AI-автоматизація' },
         ],
         timeline: [
           { year: '04/2025 – дотепер', title: 'Full-Stack Developer · e-drivebook (власний продукт)', text: 'SaaS для автошкіл від вимог до деплою, ним щодня користуються 3 платні автошколи. FastAPI, PostgreSQL (SQLAlchemy, Alembic), OAuth2/JWT: облік учнів, автоматичний розклад занять, прогрес навчання та обслуговування автопарку. Дашборди на Nuxt 3, Docker Compose, Caddy, CI/CD через GitHub Actions.' },
-          { year: '04/2026 – 10/2026', title: 'Odoo Developer · Adelle Davis s.r.o.', text: 'Братислава, гібрид. Власна складська система в Odoo 18 (Python, OWL): складські комірки, приймання, комплектування та пакування зі скануванням штрихкодів. Відправлення й етикетки через API курʼєрів (SPS, Packeta, GLS), конектор WooCommerce ↔ Odoo, підтримка клієнтів в Odoo та FastAPI-мікросервіс для вибору коробки.' },
+          { year: '04/2026 – 10/2026', title: 'Python Developer · Adelle Davis s.r.o.', text: 'Братислава, гібрид. Власна складська система в Odoo 18 (Python, OWL): складські комірки, приймання, комплектування та пакування зі скануванням штрихкодів. Відправлення й етикетки через API курʼєрів (SPS, Packeta, GLS), конектор WooCommerce ↔ Odoo, підтримка клієнтів в Odoo та FastAPI-мікросервіс для вибору коробки.' },
           { year: '10/2025 – 07/2026', title: 'Backend Developer · SHARKRISE s.r.o.', text: 'Віддалено, контракт. Мобільна гра Difference Mania (Laravel, MySQL): рефакторинг ігрової логіки перед запуском і розширення бекенду новим контентом.' },
         ],
         education: [
@@ -278,7 +278,7 @@ const uk: typeof sk = {
           { k: 'Українська', v: 'рідна' },
           { k: 'Російська', v: 'C2' },
           { k: 'Словацька', v: 'B2' },
-          { k: 'Англійська', v: 'B1' },
+          { k: 'Англійська', v: 'B2' },
         ],
       },
       p2: {

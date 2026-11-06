@@ -45,7 +45,7 @@ const en: typeof sk = {
     people: {
       p1: {
         role: 'Python backend & full-stack developer',
-        bio: 'FastAPI, Odoo 18, PostgreSQL and Nuxt 3. Built a warehouse management system in Odoo for an e-commerce company and his own SaaS for driving schools, e-drivebook. At the studio he handles backend, integrations and AI automation.',
+        bio: 'FastAPI, Vue / Nuxt, PostgreSQL and AI tools like Claude Code. Built his own SaaS for driving schools, e-drivebook, used daily by 3 paying schools, plus warehouse tools and courier integrations for an e-commerce company. At the studio he handles backend, integrations and AI automation.',
       },
       p2: {
         role: 'Full-stack engineer (Next.js · React · FastAPI)',
@@ -252,22 +252,22 @@ const en: typeof sk = {
     },
     people: {
       p1: {
-        metaTitle: 'Bc. Sebastian Kychatyi — Python backend / full-stack developer | Slovakia',
-        metaDescription: 'Python backend and full-stack developer: FastAPI, Odoo 18, PostgreSQL, Vue.js / Nuxt 3. Warehouse management system in Odoo 18, own SaaS for driving schools e-drivebook, websites and AI automation.',
+        metaTitle: 'Bc. Sebastian Kychatyi — Full-stack developer (Python, Vue / Nuxt) | Slovakia',
+        metaDescription: 'Full-stack developer: Python / FastAPI, Vue.js / Nuxt, PostgreSQL, AI-assisted development with Claude Code. Own SaaS for driving schools e-drivebook, internal tools, integrations and AI automation.',
         headline: 'I build systems that real businesses run on.',
-        intro: 'Python backend and full-stack developer focused on business systems — ERP, e-commerce and SaaS. I own features end to end, from the database schema to the UI and deployment.',
+        intro: 'Full-stack developer (Python / FastAPI + Vue / Nuxt). I build products and internal tools and get them to real users. I work AI-first with Claude Code, and I read and fix the code it writes.',
         bio: [
-          'I built a warehouse management system in Odoo 18 for an e-commerce company and created e-drivebook, a SaaS for driving schools, from scratch — it is in production and used daily by 3 paying driving schools.',
+          'I built e-drivebook, a SaaS for driving schools, from scratch. It is in production and used daily by 3 paying driving schools. For an e-commerce company I built warehouse tools, courier API integrations and a FastAPI microservice.',
           'I am a Master’s student in Applied Informatics at Constantine the Philosopher University in Nitra. At Duo Studio I handle backend, integrations and AI automation.',
         ],
         facts: [
           { k: 'Location', v: 'Nitra, Slovakia' },
           { k: 'Work', v: 'Hybrid in Bratislava or remote' },
-          { k: 'Focus', v: 'Backend · Full-stack · ERP' },
+          { k: 'Focus', v: 'Full-stack · Integrations · AI automation' },
         ],
         timeline: [
           { year: '04/2025 – present', title: 'Full-Stack Developer · e-drivebook (own product)', text: 'SaaS for driving schools from requirements to deployment, used daily by 3 paying driving schools. FastAPI, PostgreSQL (SQLAlchemy, Alembic), OAuth2/JWT: student records, automated lesson scheduling, lesson tracking and fleet maintenance. Nuxt 3 dashboards, Docker Compose, Caddy, CI/CD with GitHub Actions.' },
-          { year: '04/2026 – 10/2026', title: 'Odoo Developer · Adelle Davis s.r.o.', text: 'Bratislava, hybrid. Custom warehouse management system in Odoo 18 (Python, OWL): bin locations, receiving, picking and packing with barcode scanning. Courier shipments and labels via carrier APIs (SPS, Packeta, GLS), WooCommerce ↔ Odoo connector, customer support inside Odoo and a FastAPI microservice for automatic box selection.' },
+          { year: '04/2026 – 10/2026', title: 'Python Developer · Adelle Davis s.r.o.', text: 'Bratislava, hybrid. Custom warehouse management system in Odoo 18 (Python, OWL): bin locations, receiving, picking and packing with barcode scanning. Courier shipments and labels via carrier APIs (SPS, Packeta, GLS), WooCommerce ↔ Odoo connector, customer support inside Odoo and a FastAPI microservice for automatic box selection.' },
           { year: '10/2025 – 07/2026', title: 'Backend Developer · SHARKRISE s.r.o.', text: 'Remote, contract. Difference Mania mobile game (Laravel, MySQL): refactored core game logic before launch and extended the backend with new content.' },
         ],
         education: [
@@ -278,7 +278,7 @@ const en: typeof sk = {
           { k: 'Ukrainian', v: 'native' },
           { k: 'Russian', v: 'C2' },
           { k: 'Slovak', v: 'B2' },
-          { k: 'English', v: 'B1' },
+          { k: 'English', v: 'B2' },
         ],
       },
       p2: {
