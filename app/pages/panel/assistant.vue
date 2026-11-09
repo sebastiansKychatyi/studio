@@ -5,7 +5,7 @@
 
 interface Action { label: string; kind: 'undo' | 'confirm'; method: string; path: string; done?: boolean | 'declined' }
 interface Message { id: number; at: string; role: 'user' | 'assistant'; via: string; engine: string; text: string; actions: Action[] }
-interface Status { telegram: boolean; telegram_linked: boolean; bot: string | null; parser: boolean; claude: boolean; model: string }
+interface Status { telegram: boolean; telegram_linked: boolean; bot: string | null; parser: boolean; claude: boolean; claude_source: 'own' | 'server' | null; model: string }
 
 const { t } = useSite()
 const { locale } = useI18n()
@@ -115,7 +115,7 @@ const doneLabel = (x: Action) => (x.done === 'declined' ? a.value.declined : x.k
     <!-- What works on this server -->
     <div v-if="status" class="as-status">
       <span class="as-chip" :class="{ on: status.parser }"><AppIcon name="spark" /> {{ a.parser }}</span>
-      <span class="as-chip" :class="{ on: status.claude }"><AppIcon name="bot" /> Claude {{ status.claude ? `(${status.model})` : `— ${a.claudeOff}` }}</span>
+      <NuxtLink :to="localePath('/panel/settings')" class="as-chip" :class="{ on: status.claude }"><AppIcon name="bot" /> Claude {{ status.claude ? `(${status.model})` : `— ${a.claudeOff}` }}</NuxtLink>
       <NuxtLink v-if="status.telegram" :to="localePath('/panel/settings')" class="as-chip" :class="{ on: status.telegram_linked }">
         <AppIcon name="telegram" /> {{ status.telegram_linked ? a.tgLinked : a.tgConnect }}
       </NuxtLink>

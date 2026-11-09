@@ -530,3 +530,15 @@ class AssistantMessage(Base):
     text: Mapped[str] = mapped_column(Text)
     # JSON list: [{"label", "kind": "undo" | "confirm", "method", "path", "body", "done"}]
     actions: Mapped[str] = mapped_column(Text, server_default="[]", default="[]")
+
+
+class ClaudeLogin(Base):
+    """A panel user's own Claude for the assistant: `claude setup-token` (oauth) or an Anthropic API key, sealed."""
+
+    __tablename__ = "claude_logins"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(10))  # oauth | api
+    secret: Mapped[str] = mapped_column(Text)  # monitoring.seal(...)
+    hint: Mapped[str] = mapped_column(String(20), server_default="", default="")  # last characters, to recognise it
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

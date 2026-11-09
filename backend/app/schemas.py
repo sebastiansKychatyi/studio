@@ -1032,7 +1032,14 @@ class AssistantStatus(BaseModel):
     bot: str | None  # bot username
     parser: bool  # Node + quick parser available
     claude: bool  # Claude CLI with a login for this user
+    claude_source: str | None = None  # own (connected in Settings) | server (login made on the server) | None
+    claude_hint: str = ""  # last characters of the own token
     model: str
+
+
+class ClaudeLoginIn(BaseModel):
+    # `claude setup-token` (sk-ant-oat…) or an Anthropic API key (sk-ant-api…)
+    token: str = Field(min_length=20, max_length=500)
 
 
 # Forward references (TodayOut lists types defined after it)

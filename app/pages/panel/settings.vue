@@ -109,7 +109,7 @@ async function sendTest() {
 }
 
 // Telegram: notifications to the own private chat + the assistant there
-const tg = ref<{ telegram: boolean; telegram_linked: boolean; bot: string | null } | null>(null)
+const tg = ref<{ telegram: boolean; telegram_linked: boolean; bot: string | null; claude: boolean; claude_source: 'own' | 'server' | null; claude_hint: string; model: string } | null>(null)
 const tgBusy = ref(false)
 const refreshTelegram = () => api<NonNullable<typeof tg.value>>('/assistant').then((s) => (tg.value = s)).catch(() => {})
 onMounted(refreshTelegram)
@@ -135,6 +135,29 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisible
 async function unlinkTelegram() {
   await api('/assistant/telegram', { method: 'DELETE' }).catch(() => flash(false))
   tg.value = tg.value && { ...tg.value, telegram_linked: false }
+}
+
+// Own Claude for the assistant: everyone decides for themselves (setup-token or API key, checked before saving)
+const claudeToken = ref('')
+const claudeBusy = ref(false)
+const claudeError = ref('')
+async function connectClaude() {
+  claudeBusy.value = true
+  claudeError.value = ''
+  try {
+    await api('/assistant/claude', { method: 'PUT', body: { token: claudeToken.value.trim() } })
+    claudeToken.value = ''
+    await refreshTelegram()
+    flash(true)
+  } catch (e: any) {
+    claudeError.value = e?.data?.detail || st.value.claude.failed
+  } finally {
+    claudeBusy.value = false
+  }
+}
+async function disconnectClaude() {
+  await api('/assistant/claude', { method: 'DELETE' }).catch(() => flash(false))
+  await refreshTelegram()
 }
 
 const myBoards = computed(() => boards.value.filter((b) => b.created_by === user.value?.id))
@@ -276,6 +299,33 @@ function openBoard(id: number) {
           </template>
         </div>
         <p class="st-muted">{{ st.telegram.privacy }}</p>
+      </section>
+
+      <!-- Own Claude for the assistant -->
+      <section v-if="tg" class="st-card">
+        <h2><AppIcon name="bot" /> Claude</h2>
+        <p class="st-note">
+          <template v-if="tg.claude_source === 'own'">{{ st.claude.own }} (…{{ tg.claude_hint }}, {{ tg.model }})</template>
+          <template v-else-if="tg.claude_source === 'server'">{{ st.claude.server }}</template>
+          <template v-else>{{ st.claude.hint }}</template>
+        </p>
+        <form v-if="tg.claude_source !== 'own'" class="st-row" @submit.prevent="connectClaude">
+          <input v-model="claudeToken" type="password" class="tp-input" autocomplete="off" spellcheck="false" placeholder="sk-ant-oat01-…" :aria-label="st.claude.token" required minlength="20">
+          <button type="submit" class="btn btn-primary btn-sm" :disabled="claudeBusy || claudeToken.trim().length < 20">
+            <span v-if="claudeBusy" class="spinner" /> {{ claudeBusy ? st.claude.checking : st.claude.connect }}
+          </button>
+        </form>
+        <div v-else class="st-row">
+          <button type="button" class="btn btn-ghost btn-sm" @click="disconnectClaude">{{ st.claude.disconnect }}</button>
+        </div>
+        <p v-if="claudeError" class="st-muted" role="alert">{{ claudeError }}</p>
+        <details v-if="tg.claude_source !== 'own'" class="st-muted">
+          <summary>{{ st.claude.how }}</summary>
+          <ol>
+            <li v-for="step in st.claude.steps" :key="step">{{ step }}</li>
+          </ol>
+        </details>
+        <p class="st-muted">{{ st.claude.privacy }}</p>
       </section>
 
       <!-- Invoice details -->
