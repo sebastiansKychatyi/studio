@@ -6,9 +6,11 @@ Each user has one assistant chat and any number of regular chats.
 - Regular chat: always Claude, with the model chosen for the chat; the CLI session is resumed, so Claude
   remembers the whole conversation. With ASSISTANT_SANDBOX=docker it also gets a shell and files, but only
   inside the user's own container (workspace /home/claude/work), never on this server.
-Claude runs with the user's own login (<ASSISTANT_CLAUDE_HOME>/<username>) and only our panel tools
-(mcp_panel.py): every action goes through this API as that user (short-lived session token), so the panel's
-own rules decide what they may see and change. Created entries get an "Undo"; changes need a "Yes" first.
+Claude runs with the user's own Claude: a token they connected themselves in Settings (`claude setup-token`
+or an API key, sealed in claude_logins) or a login made on the server (<ASSISTANT_CLAUDE_HOME>/<username>);
+nobody uses someone else's subscription. It gets only our panel tools (mcp_panel.py): every action goes
+through this API as that user (short-lived session token), so the panel's own rules decide what they may
+see and change. Created entries get an "Undo"; changes need a "Yes" first.
 """
 
 import asyncio
@@ -34,7 +36,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
-from .models import AssistantChat, AssistantMessage, Client, Session, Subject, User
+from .models import AssistantChat, AssistantMessage, ClaudeLogin, Client, Session, Subject, User
 from .notify import LANGS, lang_of, prefs_of, tz_of
 from .sync import utcnow
 
@@ -53,30 +55,30 @@ WORKDIR = "/home/claude/work"  # workspace inside the container (kept between ch
 
 TEXT = {
     "sk": {
-        "chatNoClaude": "Bežný chat potrebuje Claude a ten na tomto serveri ešte nie je pripojený.", "untitled": "Nový chat",
+        "chatNoClaude": "Bežný chat potrebuje Claude — pripojíš si ho v Nastaveniach → Claude.", "untitled": "Nový chat",
         "expense": "Výdavok", "income": "Príjem", "event": "Udalosť", "task": "Úloha", "alarm": "Budík", "work": "Termín",
-        "today": "dnes", "noClaude": "Nerozumiem. Napíš to inak (napr. „káva 3,5 €“ alebo „zajtra 14:00 hovor s Annou“) — Claude ešte nie je pripojený.",
+        "today": "dnes", "noClaude": "Nerozumiem. Napíš to inak (napr. „káva 3,5 €“ alebo „zajtra 14:00 hovor s Annou“) — Claude si pripojíš v Nastaveniach → Claude.",
         "claudeFailed": "Claude teraz neodpovedá, skús to o chvíľu.", "noBoard": "Najprv vytvor nástenku pre úlohy.",
         "failed": "Nepodarilo sa uložiť", "undone": "Vrátené", "applied": "Hotovo", "declined": "Zrušené", "gone": "Táto akcia už neplatí",
     },
     "cs": {
-        "chatNoClaude": "Běžný chat potřebuje Claude a ten na tomto serveru ještě není připojený.", "untitled": "Nový chat",
+        "chatNoClaude": "Běžný chat potřebuje Claude — připojíš si ho v Nastavení → Claude.", "untitled": "Nový chat",
         "expense": "Výdaj", "income": "Příjem", "event": "Událost", "task": "Úkol", "alarm": "Budík", "work": "Termín",
-        "today": "dnes", "noClaude": "Nerozumím. Napiš to jinak (např. „káva 3,5 €“ nebo „zítra 14:00 hovor s Annou“) — Claude ještě není připojený.",
+        "today": "dnes", "noClaude": "Nerozumím. Napiš to jinak (např. „káva 3,5 €“ nebo „zítra 14:00 hovor s Annou“) — Claude si připojíš v Nastavení → Claude.",
         "claudeFailed": "Claude teď neodpovídá, zkus to za chvíli.", "noBoard": "Nejdřív vytvoř nástěnku pro úkoly.",
         "failed": "Nepodařilo se uložit", "undone": "Vráceno", "applied": "Hotovo", "declined": "Zrušeno", "gone": "Tato akce už neplatí",
     },
     "uk": {
-        "chatNoClaude": "Звичайному чату потрібен Claude, а його на цьому сервері ще не підключено.", "untitled": "Новий чат",
+        "chatNoClaude": "Звичайному чату потрібен Claude — підключи його в Налаштуваннях → Claude.", "untitled": "Новий чат",
         "expense": "Витрата", "income": "Дохід", "event": "Подія", "task": "Завдання", "alarm": "Будильник", "work": "Дедлайн",
-        "today": "сьогодні", "noClaude": "Не зрозумів. Напиши інакше (напр. «кава 3,5 €» або «завтра 14:00 дзвінок з Анною») — Claude ще не підключено.",
+        "today": "сьогодні", "noClaude": "Не зрозумів. Напиши інакше (напр. «кава 3,5 €» або «завтра 14:00 дзвінок з Анною») — Claude можна підключити в Налаштуваннях → Claude.",
         "claudeFailed": "Claude зараз не відповідає, спробуй трохи пізніше.", "noBoard": "Спершу створи дошку для завдань.",
         "failed": "Не вдалося зберегти", "undone": "Скасовано", "applied": "Готово", "declined": "Відхилено", "gone": "Ця дія вже недійсна",
     },
     "en": {
-        "chatNoClaude": "A regular chat needs Claude, and it is not connected on this server yet.", "untitled": "New chat",
+        "chatNoClaude": "A regular chat needs Claude — connect it in Settings → Claude.", "untitled": "New chat",
         "expense": "Expense", "income": "Income", "event": "Event", "task": "Task", "alarm": "Alarm", "work": "Deadline",
-        "today": "today", "noClaude": "I did not get that. Try e.g. “coffee 3.5 €” or “tomorrow 14:00 call with Anna” — Claude is not connected yet.",
+        "today": "today", "noClaude": "I did not get that. Try e.g. “coffee 3.5 €” or “tomorrow 14:00 call with Anna” — connect Claude in Settings → Claude.",
         "claudeFailed": "Claude is not answering right now, try again in a moment.", "noBoard": "Create a board for tasks first.",
         "failed": "Could not save", "undone": "Undone", "applied": "Done", "declined": "Cancelled", "gone": "This action is no longer valid",
     },
@@ -235,10 +237,38 @@ def container(user: User) -> str:
     return f"{settings.assistant_sandbox_prefix}{user.username.lower()}"
 
 
-def claude_ready(user: User) -> bool:
-    if sandbox():  # the CLI and its login live in the user's container
+def token_kind(token: str) -> str | None:
+    """oauth = `claude setup-token` (uses the Claude subscription), api = Anthropic API key (billed per use)."""
+    if token.startswith("sk-ant-oat"):
+        return "oauth"
+    if token.startswith("sk-ant-"):
+        return "api"
+    return None
+
+
+def auth_env(kind: str, token: str) -> dict[str, str]:
+    return {"CLAUDE_CODE_OAUTH_TOKEN": token} if kind == "oauth" else {"ANTHROPIC_API_KEY": token}
+
+
+async def claude_login(db: AsyncSession, user: User) -> dict[str, str] | None:
+    """How the CLI signs in for this user: own token from Settings first, else a login made on the server."""
+    from .monitoring import unseal  # monitoring → telegram → assistant: imported here
+
+    own = await db.get(ClaudeLogin, user.id)
+    if own is not None and (token := unseal(own.secret)):
+        return auth_env(own.kind, token)
+    home = claude_home(user)
+    return {"CLAUDE_CONFIG_DIR": str(home)} if home else None
+
+
+def cli_available() -> bool:
+    return bool(settings.assistant_claude and shutil.which(settings.assistant_claude))
+
+
+def claude_ready(user: User, login: dict[str, str] | None) -> bool:
+    if sandbox():  # the CLI lives in the user's container: own token passed in, or a login made there
         return bool(shutil.which("docker") and claude_home(user))
-    return bool(settings.assistant_claude and shutil.which(settings.assistant_claude) and claude_home(user))
+    return bool(login) and cli_available()
 
 
 @dataclass
@@ -268,10 +298,10 @@ def claude_args(mcp_config: str, system: str, run: Run | None = None, cli: str |
     return args
 
 
-def _child_env(home: Path) -> dict[str, str]:
+def _child_env(home: Path, login: dict[str, str] | None = None) -> dict[str, str]:
     # Only what the CLI needs: no database URL or other secrets of this API
     keep = ("PATH", "HOME", "USERPROFILE", "SYSTEMROOT", "APPDATA", "LOCALAPPDATA", "TEMP", "TMP", "LANG", "LC_ALL")
-    return {**{k: os.environ[k] for k in keep if k in os.environ}, "CLAUDE_CONFIG_DIR": str(home)}
+    return {**{k: os.environ[k] for k in keep if k in os.environ}, "CLAUDE_CONFIG_DIR": str(home), **(login or {})}
 
 
 def _result(out: subprocess.CompletedProcess) -> tuple[str, str]:
@@ -285,19 +315,62 @@ def _result(out: subprocess.CompletedProcess) -> tuple[str, str]:
     return str(result.get("result") or "").strip(), str(result.get("session_id") or "")
 
 
+def _config_dir(work: str, login: dict[str, str], keep_for: User | None = None) -> Path:
+    """Server login: its own folder. Own token: a fresh empty folder per answer (nothing kept on disk),
+    or for a regular chat a private folder per user that keeps only the chat sessions (the token stays in the env)."""
+    if "CLAUDE_CONFIG_DIR" in login:
+        return Path(login["CLAUDE_CONFIG_DIR"])
+    if keep_for is not None:
+        path = Path(tempfile.gettempdir()) / "duo-assistant" / keep_for.username.lower()
+        path.mkdir(parents=True, exist_ok=True, mode=0o700)
+        return path
+    path = Path(work) / "config"
+    path.mkdir()
+    return path
+
+
+def _auth_only(login: dict[str, str] | None) -> dict[str, str]:
+    return {k: v for k, v in (login or {}).items() if k != "CLAUDE_CONFIG_DIR"}
+
+
+def check_claude(kind: str, token: str) -> str:
+    """Blocking: a tiny call with a new token before it is saved. Returns "" if it works, else the reason."""
+    with tempfile.TemporaryDirectory(prefix="assistant-check-") as work:
+        run_dir = Path(work) / "cwd"
+        run_dir.mkdir()
+        try:
+            out = subprocess.run(
+                [shutil.which(settings.assistant_claude) or settings.assistant_claude, "-p", "--output-format", "json", "--model", settings.assistant_model,
+                 "--tools", "", "--strict-mcp-config", "--no-session-persistence"],
+                input="Reply with: OK", capture_output=True, text=True, encoding="utf-8", timeout=90, cwd=run_dir,
+                env=_child_env(_config_dir(work, {}), auth_env(kind, token)),
+            )
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return f"Claude CLI: {e.__class__.__name__}"
+        try:
+            result = json.loads(out.stdout)
+        except ValueError:
+            return (out.stderr or out.stdout or f"exit {out.returncode}").strip()[-300:]
+        return str(result.get("result") or result.get("subtype") or "error")[:300] if result.get("is_error") else ""
+
+
 # Sandbox runs in progress: key in the MCP URL → tool settings and recorded actions (see routers/assistant.py)
 SANDBOX_RUNS: dict[str, dict] = {}
 
 
-def run_claude(user: User, prompt: str, system: str, tool_env: dict[str, str], run: Run | None = None) -> tuple[str, list[dict], str]:
+def run_claude(
+    user: User, prompt: str, system: str, tool_env: dict[str, str], run: Run | None = None, login: dict[str, str] | None = None,
+) -> tuple[str, list[dict], str]:
     """Blocking: one Claude answer. Returns (text, actions the tools recorded, session id). Raises on failure."""
     run = run or Run(settings.assistant_model, timeout=settings.assistant_timeout)
-    home = claude_home(user)
-    if home is None:
-        raise RuntimeError("no Claude login for this user")
     if sandbox():
-        return _run_in_container(user, prompt, system, tool_env, run)
+        if claude_home(user) is None:
+            raise RuntimeError("no sandbox for this user")
+        return _run_in_container(user, prompt, system, tool_env, run, login)
+    if not login:
+        raise RuntimeError("no Claude login for this user")
     with tempfile.TemporaryDirectory(prefix="assistant-") as work:
+        home = _config_dir(work, login, user if run.keep else None)
         actions_file = Path(work) / "actions.jsonl"
         mcp = Path(work) / "mcp.json"
         mcp.write_text(json.dumps({"mcpServers": {"panel": {
@@ -309,7 +382,7 @@ def run_claude(user: User, prompt: str, system: str, tool_env: dict[str, str], r
         run_dir.mkdir(exist_ok=True)
         out = subprocess.run(
             claude_args(str(mcp), system, run), input=prompt, capture_output=True, text=True, encoding="utf-8",
-            timeout=run.timeout, cwd=run_dir, env=_child_env(home),
+            timeout=run.timeout, cwd=run_dir, env=_child_env(home, _auth_only(login)),
         )
         text, session = _result(out)
         actions = []
@@ -322,14 +395,16 @@ def run_claude(user: User, prompt: str, system: str, tool_env: dict[str, str], r
         return text, actions, session
 
 
-def _run_in_container(user: User, prompt: str, system: str, tool_env: dict[str, str], run: Run) -> tuple[str, list[dict], str]:
-    """Claude inside the user's container; the panel tools are reached over HTTP with a one-run key."""
+def _run_in_container(user: User, prompt: str, system: str, tool_env: dict[str, str], run: Run, login: dict[str, str] | None = None) -> tuple[str, list[dict], str]:
+    """Claude inside the user's container; the panel tools are reached over HTTP with a one-run key.
+    An own token from Settings is passed by name (-e), so it is not on the command line."""
     key = secrets.token_urlsafe(24)
     SANDBOX_RUNS[key] = {**tool_env, "actions": []}
     base = (settings.assistant_sandbox_api or settings.site_url).rstrip("/")
     mcp = json.dumps({"mcpServers": {"panel": {"type": "http", "url": f"{base}/api/team/assistant/mcp/{key}"}}})
-    cmd = ["docker", "exec", "-i", "-w", WORKDIR, container(user), *claude_args(mcp, system, run, cli="claude")]
-    env = {k: os.environ[k] for k in ("PATH", "HOME", "DOCKER_HOST", "DOCKER_CONFIG", "SYSTEMROOT") if k in os.environ}
+    auth = _auth_only(login)
+    cmd = ["docker", "exec", "-i", "-w", WORKDIR, *[a for k in auth for a in ("-e", k)], container(user), *claude_args(mcp, system, run, cli="claude")]
+    env = {**{k: os.environ[k] for k in ("PATH", "HOME", "DOCKER_HOST", "DOCKER_CONFIG", "SYSTEMROOT") if k in os.environ}, **auth}
     try:
         out = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", timeout=run.timeout, env=env)
         text, session = _result(out)
@@ -338,7 +413,7 @@ def _run_in_container(user: User, prompt: str, system: str, tool_env: dict[str, 
     return text, actions, session
 
 
-Claude = Callable[..., tuple]  # (user, prompt, system, tool_env, run) → (text, actions[, session])
+Claude = Callable[..., tuple]  # (user, prompt, system, tool_env, run, login) → (text, actions[, session])
 
 
 def system_prompt(user: User, lang: str, local: datetime) -> str:
@@ -537,7 +612,8 @@ def _tool_env(token: str, today: str) -> dict[str, str]:
 async def _answer(db, user, chat, asked, t, lang, local, caller, parser, claude) -> Reply:
     today = local.date().isoformat()
     parsed = await asyncio.to_thread(parser, asked.text, await parser_ctx(db, user, await prefs_of(db, user.id), local.date()))
-    sure, ready = confident(parsed), claude_ready(user)
+    login = await claude_login(db, user)
+    sure, ready = confident(parsed), claude_ready(user, login)
     if not sure and not ready:
         return Reply(t["noClaude"])
     token = await issue_token(db, user.id)
@@ -556,7 +632,7 @@ async def _answer(db, user, chat, asked, t, lang, local, caller, parser, claude)
     prompt = (f"Earlier in this conversation:\n{history}\n\n" if history else "") + f"Message: {asked.text}"
     run = Run(model_of(chat), timeout=settings.assistant_timeout)
     try:
-        text, actions, _ = await asyncio.to_thread(_call, claude, user, prompt, system_prompt(user, lang, local), _tool_env(token, today), run)
+        text, actions, _ = await asyncio.to_thread(_call, claude, user, prompt, system_prompt(user, lang, local), _tool_env(token, today), run, login)
     except Exception:  # noqa: BLE001 - CLI missing, timeout, limits
         log.exception("claude")
         return Reply(t["claudeFailed"], "claude")
@@ -565,7 +641,8 @@ async def _answer(db, user, chat, asked, t, lang, local, caller, parser, claude)
 
 async def _answer_chat(db, user, chat, asked, t, lang, local, claude) -> Reply:
     """Regular chat: Claude only; the CLI session keeps the conversation."""
-    if not claude_ready(user):
+    login = await claude_login(db, user)
+    if not claude_ready(user, login):
         return Reply(t["chatNoClaude"])
     token = await issue_token(db, user.id, settings.assistant_chat_timeout // 60 + 5)
     system = chat_prompt(user, lang, local, sandbox())
@@ -573,7 +650,7 @@ async def _answer_chat(db, user, chat, asked, t, lang, local, claude) -> Reply:
     run = Run(model_of(chat), code=sandbox(), session=chat.session, keep=True, timeout=settings.assistant_chat_timeout)
     try:
         try:
-            text, actions, session = await asyncio.to_thread(_call, claude, user, asked.text, system, env, run)
+            text, actions, session = await asyncio.to_thread(_call, claude, user, asked.text, system, env, run, login)
         except Exception:
             if not run.session:
                 raise
@@ -582,7 +659,7 @@ async def _answer_chat(db, user, chat, asked, t, lang, local, claude) -> Reply:
             history = await _history(db, chat.id, asked.id)
             prompt = (f"Earlier in this conversation:\n{history}\n\n" if history else "") + asked.text
             run = Run(run.model, code=run.code, keep=True, timeout=run.timeout)
-            text, actions, session = await asyncio.to_thread(_call, claude, user, prompt, system, env, run)
+            text, actions, session = await asyncio.to_thread(_call, claude, user, prompt, system, env, run, login)
     except Exception:  # noqa: BLE001 - CLI missing, timeout, limits
         log.exception("claude chat")
         return Reply(t["claudeFailed"], "claude")

@@ -8,7 +8,7 @@
 interface Action { label: string; kind: 'undo' | 'confirm'; method: string; path: string; done?: boolean | 'declined' }
 interface Message { id: number; at: string; role: 'user' | 'assistant'; via: string; engine: string; text: string; actions: Action[] }
 interface Chat { id: number; kind: 'assistant' | 'chat'; title: string; model: string; own_model: string; busy: boolean; updated_at: string }
-interface Status { telegram: boolean; telegram_linked: boolean; bot: string | null; parser: boolean; claude: boolean; model: string; chat_model: string; models: string[]; sandbox: boolean }
+interface Status { telegram: boolean; telegram_linked: boolean; bot: string | null; parser: boolean; claude: boolean; claude_source: 'own' | 'server' | null; model: string; chat_model: string; models: string[]; sandbox: boolean }
 
 const { t } = useSite()
 const { locale } = useI18n()
@@ -249,7 +249,7 @@ const doneLabel = (x: Action) => (x.done === 'declined' ? a.value.declined : x.k
       </template>
       <div v-else class="as-status">
         <span v-if="!isChat && status" class="as-chip" :class="{ on: status.parser }"><AppIcon name="spark" /> {{ a.parser }}</span>
-        <span v-if="status" class="as-chip" :class="{ on: status.claude }"><AppIcon name="bot" /> Claude{{ status.claude ? '' : ` — ${a.claudeOff}` }}</span>
+        <NuxtLink v-if="status" :to="localePath('/panel/settings')" class="as-chip" :class="{ on: status.claude }"><AppIcon name="bot" /> Claude{{ status.claude ? '' : ` — ${a.claudeOff}` }}</NuxtLink>
         <span v-if="isChat && status" class="as-chip" :class="{ on: status.sandbox }"><AppIcon name="code" /> {{ status.sandbox ? a.sandboxOn : a.sandboxOff }}</span>
         <NuxtLink v-if="status?.telegram" :to="localePath('/panel/settings')" class="as-chip" :class="{ on: status.telegram_linked }">
           <AppIcon name="telegram" /> {{ status.telegram_linked ? a.tgLinked : a.tgConnect }}

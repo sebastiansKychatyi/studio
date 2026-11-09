@@ -7,12 +7,13 @@ from fastapi.responses import JSONResponse, Response
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import assistant, mcp_panel, telegram
+from .. import assistant, mcp_panel, monitoring, telegram
 from ..config import settings
 from ..db import get_db
-from ..models import AssistantChat, AssistantMessage, User
+from ..models import AssistantChat, AssistantMessage, ClaudeLogin, User
 from ..schemas import (
     AssistantActionIn, AssistantActionOut, AssistantIn, AssistantSendOut, AssistantStatus, ChatIn, ChatMessagesOut, ChatOut, ChatPatch,
+    ClaudeLoginIn,
 )
 from ..security import current_user
 
@@ -25,13 +26,39 @@ _tasks: set[asyncio.Task] = set()
 
 @router.get("", response_model=AssistantStatus)
 async def status(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    own = await db.get(ClaudeLogin, user.id)
     return AssistantStatus(
         telegram=telegram.configured(), telegram_linked=await telegram.chat_of(db, user.id) is not None,
         bot=await telegram.bot_username() if telegram.configured() else None,
         parser=bool(settings.assistant_node and shutil.which(settings.assistant_node) and assistant.PARSER.exists()),
-        claude=assistant.claude_ready(user), model=settings.assistant_model, chat_model=settings.assistant_chat_model,
+        claude=assistant.claude_ready(user, await assistant.claude_login(db, user)),
+        claude_source="own" if own else "server" if assistant.claude_home(user) else None,
+        claude_hint=own.hint if own else "", model=settings.assistant_model, chat_model=settings.assistant_chat_model,
         models=list(assistant.MODELS), sandbox=assistant.sandbox(),
     )
+
+
+@router.put("/claude", status_code=204)
+async def claude_connect(body: ClaudeLoginIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    """Own Claude for the assistant: `claude setup-token` or an API key. Tried once before it is saved."""
+    token = body.token.strip()
+    kind = assistant.token_kind(token)
+    if kind is None:
+        raise HTTPException(422, "Not a Claude token (sk-ant-…)")
+    if not assistant.cli_available():
+        raise HTTPException(503, "Claude CLI is not installed on the server")
+    if reason := await asyncio.to_thread(assistant.check_claude, kind, token):
+        raise HTTPException(400, f"Claude did not accept the token: {reason}")
+    row = await db.get(ClaudeLogin, user.id) or ClaudeLogin(user_id=user.id)
+    row.kind, row.secret, row.hint, row.added_at = kind, monitoring.seal(token), token[-4:], assistant.utcnow()
+    db.add(row)
+    await db.commit()
+
+
+@router.delete("/claude", status_code=204)
+async def claude_disconnect(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    await db.execute(delete(ClaudeLogin).where(ClaudeLogin.user_id == user.id))
+    await db.commit()
 
 
 @router.post("/telegram")

@@ -144,7 +144,7 @@ class HandleTest(DbCase):
     async def test_not_understood_goes_to_claude_of_this_user(self):
         api, seen = Api(), {}
 
-        def claude(user, prompt, system, env, run=None):
+        def claude(user, prompt, system, env, run=None, login=None):
             seen.update(user=user.username, prompt=prompt, env=env)
             return "Added client Anna (tag: barbecue).", [{"label": "Anna", "kind": "undo", "method": "DELETE", "path": "/clients/5"}]
 
@@ -180,7 +180,7 @@ class HandleTest(DbCase):
         prompts = []
         parser = lambda text, ctx: None  # noqa: E731
 
-        def claude(user, prompt, system, env, run=None):
+        def claude(user, prompt, system, env, run=None, login=None):
             prompts.append((user.username, prompt))
             return "ok", []
 
@@ -230,7 +230,7 @@ class HandleTest(DbCase):
         seb = await a.scalar(select(User))
         order = []
 
-        def claude(user, prompt, system, env, run=None):
+        def claude(user, prompt, system, env, run=None, login=None):
             import time as clock
 
             order.append(prompt.rsplit("Message: ", 1)[1])
@@ -275,6 +275,56 @@ class HandleTest(DbCase):
         await assistant.run_action(self.db, self.seb, m.id, 0, False, api)
         self.assertEqual(api.calls, [])
         self.assertEqual(json.loads(m.actions)[0]["done"], "declined")
+
+
+class ClaudeLoginTest(DbCase):
+    """Everyone connects their own Claude (or not): Settings token first, else a login made on the server."""
+
+    def test_token_kind(self):
+        self.assertEqual(assistant.token_kind("sk-ant-oat01-abc"), "oauth")
+        self.assertEqual(assistant.token_kind("sk-ant-api03-abc"), "api")
+        self.assertIsNone(assistant.token_kind("hello"))
+
+    async def test_own_token_per_user(self):
+        from app.models import ClaudeLogin
+        from app.monitoring import seal
+
+        self.assertIsNone(await assistant.claude_login(self.db, self.seb))  # nothing connected: parser only
+        self.db.add(ClaudeLogin(user_id=self.seb.id, kind="oauth", secret=seal("sk-ant-oat01-seb"), hint="-seb"))
+        await self.db.commit()
+        self.assertEqual(await assistant.claude_login(self.db, self.seb), {"CLAUDE_CODE_OAUTH_TOKEN": "sk-ant-oat01-seb"})
+        self.assertIsNone(await assistant.claude_login(self.db, self.roman))  # Roman does not get Seb's Claude
+        with mock.patch.object(assistant, "cli_available", return_value=True):
+            self.assertFalse(assistant.claude_ready(self.roman, None))
+
+    async def test_own_token_wins_over_server_login(self):
+        from app.models import ClaudeLogin
+
+        with tempfile.TemporaryDirectory() as home:
+            (Path(home) / "seb").mkdir()
+            with mock.patch.object(assistant.settings, "assistant_claude_home", home):
+                self.assertEqual(await assistant.claude_login(self.db, self.seb), {"CLAUDE_CONFIG_DIR": str(Path(home) / "seb")})
+                self.db.add(ClaudeLogin(user_id=self.seb.id, kind="api", secret="sk-ant-api03-x"))
+                await self.db.commit()
+                self.assertEqual(await assistant.claude_login(self.db, self.seb), {"ANTHROPIC_API_KEY": "sk-ant-api03-x"})
+
+    async def test_cli_gets_the_token_but_no_api_secrets(self):
+        seen = {}
+
+        def run(args, **kw):
+            seen.update(kw["env"])
+            return types.SimpleNamespace(stdout=json.dumps({"result": "ok"}), stderr="", returncode=0)
+
+        with mock.patch.dict(os.environ, {"DATABASE_URL": "postgres://secret", "PATH": "/bin"}), mock.patch.object(assistant.subprocess, "run", run):
+            text, _, _ = assistant.run_claude(self.seb, "hi", "sys", {}, login={"CLAUDE_CODE_OAUTH_TOKEN": "sk-ant-oat01-seb"})
+        self.assertEqual(text, "ok")
+        self.assertEqual(seen["CLAUDE_CODE_OAUTH_TOKEN"], "sk-ant-oat01-seb")
+        self.assertNotIn("DATABASE_URL", seen)
+        self.assertTrue(seen["CLAUDE_CONFIG_DIR"].endswith("config"))  # fresh folder, not a shared login
+
+    async def test_without_cli_not_ready(self):
+        with mock.patch.object(assistant, "cli_available", return_value=False):
+            self.assertFalse(assistant.claude_ready(self.seb, {"ANTHROPIC_API_KEY": "x"}))
 
 
 class McpTest(unittest.TestCase):
@@ -507,7 +557,7 @@ class ChatTest(DbCase):
     def fake(self, replies=None, fail_resume=False):
         runs = []
 
-        def claude(user, prompt, system, env, run=None):
+        def claude(user, prompt, system, env, run=None, login=None):
             runs.append((user.username, prompt, system, run))
             if fail_resume and run.session:
                 raise RuntimeError("No conversation found")
@@ -577,7 +627,7 @@ class ChatTest(DbCase):
         chat = await assistant.new_chat(self.db, self.seb, "Other")
         prompts = []
 
-        def claude(user, prompt, system, env, run=None):
+        def claude(user, prompt, system, env, run=None, login=None):
             prompts.append(prompt)
             return "ok", []
 
@@ -592,7 +642,7 @@ class ChatTest(DbCase):
         chat = await assistant.new_chat(self.db, self.seb)
         gate = asyncio.Event()
 
-        def claude(user, prompt, system, env, run=None):
+        def claude(user, prompt, system, env, run=None, login=None):
             asyncio.run_coroutine_threadsafe(gate.wait(), loop).result(5)
             return "done", []
 
@@ -667,6 +717,24 @@ class SandboxTest(unittest.TestCase):
         self.assertEqual(seen["during"]["PANEL_TOKEN"], "t")
         self.assertEqual((text, session, actions[0]["path"]), ("Done", "s1", "/clients/5"))
         self.assertEqual(assistant.SANDBOX_RUNS, {})  # the key stops working after the run
+
+
+    def test_own_token_reaches_the_container_by_name_only(self):
+        seen = {}
+
+        def fake_run(cmd, **kw):
+            seen.update(cmd=cmd, env=kw["env"])
+            return types.SimpleNamespace(stdout=json.dumps({"result": "ok", "session_id": "s"}), returncode=0, stderr="")
+
+        user = types.SimpleNamespace(username="seb", id=1)
+        with tempfile.TemporaryDirectory() as home, \
+                mock.patch.multiple(assistant.settings, assistant_sandbox="docker", assistant_claude_home=home, site_url="https://x"), \
+                mock.patch.object(assistant.subprocess, "run", side_effect=fake_run):
+            (Path(home) / "seb").mkdir()
+            assistant.run_claude(user, "hi", "sys", {}, assistant.Run("sonnet"), {"CLAUDE_CODE_OAUTH_TOKEN": "sk-ant-oat01-secret"})
+        self.assertIn("CLAUDE_CODE_OAUTH_TOKEN", seen["cmd"][:seen["cmd"].index("claude-seb")])
+        self.assertFalse(any("secret" in a for a in seen["cmd"]))  # not visible in the process list
+        self.assertEqual(seen["env"]["CLAUDE_CODE_OAUTH_TOKEN"], "sk-ant-oat01-secret")
 
 
 class McpHttpTest(unittest.IsolatedAsyncioTestCase):
