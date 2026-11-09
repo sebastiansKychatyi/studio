@@ -1,12 +1,14 @@
-"""MCP server (stdio, JSON-RPC 2.0) with the panel tools for the assistant's Claude CLI.
+"""MCP server (JSON-RPC 2.0) with the panel tools for the assistant's Claude CLI.
 
-Started by assistant.run_claude for one answer: PANEL_API + PANEL_COOKIE + PANEL_TOKEN (short-lived session
-of the user who wrote), PANEL_ACTIONS (file where created entries and proposed changes are recorded for the
-Undo / Yes buttons), PANEL_TODAY. Standard library only; every tool is a request to the panel API,
-so the API's own permission rules apply. Changes to existing entries are never made here: they are
-only proposed and the user confirms them.
+Over stdio it is started by assistant.run_claude for one answer: PANEL_API + PANEL_COOKIE + PANEL_TOKEN
+(short-lived session of the user who wrote), PANEL_ACTIONS (file where created entries and proposed changes
+are recorded for the Undo / Yes buttons), PANEL_TODAY. The sandbox container reaches the same tools over HTTP
+(routers/assistant.py), with the same values set per run in RUN. Standard library only; every tool is a
+request to the panel API, so the API's own permission rules apply. Changes to existing entries are never
+made here: they are only proposed and the user confirms them.
 """
 
+import contextvars
 import json
 import os
 import re
@@ -25,14 +27,23 @@ CURRENCY = {"type": "string", "enum": ["EUR", "UAH", "USD"]}
 CHANGEABLE = re.compile(r"^/(expenses|income|events|alarms|cards|clients|projects|client-log|study/works)/\d+$")
 
 
+# One run over HTTP: {"PANEL_API", "PANEL_COOKIE", "PANEL_TOKEN", "PANEL_TODAY", "actions": list}; stdio uses the environment
+RUN: contextvars.ContextVar[dict | None] = contextvars.ContextVar("panel_run", default=None)
+
+
+def conf(key: str) -> str | None:
+    run = RUN.get()
+    return run.get(key) if run is not None else os.environ.get(key)
+
+
 # ===== HTTP to the panel API =====
 def api(method: str, path: str, body: dict | None = None, query: dict | None = None) -> Any:
-    url = f"{os.environ['PANEL_API'].rstrip('/')}/api/team{path}"
+    url = f"{(conf('PANEL_API') or '').rstrip('/')}/api/team{path}"
     if query:
         url += "?" + urllib.parse.urlencode({k: v for k, v in query.items() if v is not None})
     req = urllib.request.Request(
         url, method=method, data=json.dumps(body).encode() if body is not None else None,
-        headers={"Content-Type": "application/json", "Cookie": f"{os.environ.get('PANEL_COOKIE') or 'duo_session'}={os.environ['PANEL_TOKEN']}"},
+        headers={"Content-Type": "application/json", "Cookie": f"{conf('PANEL_COOKIE') or 'duo_session'}={conf('PANEL_TOKEN') or ''}"},
     )
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
@@ -50,6 +61,10 @@ class ToolError(Exception):
 
 
 def record(action: dict) -> None:
+    run = RUN.get()
+    if run is not None:
+        run["actions"].append(action)
+        return
     path = os.environ.get("PANEL_ACTIONS")
     if path:
         with open(path, "a", encoding="utf-8") as f:
@@ -66,7 +81,7 @@ def pick(d: dict, *keys: str) -> dict:
 
 
 def today() -> date:
-    return date.fromisoformat(os.environ.get("PANEL_TODAY") or date.today().isoformat())
+    return date.fromisoformat(conf("PANEL_TODAY") or date.today().isoformat())
 
 
 # ===== Tools =====

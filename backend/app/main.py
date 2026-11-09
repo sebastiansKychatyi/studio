@@ -38,6 +38,9 @@ ADDED_COLUMNS = [
     ("expenses", "project_id", "INTEGER REFERENCES projects(id) ON DELETE SET NULL"),
     ("incomes", "client_id", "INTEGER REFERENCES clients(id) ON DELETE SET NULL"),
     ("incomes", "project_id", "INTEGER REFERENCES projects(id) ON DELETE SET NULL"),
+    # Assistant chats (old messages belong to the assistant chat, see assistant.main_chat)
+    ("assistant_messages", "chat_id", "INTEGER REFERENCES assistant_chats(id) ON DELETE CASCADE"),
+    ("telegram_links", "current_chat", "INTEGER REFERENCES assistant_chats(id) ON DELETE SET NULL"),
 ]
 
 

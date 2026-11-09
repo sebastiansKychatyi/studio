@@ -119,7 +119,7 @@ Domain and package live in `android/app/src/main/res/values/strings.xml` and `an
 
 ### Assistant and Telegram bot
 
-Panel → **Assistant** and the panel's Telegram bot share one chat history per user. A message is handled in two steps (`backend/app/assistant.py`):
+Panel → **Assistant** and the panel's Telegram bot share the same chats per user: one **assistant** chat and any number of **regular chats** (strip at the top of the page; in Telegram `/chats`, `/new <title>`, `/assistant`). A message to the assistant is handled in two steps (`backend/app/assistant.py`):
 
 1. **Quick parser first** — the same `app/utils/quickParse.ts` as *Quick add*, run by Node (`scripts/quick-parse-cli.mjs`). Clear one-liners ("кофе 3,5 €", "завтра 14:00 созвон с Анной", "budík 6:30") are saved at once, no AI, with an **Undo** button.
 2. **Otherwise Claude** — the Claude Code CLI with the **writer's own login** (`ASSISTANT_CLAUDE_HOME/<username>`, so everyone uses their own subscription), cheap model (`ASSISTANT_MODEL`, default `haiku`), started with **no built-in tools at all** (`--tools ""`, no shell, no files), `--strict-mcp-config` and only our MCP server `backend/app/mcp_panel.py`: add expense / income / event / task / alarm / study deadline / client / client project / contact note; list calendar, money, tasks, boards, clients, users; `propose_change` for edits and deletes, which only happen after the user presses **Yes**. The tools call this API with a 15-minute session of the writer, so the panel's privacy rules apply (nobody reaches another user's data). Conversation memory: the last 30 minutes.
@@ -138,7 +138,16 @@ Panel → **Assistant** and the panel's Telegram bot share one chat history per 
    CLAUDE_CONFIG_DIR=/srv/claude/roman claude          # the same with Roman's account
    ```
    The folder name is the panel username (lowercase). `.env`: `ASSISTANT_CLAUDE_HOME=/srv/claude`, and `INTERNAL_API_URL` = the uvicorn address (default `http://127.0.0.1:8000`). Run these as the same OS user as the API.
-4. Check: Panel → Assistant shows *Quick input* and *Claude (haiku)* in green; write "add client Anna, barbecue".
+4. Check: Panel → Assistant shows *Quick input* and *Claude* in green; write "add client Anna, barbecue".
+
+**Regular chats** are always Claude, with memory of the whole chat (the CLI session is resumed with `--resume`; *Clear messages* also forgets it) and a model per chat (*Model*: Haiku / Sonnet / Opus, default `ASSISTANT_CHAT_MODEL`). They have the same panel tools. Answers that take long run in the background (up to `ASSISTANT_CHAT_TIMEOUT`); the page can be closed, and an answer that takes longer than 25 s is also sent to the linked Telegram.
+
+**Workspace for code (optional, `ASSISTANT_SANDBOX=docker`)**: in regular chats Claude also gets a shell and files (Bash, Read, Edit, Write, Glob, Grep, WebFetch, WebSearch), but only inside the user's **own container** `claude-<username>`, running as an **own Linux user** `claude-<username>` that owns only `/srv/claude/<username>` (mounted as `/home/claude`, workspace `/home/claude/work`, kept between chats). The backend, its `.env` and the database are not visible there. The panel tools reach the container over HTTP (`/api/team/assistant/mcp/<key>`, the key lives only as long as one answer). Setup, as root, per user:
+```bash
+ASSISTANT_CLAUDE_HOME=/srv/claude sh backend/sandbox/setup.sh sebastian   # builds the image once, starts the container
+docker exec -it claude-sebastian claude                                    # /login with Sebastian's account, then /exit
+```
+Then `.env`: `ASSISTANT_SANDBOX=docker` (the login is now the one inside the container, also for the assistant), the API user must be in the `docker` group. A newer Claude Code: `setup.sh <user> --rebuild`. Keep PostgreSQL listening on `127.0.0.1` only (containers cannot reach it then). Limits per container: 2 CPUs, 2 GB RAM, 512 processes.
 
 Tests: `cd backend && python -m unittest discover -s tests -v` (fake API / CLI / Bot API, in-memory SQLite).
 

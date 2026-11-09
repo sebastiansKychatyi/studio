@@ -514,15 +514,33 @@ class TelegramLink(Base):
     code_hash: Mapped[str] = mapped_column(String(64), server_default="", default="")
     code_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Chat that new Telegram messages go to (empty = the assistant)
+    current_chat: Mapped[int | None] = mapped_column(ForeignKey("assistant_chats.id", ondelete="SET NULL"))
+
+
+class AssistantChat(Base):
+    """One conversation of a user: the assistant (one per user) or a regular Claude chat."""
+
+    __tablename__ = "assistant_chats"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10), default="chat")  # assistant | chat
+    title: Mapped[str] = mapped_column(String(120), default="")
+    model: Mapped[str] = mapped_column(String(20), default="")  # haiku | sonnet | opus, empty = server default
+    session: Mapped[str] = mapped_column(String(80), server_default="", default="")  # Claude CLI session to resume
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class AssistantMessage(Base):
-    """Assistant chat (panel page and Telegram share one history per user)."""
+    """Message of a chat (the panel page and Telegram share the same chats)."""
 
     __tablename__ = "assistant_messages"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    chat_id: Mapped[int | None] = mapped_column(ForeignKey("assistant_chats.id", ondelete="CASCADE"), index=True)
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     role: Mapped[str] = mapped_column(String(10))  # user | assistant
     via: Mapped[str] = mapped_column(String(10), server_default="panel")  # panel | telegram

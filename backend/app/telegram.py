@@ -33,38 +33,42 @@ LIMIT = 4000  # Telegram allows 4096 characters
 
 TEXT = {
     "sk": {
+        "chats": "Tvoje chaty (vyber, kam písať):", "assistant": "⚡ Asistent", "now": "Teraz píšeš do: {title}", "newChat": "Nový chat: {title}. Píš — Claude si pamätá celý rozhovor. /assistant — späť.", "working": "⏳ Claude pracuje…",
         "linked": "Hotovo ✅ Tento chat je prepojený s panelom ({name}). Sem budú chodiť upozornenia a môžeš mi písať, napr. „káva 3,5 €“ alebo „zajtra 14:00 hovor s Annou“.",
         "badCode": "Kód neplatí alebo vypršal. V paneli otvor Nastavenia → Telegram → Pripojiť.",
         "notLinked": "Tento chat nie je prepojený. V paneli otvor Nastavenia → Telegram → Pripojiť.",
         "taken": "Tento Telegram je už prepojený s iným účtom panela.",
-        "help": "Napíš, čo pridať: výdavok, príjem, udalosť, úlohu, budík, termín, klienta… Alebo sa opýtaj, napr. „čo mám zajtra?“. /unlink — odpojiť tento chat.",
+        "help": "Napíš, čo pridať: výdavok, príjem, udalosť, úlohu, budík, termín, klienta… Alebo sa opýtaj, napr. „čo mám zajtra?“.\n/chats — moje chaty · /new názov — nový chat s Claudom · /assistant — späť na asistenta · /unlink — odpojiť tento chat.",
         "unlinked": "Chat je odpojený. Upozornenia sem už nebudú chodiť.", "onlyText": "Zatiaľ rozumiem len textu.",
         "undo": "↩️ Vrátiť", "yes": "✅ Áno", "no": "✖ Nie", "open": "Otvoriť", "snooze": "😴 O 10 min", "snoozed": "Pripomeniem o 10 minút",
     },
     "cs": {
+        "chats": "Tvoje chaty (vyber, kam psát):", "assistant": "⚡ Asistent", "now": "Teď píšeš do: {title}", "newChat": "Nový chat: {title}. Piš — Claude si pamatuje celý rozhovor. /assistant — zpět.", "working": "⏳ Claude pracuje…",
         "linked": "Hotovo ✅ Tento chat je propojený s panelem ({name}). Sem budou chodit upozornění a můžeš mi psát, např. „káva 3,5 €“ nebo „zítra 14:00 hovor s Annou“.",
         "badCode": "Kód neplatí nebo vypršel. V panelu otevři Nastavení → Telegram → Připojit.",
         "notLinked": "Tento chat není propojený. V panelu otevři Nastavení → Telegram → Připojit.",
         "taken": "Tento Telegram je už propojený s jiným účtem panelu.",
-        "help": "Napiš, co přidat: výdaj, příjem, událost, úkol, budík, termín, klienta… Nebo se zeptej, např. „co mám zítra?“. /unlink — odpojit tento chat.",
+        "help": "Napiš, co přidat: výdaj, příjem, událost, úkol, budík, termín, klienta… Nebo se zeptej, např. „co mám zítra?“.\n/chats — moje chaty · /new název — nový chat s Claudem · /assistant — zpět na asistenta · /unlink — odpojit tento chat.",
         "unlinked": "Chat je odpojený. Upozornění sem už chodit nebudou.", "onlyText": "Zatím rozumím jen textu.",
         "undo": "↩️ Vrátit", "yes": "✅ Ano", "no": "✖ Ne", "open": "Otevřít", "snooze": "😴 Za 10 min", "snoozed": "Připomenu za 10 minut",
     },
     "uk": {
+        "chats": "Твої чати (вибери, куди писати):", "assistant": "⚡ Асистент", "now": "Тепер пишеш у: {title}", "newChat": "Новий чат: {title}. Пиши — Claude памʼятає всю розмову. /assistant — назад.", "working": "⏳ Claude працює…",
         "linked": "Готово ✅ Цей чат підключено до панелі ({name}). Сюди приходитимуть сповіщення, і можна писати мені, напр. «кава 3,5 €» або «завтра 14:00 дзвінок з Анною».",
         "badCode": "Код недійсний або прострочений. У панелі відкрий Налаштування → Telegram → Підключити.",
         "notLinked": "Цей чат не підключено. У панелі відкрий Налаштування → Telegram → Підключити.",
         "taken": "Цей Telegram уже підключено до іншого акаунта панелі.",
-        "help": "Напиши, що додати: витрату, дохід, подію, завдання, будильник, дедлайн, клієнта… Або спитай, напр. «що в мене завтра?». /unlink — відключити цей чат.",
+        "help": "Напиши, що додати: витрату, дохід, подію, завдання, будильник, дедлайн, клієнта… Або спитай, напр. «що в мене завтра?».\n/chats — мої чати · /new назва — новий чат з Claude · /assistant — назад до асистента · /unlink — відключити цей чат.",
         "unlinked": "Чат відключено. Сповіщення сюди більше не приходитимуть.", "onlyText": "Поки що розумію лише текст.",
         "undo": "↩️ Скасувати", "yes": "✅ Так", "no": "✖ Ні", "open": "Відкрити", "snooze": "😴 Через 10 хв", "snoozed": "Нагадаю через 10 хвилин",
     },
     "en": {
+        "chats": "Your chats (pick where to write):", "assistant": "⚡ Assistant", "now": "Now writing to: {title}", "newChat": "New chat: {title}. Write — Claude remembers the whole conversation. /assistant — back.", "working": "⏳ Claude is working…",
         "linked": "Done ✅ This chat is linked to the panel ({name}). Notifications come here, and you can write to me, e.g. “coffee 3.5 €” or “tomorrow 14:00 call with Anna”.",
         "badCode": "The code is not valid or has expired. In the panel open Settings → Telegram → Connect.",
         "notLinked": "This chat is not linked. In the panel open Settings → Telegram → Connect.",
         "taken": "This Telegram is already linked to another panel account.",
-        "help": "Tell me what to add: expense, income, event, task, alarm, deadline, client… Or ask, e.g. “what do I have tomorrow?”. /unlink — disconnect this chat.",
+        "help": "Tell me what to add: expense, income, event, task, alarm, deadline, client… Or ask, e.g. “what do I have tomorrow?”.\n/chats — my chats · /new title — new chat with Claude · /assistant — back to the assistant · /unlink — disconnect this chat.",
         "unlinked": "Chat disconnected. No more notifications here.", "onlyText": "For now I understand text only.",
         "undo": "↩️ Undo", "yes": "✅ Yes", "no": "✖ No", "open": "Open", "snooze": "😴 In 10 min", "snoozed": "I will remind you in 10 minutes",
     },
@@ -257,9 +261,61 @@ async def handle_update(db: AsyncSession, upd: dict, api: Call = call) -> None:
     if not text:
         await send(chat_id, t["onlyText"], None, api)
         return
+    if text == "/chats":
+        await _list_chats(db, user, chat_id, t, api)
+        return
+    if text == "/assistant":
+        await _switch(db, user, None)
+        await send(chat_id, t["now"].format(title=t["assistant"]), None, api)
+        return
+    if text == "/new" or text.startswith("/new "):
+        chat = await assistant.new_chat(db, user, text[4:].strip())
+        await _switch(db, user, chat.id)
+        untitled = assistant.TEXT[await _lang(db, user, None)]["untitled"]
+        await send(chat_id, t["newChat"].format(title=html.escape(chat.title or untitled)), None, api)
+        return
+    chat = await _current(db, user)
+    if chat.kind == "chat":
+        await send(chat_id, t["working"], None, api)  # may take minutes
     await asyncio.to_thread(api, "sendChatAction", {"chat_id": chat_id, "action": "typing"})
-    answer = await assistant.handle(db, user, text, "telegram")
-    await send(chat_id, html.escape(answer.text), action_buttons(answer.id, json.loads(answer.actions), t), api)
+    answer = await assistant.handle(db, user, text, "telegram", chat=chat)
+    await send_answer(db, user, chat_id, chat, answer, api)
+
+
+async def send_answer(db: AsyncSession, user: User, chat_id: int, chat, answer, api: Call = call) -> bool:
+    """An answer of the assistant or of a chat (with its name), with the Undo / Yes buttons."""
+    t = TEXT[await _lang(db, user, None)]
+    head = f"💬 <b>{html.escape(chat.title)}</b>\n" if chat.kind == "chat" and chat.title else ""
+    return await send(chat_id, head + html.escape(answer.text), action_buttons(answer.id, json.loads(answer.actions), t), api)
+
+
+# ===== Chats =====
+async def _current(db: AsyncSession, user: User):
+    """Chat that Telegram messages go to; the assistant when none is chosen or it was deleted."""
+    from . import assistant
+
+    row = await db.get(TelegramLink, user.id)
+    chat = await assistant.chat_of(db, user, row.current_chat) if row and row.current_chat else None
+    return chat or await assistant.main_chat(db, user.id)
+
+
+async def _switch(db: AsyncSession, user: User, chat_id: int | None) -> None:
+    row = await db.get(TelegramLink, user.id)
+    if row is not None:
+        row.current_chat = chat_id
+        await db.commit()
+
+
+async def _list_chats(db: AsyncSession, user: User, chat_id: int, t: dict, api: Call) -> None:
+    from . import assistant
+
+    current = await _current(db, user)
+    untitled = assistant.TEXT[await _lang(db, user, None)]["untitled"]
+    rows = []
+    for c in (await assistant.chats_of(db, user))[:20]:
+        label = t["assistant"] if c.kind == "assistant" else f"💬 {c.title or untitled}"
+        rows.append([{"text": f"{'• ' if c.id == current.id else ''}{label}"[:60], "callback_data": f"c:{c.id}"}])
+    await send(chat_id, t["chats"], keyboard(rows), api)
 
 
 async def _callback(db: AsyncSession, q: dict, api: Call) -> None:
@@ -276,6 +332,12 @@ async def _callback(db: AsyncSession, q: dict, api: Call) -> None:
         if m is not None:
             markup = action_buttons(m.id, json.loads(m.actions), t) or {"inline_keyboard": []}
             await asyncio.to_thread(api, "editMessageReplyMarkup", {"chat_id": chat_id, "message_id": q["message"]["message_id"], "reply_markup": markup})
+    elif user is not None and parts[0] == "c" and len(parts) == 2 and parts[1].isdigit():
+        chat = await assistant.chat_of(db, user, int(parts[1]))
+        if chat is not None:
+            await _switch(db, user, None if chat.kind == "assistant" else chat.id)
+            note = t["now"].format(title=t["assistant"] if chat.kind == "assistant" else f"💬 {chat.title}")
+            await send(chat_id, html.escape(note), None, api)
     elif user is not None and parts[0] == "z" and len(parts) == 2 and parts[1].isdigit():
         alarm = await db.get(Alarm, int(parts[1]))
         if alarm is not None and alarm.user_id == user.id:

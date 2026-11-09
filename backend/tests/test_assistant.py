@@ -144,7 +144,7 @@ class HandleTest(DbCase):
     async def test_not_understood_goes_to_claude_of_this_user(self):
         api, seen = Api(), {}
 
-        def claude(user, prompt, system, env):
+        def claude(user, prompt, system, env, run=None):
             seen.update(user=user.username, prompt=prompt, env=env)
             return "Added client Anna (tag: barbecue).", [{"label": "Anna", "kind": "undo", "method": "DELETE", "path": "/clients/5"}]
 
@@ -180,7 +180,7 @@ class HandleTest(DbCase):
         prompts = []
         parser = lambda text, ctx: None  # noqa: E731
 
-        def claude(user, prompt, system, env):
+        def claude(user, prompt, system, env, run=None):
             prompts.append((user.username, prompt))
             return "ok", []
 
@@ -230,7 +230,7 @@ class HandleTest(DbCase):
         seb = await a.scalar(select(User))
         order = []
 
-        def claude(user, prompt, system, env):
+        def claude(user, prompt, system, env, run=None):
             import time as clock
 
             order.append(prompt.rsplit("Message: ", 1)[1])
@@ -385,7 +385,7 @@ class TelegramTest(DbCase):
         self.sent.clear()
         from app.models import AssistantMessage
 
-        async def fake_handle(db, user, text, via):
+        async def fake_handle(db, user, text, via, **kw):
             m = AssistantMessage(user_id=user.id, role="assistant", text=f"hi {user.username}", actions=json.dumps([{"label": "undo", "kind": "undo", "method": "DELETE", "path": "/expenses/1"}]))
             db.add(m)
             await db.commit()
@@ -437,6 +437,44 @@ class TelegramTest(DbCase):
             await notify.card_changed(card.id, self.seb.id, None)
         self.assertEqual(tg.call_args.args[0], 666)
 
+    async def test_new_chat_and_switching(self):
+        await self.link(self.seb, 555)
+        self.sent.clear()
+        await telegram.handle_update(self.db, self.msg(555, "/new Web for Anna"), self.api)
+        chats = await assistant.chats_of(self.db, self.seb)
+        self.assertEqual([c.title for c in chats], ["", "Web for Anna"])
+        seen = []
+
+        async def fake_handle(db, user, text, via, chat=None, **kw):
+            seen.append(chat.kind)
+            from app.models import AssistantMessage
+
+            m = AssistantMessage(user_id=user.id, chat_id=chat.id, role="assistant", text="ok")
+            db.add(m)
+            await db.commit()
+            return m
+
+        with mock.patch.object(assistant, "handle", side_effect=fake_handle):
+            await telegram.handle_update(self.db, self.msg(555, "make a landing page"), self.api)
+            await telegram.handle_update(self.db, self.msg(555, "/assistant"), self.api)
+            await telegram.handle_update(self.db, self.msg(555, "coffee 3 €"), self.api)
+        self.assertEqual(seen, ["chat", "assistant"])
+        self.assertIn("💬 <b>Web for Anna</b>\nok", self.texts())
+        self.assertTrue(any(t["working"] in self.texts() for t in telegram.TEXT.values()))
+
+    async def test_chat_list_and_buttons_are_own_only(self):
+        await self.link(self.seb, 555)
+        await self.link(self.roman, 666)
+        romans = await assistant.new_chat(self.db, self.roman, "Roman's")
+        self.sent.clear()
+        await telegram.handle_update(self.db, self.msg(555, "/chats"), self.api)
+        markup = [p for m, p in self.sent if m == "sendMessage"][0]["reply_markup"]
+        self.assertEqual(len(markup["inline_keyboard"]), 1)  # only Seb's assistant
+        self.assertTrue(markup["inline_keyboard"][0][0]["text"].startswith("• "))
+        q = {"id": "q", "data": f"c:{romans.id}", "message": {"message_id": 1, "chat": {"id": 555}}}
+        await telegram.handle_update(self.db, {"update_id": 2, "callback_query": q}, self.api)
+        self.assertEqual((await telegram._current(self.db, self.seb)).kind, "assistant")  # not switched to Roman's chat
+
     def test_push_message(self):
         with mock.patch.object(telegram.settings, "site_url", "https://studio.k2drive.com"):
             text, markup = telegram.push_message({"title": "⏰ 06:30", "body": "Gym <3", "url": "/sk/panel/alarms", "alarm": {"id": 4}}, telegram.TEXT["sk"], True)
@@ -461,6 +499,219 @@ class TelegramTest(DbCase):
             self.assertEqual(await notify.send(self.db, self.seb.id, "study", build), 0)  # Telegram switched off
         self.assertEqual(tg.call_count, 1)
         self.assertEqual(tg.call_args.args[0], 555)
+
+
+class ChatTest(DbCase):
+    """Regular chats: Claude only, own model, the CLI session is resumed; chats are per user."""
+
+    def fake(self, replies=None, fail_resume=False):
+        runs = []
+
+        def claude(user, prompt, system, env, run=None):
+            runs.append((user.username, prompt, system, run))
+            if fail_resume and run.session:
+                raise RuntimeError("No conversation found")
+            return (replies or {}).get(prompt, "ok"), [], f"session-{len(runs)}"
+
+        return claude, runs
+
+    async def test_parser_is_not_used_and_session_is_resumed(self):
+        chat = await assistant.new_chat(self.db, self.seb, "", "opus")
+        claude, runs = self.fake()
+        parser = mock.Mock()
+        with mock.patch.object(assistant, "claude_ready", return_value=True):
+            await assistant.handle(self.db, self.seb, "kava 3 €", "panel", Api(), parser, claude, chat=chat)
+            await assistant.handle(self.db, self.seb, "and now?", "panel", Api(), parser, claude, chat=chat)
+        parser.assert_not_called()
+        first, second = runs[0][3], runs[1][3]
+        self.assertEqual((first.model, first.session, first.keep), ("opus", "", True))
+        self.assertEqual(second.session, "session-1")  # Claude remembers the chat
+        self.assertEqual(runs[1][1], "and now?")  # no history copied: the session has it
+        self.assertEqual(chat.title, "kava 3 €")  # first message names the chat
+        self.assertEqual(chat.session, "session-2")
+
+    async def test_default_models(self):
+        chat = await assistant.new_chat(self.db, self.seb)
+        main = await assistant.main_chat(self.db, self.seb.id)
+        with mock.patch.object(assistant.settings, "assistant_chat_model", "sonnet"), mock.patch.object(assistant.settings, "assistant_model", "haiku"):
+            self.assertEqual((assistant.model_of(chat), assistant.model_of(main)), ("sonnet", "haiku"))
+            main.model = "sonnet"
+            self.assertEqual(assistant.model_of(main), "sonnet")
+        self.assertEqual((await assistant.new_chat(self.db, self.seb, "x", "gpt-5")).model, "")  # unknown model: default
+
+    async def test_lost_session_starts_again_with_recent_messages(self):
+        chat = await assistant.new_chat(self.db, self.seb, "Site")
+        chat.session = "gone"
+        await self.db.commit()
+        claude, runs = self.fake(fail_resume=True)
+        with mock.patch.object(assistant, "claude_ready", return_value=True):
+            m = await assistant.handle(self.db, self.seb, "continue", "panel", Api(), mock.Mock(), claude, chat=chat)
+        self.assertEqual(m.text, "ok")
+        self.assertEqual(runs[1][3].session, "")
+        self.assertIn("continue", runs[1][1])
+        self.assertEqual(chat.session, "session-2")
+
+    async def test_without_claude_says_so(self):
+        chat = await assistant.new_chat(self.db, self.seb)
+        with mock.patch.object(assistant, "claude_ready", return_value=False):
+            m = await assistant.handle(self.db, self.seb, "hi", "panel", Api(), mock.Mock(), mock.Mock(), chat=chat)
+        self.assertIn(m.text, [x["chatNoClaude"] for x in assistant.TEXT.values()])
+
+    async def test_chats_are_per_user(self):
+        mine = await assistant.new_chat(self.db, self.seb, "Mine")
+        self.assertIsNone(await assistant.chat_of(self.db, self.roman, mine.id))
+        self.assertEqual([c.kind for c in await assistant.chats_of(self.db, self.roman)], ["assistant"])
+        self.assertEqual([c.title for c in await assistant.chats_of(self.db, self.seb)], ["", "Mine"])
+
+    async def test_old_messages_move_into_the_assistant_chat(self):
+        from app.models import AssistantMessage
+
+        self.db.add(AssistantMessage(user_id=self.seb.id, role="user", text="from before"))
+        await self.db.commit()
+        main = await assistant.main_chat(self.db, self.seb.id)
+        row = (await self.db.scalars(__import__("sqlalchemy").select(AssistantMessage))).one()
+        self.assertEqual(row.chat_id, main.id)
+        self.assertEqual((await assistant.main_chat(self.db, self.seb.id)).id, main.id)  # only one
+
+    async def test_assistant_history_stays_in_its_chat(self):
+        chat = await assistant.new_chat(self.db, self.seb, "Other")
+        prompts = []
+
+        def claude(user, prompt, system, env, run=None):
+            prompts.append(prompt)
+            return "ok", []
+
+        with mock.patch.object(assistant, "claude_ready", return_value=True):
+            await assistant.handle(self.db, self.seb, "secret of the other chat", "panel", Api(), lambda *a: None, claude, chat=chat)
+            await assistant.handle(self.db, self.seb, "hello", "panel", Api(), lambda *a: None, claude)
+        self.assertNotIn("secret", prompts[1])
+
+    async def test_busy_while_answering(self):
+        import asyncio
+
+        chat = await assistant.new_chat(self.db, self.seb)
+        gate = asyncio.Event()
+
+        def claude(user, prompt, system, env, run=None):
+            asyncio.run_coroutine_threadsafe(gate.wait(), loop).result(5)
+            return "done", []
+
+        loop = asyncio.get_running_loop()
+        with mock.patch.object(assistant, "claude_ready", return_value=True):
+            task = asyncio.create_task(assistant.handle(self.db, self.seb, "long job", "panel", Api(), mock.Mock(), claude, chat=chat))
+            await asyncio.sleep(0.2)
+            self.assertTrue(assistant.busy(chat.id))
+            gate.set()
+            await task
+        self.assertFalse(assistant.busy(chat.id))
+
+
+    async def test_late_panel_answer_also_goes_to_telegram(self):
+        from app.models import TelegramLink
+
+        chat = await assistant.new_chat(self.db, self.seb, "Site")
+        self.db.add(TelegramLink(user_id=self.seb.id, chat_id=555))
+        await self.db.commit()
+        claude, _ = self.fake({"build it": "Built."})
+        sent = []
+
+        async def send(chat_id, text, markup=None, api=None):
+            sent.append(("sendMessage", {"chat_id": chat_id, "text": text}))
+            return True
+
+        with mock.patch.object(assistant, "claude_ready", return_value=True), mock.patch.object(telegram.settings, "telegram_bot_token", "1:x"), \
+                mock.patch.object(telegram, "send", side_effect=send):
+            asked = await assistant.ask(self.db, self.seb, chat, "quick", "panel")
+            await assistant.answer_later(self.seb.id, chat.id, asked.id, late_after=60, sessions=self.Session, claude=claude)
+            self.assertEqual(sent, [])  # quick enough: only on the page
+            asked = await assistant.ask(self.db, self.seb, chat, "build it", "panel")
+            r = await assistant.answer_later(self.seb.id, chat.id, asked.id, late_after=-1, sessions=self.Session, claude=claude)
+        self.assertEqual(r["text"], "Built.")
+        self.assertEqual(sent[0][1]["chat_id"], 555)
+        self.assertIn("Built.", sent[0][1]["text"])
+        self.assertFalse(assistant.busy(chat.id))
+
+
+class SandboxTest(unittest.TestCase):
+    def test_code_tools_only_with_a_run_that_allows_them(self):
+        run = assistant.Run("sonnet", code=True, session="abc", keep=True)
+        args = assistant.claude_args("{}", "sys", run, cli="claude")
+        self.assertEqual(args[0], "claude")
+        self.assertEqual(args[args.index("--tools") + 1], assistant.CODE_TOOLS)
+        self.assertIn("Bash", args[args.index("--allowedTools") + 1].split(","))
+        self.assertEqual(args[args.index("--resume") + 1], "abc")
+        self.assertNotIn("--no-session-persistence", args)
+        self.assertEqual(args[args.index("--permission-mode") + 1], "dontAsk")
+        plain = assistant.claude_args("{}", "sys")
+        self.assertEqual(plain[plain.index("--tools") + 1], "")
+        self.assertIn("--no-session-persistence", plain)
+
+    def test_container_run(self):
+        seen = {}
+
+        def fake_run(cmd, **kw):
+            seen["cmd"] = cmd
+            key = json.loads(cmd[cmd.index("--mcp-config") + 1])["mcpServers"]["panel"]["url"].rsplit("/", 1)[1]
+            seen["during"] = dict(assistant.SANDBOX_RUNS[key])
+            assistant.SANDBOX_RUNS[key]["actions"].append({"label": "Anna", "kind": "undo", "method": "DELETE", "path": "/clients/5"})
+            return types.SimpleNamespace(stdout=json.dumps({"result": "Done", "session_id": "s1"}), returncode=0, stderr="")
+
+        user = types.SimpleNamespace(username="Seb", id=1)
+        with tempfile.TemporaryDirectory() as home, \
+                mock.patch.multiple(assistant.settings, assistant_sandbox="docker", assistant_claude_home=home, site_url="https://studio.example", assistant_sandbox_api=""), \
+                mock.patch.object(assistant.subprocess, "run", side_effect=fake_run):
+            (Path(home) / "seb").mkdir()
+            text, actions, session = assistant.run_claude(user, "hi", "sys", {"PANEL_TOKEN": "t"}, assistant.Run("sonnet", code=True, keep=True))
+        self.assertEqual(seen["cmd"][:7], ["docker", "exec", "-i", "-w", assistant.WORKDIR, "claude-seb", "claude"])
+        self.assertTrue(json.loads(seen["cmd"][seen["cmd"].index("--mcp-config") + 1])["mcpServers"]["panel"]["url"].startswith("https://studio.example/api/team/assistant/mcp/"))
+        self.assertEqual(seen["during"]["PANEL_TOKEN"], "t")
+        self.assertEqual((text, session, actions[0]["path"]), ("Done", "s1", "/clients/5"))
+        self.assertEqual(assistant.SANDBOX_RUNS, {})  # the key stops working after the run
+
+
+class McpHttpTest(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        from app.routers import assistant as router
+
+        self.router = router
+        self.run = {"PANEL_API": "http://api", "PANEL_TOKEN": "t", "PANEL_TODAY": TODAY, "actions": []}
+        assistant.SANDBOX_RUNS["key1"] = self.run
+        self.addCleanup(assistant.SANDBOX_RUNS.clear)
+
+    def req(self, body):
+        async def read():
+            return json.dumps(body).encode()
+
+        return types.SimpleNamespace(body=read)
+
+    async def test_tools_over_http(self):
+        r = await self.router.mcp("key1", self.req({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}))
+        self.assertIn("add_client", r.body.decode())
+        with mock.patch.object(mcp_panel, "api", return_value={"id": 5}) as api:
+            await self.router.mcp("key1", self.req({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "add_client", "arguments": {"name": "Anna"}}}))
+        api.assert_called_once()
+        self.assertEqual(self.run["actions"][0]["path"], "/clients/5")  # recorded for this run, not in a file
+        note = await self.router.mcp("key1", self.req({"jsonrpc": "2.0", "method": "notifications/initialized"}))
+        self.assertEqual(note.status_code, 202)
+
+    async def test_unknown_key(self):
+        from fastapi import HTTPException
+
+        with self.assertRaises(HTTPException) as e:
+            await self.router.mcp("nope", self.req({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}))
+        self.assertEqual(e.exception.status_code, 404)
+
+    async def test_run_settings_reach_the_api_call(self):
+        seen = {}
+
+        def urlopen(req, timeout):
+            seen["url"], seen["cookie"] = req.full_url, req.headers.get("Cookie")
+            raise ConnectionRefusedError("stop here")
+
+        with mock.patch.object(mcp_panel.urllib.request, "urlopen", side_effect=urlopen):
+            await self.router.mcp("key1", self.req({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "list_users", "arguments": {}}}))
+        self.assertEqual(seen["url"], "http://api/api/team/users")
+        self.assertTrue(seen["cookie"].endswith("=t"))
 
 
 if __name__ == "__main__":

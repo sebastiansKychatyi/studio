@@ -1032,7 +1032,45 @@ class AssistantStatus(BaseModel):
     bot: str | None  # bot username
     parser: bool  # Node + quick parser available
     claude: bool  # Claude CLI with a login for this user
-    model: str
+    model: str  # assistant default
+    chat_model: str  # regular chat default
+    models: list[str]
+    sandbox: bool  # regular chats may write and run code (in the user's container)
+
+
+ModelName = Literal["", "haiku", "sonnet", "opus"]  # "" = server default
+
+
+class ChatIn(BaseModel):
+    title: str = Field("", max_length=120)
+    model: ModelName = ""
+
+
+class ChatPatch(BaseModel):
+    title: str | None = Field(None, max_length=120)
+    model: ModelName | None = None
+
+
+class ChatOut(BaseModel):
+    id: int
+    kind: str  # assistant | chat
+    title: str
+    model: str  # what is used (the chat's own or the default)
+    own_model: str  # "" = default
+    busy: bool  # an answer is being written
+    updated_at: datetime
+
+    _utc = field_validator("updated_at")(_as_utc)
+
+
+class ChatMessagesOut(BaseModel):
+    busy: bool
+    messages: list[AssistantMessageOut]
+
+
+class AssistantSendOut(BaseModel):
+    question: AssistantMessageOut
+    answer: AssistantMessageOut | None  # None = still working; poll the messages
 
 
 # Forward references (TodayOut lists types defined after it)

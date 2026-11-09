@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     assistant_claude_home: str = ""  # folder with one login per panel user: <folder>/<username> (CLAUDE_CONFIG_DIR)
     assistant_model: str = "haiku"
     assistant_timeout: int = Field(120, ge=20, le=600)  # seconds per Claude answer
+    assistant_chat_model: str = "sonnet"  # default model of a new regular chat
+    assistant_chat_timeout: int = Field(900, ge=60, le=3600)  # seconds per answer in a regular chat (code work)
+    # Sandbox for code work: "" = none (no shell, no files), "docker" = Claude runs in container <prefix><username>
+    assistant_sandbox: str = ""
+    assistant_sandbox_prefix: str = "claude-"
+    # How the container reaches the panel tools (MCP over HTTP); empty = SITE_URL
+    assistant_sandbox_api: str = ""
     # The tools of the assistant call this API as the user (same machine)
     internal_api_url: str = "http://127.0.0.1:8000"
 
