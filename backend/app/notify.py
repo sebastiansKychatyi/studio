@@ -24,7 +24,7 @@ from .config import settings
 from .db import SessionLocal
 from .models import (
     Alarm, Board, BoardColumn, CalEvent, Card, Client, ClientLog, Expense, Invoice, PushLater, PushSent, PushSubscription, Recurring, StudyWork, Subject,
-    TimeEntry, User, UserSettings,
+    TelegramLink, TimeEntry, User, UserSettings,
 )
 from .routers.study import current_semester, has_class
 from .sync import utcnow
@@ -135,20 +135,33 @@ def _post(sub: PushSubscription, payload: dict, ttl: int, urgency: str) -> int |
     return None
 
 
+def channels_on() -> bool:
+    """Web Push or the Telegram bot is set up."""
+    from . import telegram
+
+    return enabled() or telegram.configured()
+
+
 async def send(db: AsyncSession, user_id: int, kind: str, build: Builder, ttl: int = 3600) -> int:
-    """Push to every device of the user if their settings allow it. Returns devices reached."""
-    if not enabled():
+    """Push to every device of the user and to their Telegram chat, if their settings allow it. Returns how many were reached."""
+    from . import telegram
+
+    if not channels_on():
         return 0
     prefs = await prefs_of(db, user_id)
     if kind in KINDS and (prefs.get("notify") or {}).get(kind) is False:
         return 0
     if kind not in ("alarms", "test") and _quiet(prefs, datetime.now(tz_of(prefs))):
         return 0
-    subs = (await db.scalars(select(PushSubscription).where(PushSubscription.user_id == user_id))).all()
-    if not subs:
+    chat = await telegram.chat_of(db, user_id) if telegram.configured() and (prefs.get("notify") or {}).get("telegram") is not False else None
+    subs = (await db.scalars(select(PushSubscription).where(PushSubscription.user_id == user_id))).all() if enabled() else []
+    if not subs and chat is None:
         return 0
     lang = lang_of(prefs)
     payload = build(TEXT[lang], lang)
+    reached = await telegram.notify(chat, payload, lang, kind) if chat is not None else 0
+    if not subs:
+        return reached
     urgency = "high" if kind in ("alarms", "events", "test") else "normal"
     results = await asyncio.gather(*(asyncio.to_thread(_post, s, payload, ttl, urgency) for s in subs))
     # Uninstalled app / revoked permission: the push service says the endpoint is gone
@@ -156,7 +169,7 @@ async def send(db: AsyncSession, user_id: int, kind: str, build: Builder, ttl: i
     if gone:
         await db.execute(delete(PushSubscription).where(PushSubscription.id.in_(gone)))
         await db.commit()
-    return sum(r is None for r in results)
+    return reached + sum(r is None for r in results)
 
 
 def alarm_payload(t: dict, lang: str, alarm_id: int, time: str, label: str) -> dict:
@@ -371,7 +384,10 @@ async def tick(now: datetime) -> None:
             await db.delete(job)
             await db.commit()
             await send(db, job.user_id, "alarms", lambda t, lang, p=payload: p, ttl=900)
-        for uid in (await db.scalars(select(PushSubscription.user_id).distinct())).all():
+        # Users with a device or a Telegram chat
+        uids = set((await db.scalars(select(PushSubscription.user_id).distinct())).all())
+        uids |= set((await db.scalars(select(TelegramLink.user_id).where(TelegramLink.chat_id.is_not(None)))).all())
+        for uid in sorted(uids):
             prefs = await prefs_of(db, uid)
             local = now.astimezone(tz_of(prefs))
             await _alarms(db, uid, local)

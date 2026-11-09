@@ -313,6 +313,7 @@ const cs: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    assistant: { title: 'Asistent', subtitle: 'Napiš, co přidat, nebo se zeptej — stejný chat jako v Telegramu.', clear: 'Smazat chat', parser: 'Rychlé zadání', claudeOff: 'nepřipojený', tgLinked: 'Telegram připojený', tgConnect: 'Připojit Telegram', empty: 'Krátké řádky se uloží hned, zbytek vyřídí Claude. Zkus:', placeholder: 'Např. káva 3,5 € · zítra 14:00 hovor s Annou · přidej klienta Anna', send: 'Odeslat', undo: 'Vrátit', yes: 'Ano', no: 'Ne', undone: 'Vráceno', applied: 'Hotovo', declined: 'Zrušeno', fast: 'rychlé zadání', examples: ['káva 3,5 €', 'zítra 14:00 hovor s Annou', 'přidej klienta Anna, barbecue', 'co mám zítra?'] },
     monitoring: {
       title: 'Monitoring projektů', subtitle: 'Stav mých webových aplikací, chyby a logy; e-maily při problémech.',
       denied: 'Monitoring je jen pro správce (MONITORING_ADMINS).', tabs: { overview: 'Přehled', errors: 'Chyby', logs: 'Logy', settings: 'Nastavení' },
@@ -445,6 +446,7 @@ const cs: typeof sk = {
     themeLight: 'Světlý motiv',
     menu: 'Menu panelu',
     nav: {
+      assistant: 'Asistent',
       monitoring: 'Monitoring',
       clients: 'Klienti',
       time: 'Čas',
@@ -602,6 +604,7 @@ const cs: typeof sk = {
         fields: { name: 'Jméno / firma', address: 'Adresa', ico: 'IČO', dic: 'DIČ', icdph: 'DIČ (DPH)', register: 'Zápis v rejstříku', iban: 'IBAN', swift: 'SWIFT', bank: 'Banka', email: 'E-mail', phone: 'Telefon', note: 'Poznámka na faktuře (např. Nejsem plátce DPH)', prefix: 'Předpona čísla', dueDays: 'Splatnost (dny)' },
       },
       calPrivate: 'Váš kalendář vidíte jen vy (sdílení je vypnuté).',
+      telegram: { title: 'Telegram', hint: 'Připoj svůj Telegram: chodí tam upozornění a můžeš psát asistentovi. Odkaz funguje jednou, 15 minut.', linked: 'Připojeno. Upozornění se řídí typy a tichými hodinami výše.', notify: 'Upozornění v Telegramu', unlink: 'Odpojit', connect: 'Připojit', check: 'Stiskl jsem Start', privacy: 'Tvá upozornění dostává jen tvůj chat; ostatní je nevidí a nemohou psát za tebe.' },
       notify: {
         title: 'Oznámení',
         device: 'Na tomto zařízení',

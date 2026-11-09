@@ -117,6 +117,31 @@ Domain and package live in `android/app/src/main/res/values/strings.xml` and `an
 
 **Calendar privacy**: calendars are visible only to their owner while `CALENDAR_SHARING=false` (default, `backend/.env`); set it to `true` to let owners share theirs in Settings (shares saved earlier come back).
 
+### Assistant and Telegram bot
+
+Panel → **Assistant** and the panel's Telegram bot share one chat history per user. A message is handled in two steps (`backend/app/assistant.py`):
+
+1. **Quick parser first** — the same `app/utils/quickParse.ts` as *Quick add*, run by Node (`scripts/quick-parse-cli.mjs`). Clear one-liners ("кофе 3,5 €", "завтра 14:00 созвон с Анной", "budík 6:30") are saved at once, no AI, with an **Undo** button.
+2. **Otherwise Claude** — the Claude Code CLI with the **writer's own login** (`ASSISTANT_CLAUDE_HOME/<username>`, so everyone uses their own subscription), cheap model (`ASSISTANT_MODEL`, default `haiku`), started with **no built-in tools at all** (`--tools ""`, no shell, no files), `--strict-mcp-config` and only our MCP server `backend/app/mcp_panel.py`: add expense / income / event / task / alarm / study deadline / client / client project / contact note; list calendar, money, tasks, boards, clients, users; `propose_change` for edits and deletes, which only happen after the user presses **Yes**. The tools call this API with a 15-minute session of the writer, so the panel's privacy rules apply (nobody reaches another user's data). Conversation memory: the last 30 minutes.
+
+**Telegram**: notifications go to the linked chat too — same types, quiet hours and *Send test* as Web Push, plus a *Notifications in Telegram* switch; alarms get *In 10 min*, messages an *Open* button (`SITE_URL`). Monitoring alerts go to the monitoring admins' chats. The bot uses long polling (no webhook URL needed) and ignores groups and chats that are not linked. Each user links their own chat: Settings → Telegram → *Connect* (one-time link, 15 min) → *Start* in Telegram; `/unlink` in the chat disconnects it.
+
+**Setup on the server**
+
+1. Bot: @BotFather → `/newbot` → token into `TELEGRAM_BOT_TOKEN` (backend `.env`), `SITE_URL=https://<site>`. Restart the API.
+2. Node 22+ must be on the server (it already builds the site); keep the repo checkout next to `backend/` (the parser is read from `app/utils/quickParse.ts`).
+3. Claude (optional; without it only the parser works):
+   ```bash
+   npm i -g @anthropic-ai/claude-code
+   sudo mkdir -p /srv/claude && sudo chown <api user> /srv/claude
+   CLAUDE_CONFIG_DIR=/srv/claude/sebastian claude      # /login with Sebastian's account, then /exit
+   CLAUDE_CONFIG_DIR=/srv/claude/roman claude          # the same with Roman's account
+   ```
+   The folder name is the panel username (lowercase). `.env`: `ASSISTANT_CLAUDE_HOME=/srv/claude`, and `INTERNAL_API_URL` = the uvicorn address (default `http://127.0.0.1:8000`). Run these as the same OS user as the API.
+4. Check: Panel → Assistant shows *Quick input* and *Claude (haiku)* in green; write "add client Anna, barbecue".
+
+Tests: `cd backend && python -m unittest discover -s tests -v` (fake API / CLI / Bot API, in-memory SQLite).
+
 ### Project monitoring
 
 Panel → **Monitoring** (only for users in `MONITORING_ADMINS`; empty = every panel user) watches my web apps. A **project** (e-Drivebook, …) has several **environments** (`production` / `test`), each with its own `base_url`, API token, optional webhook secret and poll interval. New projects and environments are added in Monitoring → Settings, no code changes. On first start the API adds the project *e-Drivebook* with `e-drivebook.com` (production) and `k2drive.com` (test), both off until their token is entered.

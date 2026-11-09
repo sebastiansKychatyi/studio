@@ -313,6 +313,7 @@ const uk: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    assistant: { title: 'Асистент', subtitle: 'Напиши, що додати, або спитай — той самий чат, що й у Telegram.', clear: 'Очистити чат', parser: 'Швидке введення', claudeOff: 'не підключено', tgLinked: 'Telegram підключено', tgConnect: 'Підключити Telegram', empty: 'Короткі рядки зберігаються одразу, решту робить Claude. Спробуй:', placeholder: 'Напр. кава 3,5 € · завтра 14:00 дзвінок з Анною · додай клієнта Анна', send: 'Надіслати', undo: 'Скасувати', yes: 'Так', no: 'Ні', undone: 'Скасовано', applied: 'Готово', declined: 'Відхилено', fast: 'швидке введення', examples: ['кава 3,5 €', 'завтра 14:00 дзвінок з Анною', 'додай клієнта Анна, барбекю', 'що в мене завтра?'] },
     monitoring: {
       title: 'Моніторинг проєктів', subtitle: 'Стан моїх вебзастосунків, помилки й логи; листи, коли щось не так.',
       denied: 'Моніторинг лише для адміністраторів (MONITORING_ADMINS).',
@@ -447,6 +448,7 @@ const uk: typeof sk = {
     themeLight: 'Світла тема',
     menu: 'Меню панелі',
     nav: {
+      assistant: 'Асистент',
       monitoring: 'Моніторинг',
       clients: 'Клієнти',
       time: 'Час',
@@ -604,6 +606,7 @@ const uk: typeof sk = {
         fields: { name: 'Ім’я / фірма', address: 'Адреса', ico: 'IČO', dic: 'DIČ', icdph: 'IČ DPH', register: 'Запис у реєстрі', iban: 'IBAN', swift: 'SWIFT', bank: 'Банк', email: 'E-mail', phone: 'Телефон', note: 'Примітка в рахунку (напр. Nie som platiteľ DPH)', prefix: 'Префікс номера', dueDays: 'Строк оплати (днів)' },
       },
       calPrivate: 'Ваш календар бачите лише ви (спільний доступ вимкнено).',
+      telegram: { title: 'Telegram', hint: 'Підключи свій Telegram: туди приходитимуть сповіщення, і можна писати асистенту. Посилання діє один раз, 15 хвилин.', linked: 'Підключено. Сповіщення йдуть за типами й тихими годинами вище.', notify: 'Сповіщення в Telegram', unlink: 'Відключити', connect: 'Підключити', check: 'Я натиснув Start', privacy: 'Твої сповіщення отримує лише твій чат; інші не бачать їх і не можуть писати від твого імені.' },
       notify: {
         title: 'Сповіщення',
         device: 'На цьому пристрої',

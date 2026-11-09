@@ -2,7 +2,7 @@ import datetime as dt
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from .sync import utcnow
@@ -502,3 +502,31 @@ class MonitorSettings(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     recipients: Mapped[str] = mapped_column(Text, server_default="")
     seeded: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)  # first projects added once
+
+
+class TelegramLink(Base):
+    """Telegram chat of a panel user. While chat_id is empty, code_hash is a one-time link code."""
+
+    __tablename__ = "telegram_links"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    chat_id: Mapped[int | None] = mapped_column(BigInteger, unique=True)  # private chat = Telegram user id
+    code_hash: Mapped[str] = mapped_column(String(64), server_default="", default="")
+    code_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AssistantMessage(Base):
+    """Assistant chat (panel page and Telegram share one history per user)."""
+
+    __tablename__ = "assistant_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    role: Mapped[str] = mapped_column(String(10))  # user | assistant
+    via: Mapped[str] = mapped_column(String(10), server_default="panel")  # panel | telegram
+    engine: Mapped[str] = mapped_column(String(10), server_default="", default="")  # parser | claude | ""
+    text: Mapped[str] = mapped_column(Text)
+    # JSON list: [{"label", "kind": "undo" | "confirm", "method", "path", "body", "done"}]
+    actions: Mapped[str] = mapped_column(Text, server_default="[]", default="[]")

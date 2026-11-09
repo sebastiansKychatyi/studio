@@ -1000,5 +1000,40 @@ class MonitorSettingsOut(BaseModel):
     errors_interval: int
 
 
+# ===== Assistant (panel chat + Telegram) =====
+class AssistantIn(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+
+
+class AssistantActionIn(BaseModel):
+    accept: bool = True  # false = decline a proposed change
+
+
+class AssistantMessageOut(BaseModel):
+    id: int
+    at: datetime
+    role: str
+    via: str
+    engine: str
+    text: str
+    actions: list[dict]
+
+    _utc = field_validator("at")(_as_utc)
+
+
+class AssistantActionOut(BaseModel):
+    message: AssistantMessageOut | None
+    result: str
+
+
+class AssistantStatus(BaseModel):
+    telegram: bool  # bot configured on the server
+    telegram_linked: bool
+    bot: str | None  # bot username
+    parser: bool  # Node + quick parser available
+    claude: bool  # Claude CLI with a login for this user
+    model: str
+
+
 # Forward references (TodayOut lists types defined after it)
 TodayOut.model_rebuild()

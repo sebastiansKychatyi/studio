@@ -33,6 +33,18 @@ class Settings(BaseSettings):
     monitoring_admins: str = ""  # panel usernames allowed to open Monitoring, comma separated; empty = everyone
     # Time zone for users who have not opened the panel yet
     default_tz: str = "Europe/Bratislava"
+    # Public site address, for "Open" buttons in Telegram (https only)
+    site_url: str = ""
+    # Telegram bot of the panel (@BotFather); empty = no bot
+    telegram_bot_token: str = ""
+    # Assistant: own messages are parsed by app/utils/quickParse.ts first (Node), the rest goes to the Claude CLI
+    assistant_node: str = "node"  # empty = skip the parser
+    assistant_claude: str = "claude"  # Claude Code CLI; empty = parser only
+    assistant_claude_home: str = ""  # folder with one login per panel user: <folder>/<username> (CLAUDE_CONFIG_DIR)
+    assistant_model: str = "haiku"
+    assistant_timeout: int = Field(120, ge=20, le=600)  # seconds per Claude answer
+    # The tools of the assistant call this API as the user (same machine)
+    internal_api_url: str = "http://127.0.0.1:8000"
 
 
 settings = Settings()

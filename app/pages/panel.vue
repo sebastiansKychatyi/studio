@@ -28,6 +28,7 @@ const nav = computed(() => [
   { to: localePath('/panel/alarms'), icon: 'alarm', label: p.value.nav.alarms },
   { to: localePath('/panel/expenses'), icon: 'wallet', label: p.value.nav.expenses },
   { to: localePath('/panel/income'), icon: 'income', label: p.value.nav.income },
+  { to: localePath('/panel/assistant'), icon: 'bot', label: p.value.nav.assistant },
   // Project monitoring: only for its admins (MONITORING_ADMINS)
   ...(monitorAllowed.value ? [{ to: localePath('/panel/monitoring'), icon: 'chart', label: p.value.nav.monitoring }] : []),
   { to: localePath('/panel/settings'), icon: 'gear', label: p.value.nav.settings },
@@ -236,7 +237,8 @@ watch(() => route.path, () => (sheet.value = false))
     </Transition>
 
     <TeamAlarmRinger />
-    <TeamQuickAdd />
+    <!-- The assistant page has its own input -->
+    <TeamQuickAdd v-if="route.path !== localePath('/panel/assistant')" />
   </div>
 </template>
 

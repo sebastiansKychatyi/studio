@@ -108,6 +108,27 @@ async function sendTest() {
   setTimeout(() => (pushText.value = ''), 4000)
 }
 
+// Telegram: notifications to the own private chat + the assistant there
+const tg = ref<{ telegram: boolean; telegram_linked: boolean; bot: string | null } | null>(null)
+const tgBusy = ref(false)
+const refreshTelegram = () => api<NonNullable<typeof tg.value>>('/assistant').then((s) => (tg.value = s)).catch(() => {})
+onMounted(refreshTelegram)
+async function connectTelegram() {
+  tgBusy.value = true
+  try {
+    const { url } = await api<{ url: string }>('/assistant/telegram', { method: 'POST' })
+    window.open(url, '_blank', 'noopener')
+  } catch {
+    flash(false)
+  } finally {
+    tgBusy.value = false
+  }
+}
+async function unlinkTelegram() {
+  await api('/assistant/telegram', { method: 'DELETE' }).catch(() => flash(false))
+  tg.value = tg.value && { ...tg.value, telegram_linked: false }
+}
+
 const myBoards = computed(() => boards.value.filter((b) => b.created_by === user.value?.id))
 const sharedBoards = computed(() => boards.value.filter((b) => b.created_by !== user.value?.id))
 function openBoard(id: number) {
@@ -219,7 +240,7 @@ function openBoard(id: number) {
           </span>
         </div>
         <div class="st-row">
-          <button type="button" class="btn btn-ghost btn-sm" :disabled="!subscribed" @click="sendTest"><AppIcon name="send" /> {{ st.notify.test }}</button>
+          <button type="button" class="btn btn-ghost btn-sm" :disabled="!subscribed && !tg?.telegram_linked" @click="sendTest"><AppIcon name="send" /> {{ st.notify.test }}</button>
           <span v-if="pushText" class="st-muted">{{ pushText }}</span>
         </div>
         <!-- Honest limits of web notifications -->
@@ -227,6 +248,26 @@ function openBoard(id: number) {
           <summary>{{ st.notify.limitsTitle }}</summary>
           <p v-for="(line, i) in st.notify.limits" :key="i">{{ line }}</p>
         </details>
+      </section>
+
+      <!-- Telegram -->
+      <section v-if="tg?.telegram" class="st-card">
+        <h2><AppIcon name="telegram" /> {{ st.telegram.title }}</h2>
+        <p class="st-note">{{ tg.telegram_linked ? st.telegram.linked : st.telegram.hint }}</p>
+        <div class="st-row">
+          <template v-if="tg.telegram_linked">
+            <label class="st-kind">
+              <input type="checkbox" class="kb-check" :checked="notify.telegram !== false" @change="setNotify({ telegram: ($event.target as HTMLInputElement).checked })">
+              <span>{{ st.telegram.notify }}</span>
+            </label>
+            <button type="button" class="btn btn-ghost btn-sm" @click="unlinkTelegram">{{ st.telegram.unlink }}</button>
+          </template>
+          <template v-else>
+            <button type="button" class="btn btn-primary btn-sm" :disabled="tgBusy" @click="connectTelegram"><AppIcon name="telegram" /> {{ st.telegram.connect }}</button>
+            <button type="button" class="btn btn-ghost btn-sm" @click="refreshTelegram">{{ st.telegram.check }}</button>
+          </template>
+        </div>
+        <p class="st-muted">{{ st.telegram.privacy }}</p>
       </section>
 
       <!-- Invoice details -->

@@ -23,10 +23,11 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from . import telegram
 from .config import settings
 from .db import SessionLocal
 from .mailer import send_mail
-from .models import MonitorEnv, MonitorError, MonitorEvent, MonitorProject, MonitorSettings
+from .models import MonitorEnv, MonitorError, MonitorEvent, MonitorProject, MonitorSettings, User
 from .sync import utcnow
 
 log = logging.getLogger("monitoring")
@@ -317,11 +318,21 @@ async def recipients(db: AsyncSession) -> list[str]:
     return [x.strip() for x in raw.replace(";", ",").split(",") if x.strip()]
 
 
+async def admin_ids(db: AsyncSession) -> list[int]:
+    """Panel users allowed to see monitoring (MONITORING_ADMINS; empty = everyone)."""
+    names = {x.strip().lower() for x in settings.monitoring_admins.split(",") if x.strip()}
+    users = (await db.scalars(select(User))).all()
+    return [u.id for u in users if not names or u.username.lower() in names]
+
+
 async def _notify(db: AsyncSession, env: MonitorEnv, mails: list[Mail]) -> None:
     to = await recipients(db)
     for m in mails:
         sent = await send_mail(to, m.subject, m.text)
         db.add(MonitorEvent(env_id=env.id, kind="mail", text=f"{'sent' if sent else 'NOT sent (SMTP)'}: {m.subject}"))
+        # Same alert in the admins' Telegram chats
+        if telegram.configured():
+            await telegram.broadcast(db, await admin_ids(db), f"🚨 {m.subject}\n\n{m.text[:1500]}")
     await db.commit()
 
 

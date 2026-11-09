@@ -9,11 +9,11 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI
 from sqlalchemy import inspect, text
 
-from . import monitoring, notify
+from . import monitoring, notify, telegram
 from .config import settings
 from .db import SessionLocal, engine
 from .models import Base
-from .routers import alarms, auth, clients, events, kanban, money, monitoring as monitoring_router, push, settings as settings_router, study, time, today
+from .routers import alarms, assistant as assistant_router, auth, clients, events, kanban, money, monitoring as monitoring_router, push, settings as settings_router, study, time, today
 
 PREFIX = "/api/team"
 
@@ -77,14 +77,16 @@ def _share_team_boards(conn) -> None:
 async def lifespan(_: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(_upgrade)
-    # Web Push scheduler (alarms, reminders, deadlines) when VAPID keys are set
-    scheduler = asyncio.create_task(notify.run_scheduler()) if notify.enabled() else None
+    # Notification scheduler (alarms, reminders, deadlines) when Web Push or the Telegram bot is set up
+    scheduler = asyncio.create_task(notify.run_scheduler()) if notify.channels_on() else None
+    # Telegram bot: notifications + assistant
+    bot = asyncio.create_task(telegram.run_bot()) if telegram.configured() else None
     # Project monitoring (polls the environments set up in the panel; first project added once)
     async with SessionLocal() as db:
         await monitoring.seed(db)
     monitor = asyncio.create_task(monitoring.run_monitor())
     yield
-    for task in (scheduler, monitor):
+    for task in (scheduler, bot, monitor):
         if task:
             task.cancel()
             with suppress(asyncio.CancelledError):
@@ -101,7 +103,7 @@ app = FastAPI(
 )
 
 for r in (auth.router, kanban.router, alarms.router, money.router, events.router, settings_router.router, push.router, today.router, study.router,
-          clients.router, time.router, monitoring_router.router):
+          clients.router, time.router, monitoring_router.router, assistant_router.router):
     app.include_router(r, prefix=PREFIX)
 
 

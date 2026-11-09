@@ -313,6 +313,7 @@ export default {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    assistant: { title: 'Asistent', subtitle: 'Napíš, čo pridať, alebo sa opýtaj — ten istý chat ako v Telegrame.', clear: 'Vymazať chat', parser: 'Rýchle zadanie', claudeOff: 'nepripojený', tgLinked: 'Telegram pripojený', tgConnect: 'Pripojiť Telegram', empty: 'Krátke riadky sa uložia hneď, zvyšok vybaví Claude. Skús:', placeholder: 'Napr. káva 3,5 € · zajtra 14:00 hovor s Annou · pridaj klienta Anna', send: 'Odoslať', undo: 'Vrátiť', yes: 'Áno', no: 'Nie', undone: 'Vrátené', applied: 'Hotovo', declined: 'Zrušené', fast: 'rýchle zadanie', examples: ['káva 3,5 €', 'zajtra 14:00 hovor s Annou', 'pridaj klienta Anna, barbecue', 'čo mám zajtra?'] },
     monitoring: {
       title: 'Monitoring projektov', subtitle: 'Stav mojich webových aplikácií, chyby a logy; e-maily pri problémoch.',
       denied: 'Monitoring je len pre správcov (MONITORING_ADMINS).', tabs: { overview: 'Prehľad', errors: 'Chyby', logs: 'Logy', settings: 'Nastavenia' },
@@ -446,6 +447,7 @@ export default {
     themeLight: 'Svetlá téma',
     menu: 'Menu panela',
     nav: {
+      assistant: 'Asistent',
       monitoring: 'Monitoring',
       clients: 'Klienti',
       time: 'Čas',
@@ -603,6 +605,7 @@ export default {
         fields: { name: 'Meno / firma', address: 'Adresa', ico: 'IČO', dic: 'DIČ', icdph: 'IČ DPH', register: 'Zápis v registri', iban: 'IBAN', swift: 'SWIFT', bank: 'Banka', email: 'E-mail', phone: 'Telefón', note: 'Poznámka na faktúre (napr. Nie som platiteľ DPH)', prefix: 'Predpona čísla', dueDays: 'Splatnosť (dni)' },
       },
       calPrivate: 'Váš kalendár vidíte len vy (zdieľanie je vypnuté).',
+      telegram: { title: 'Telegram', hint: 'Pripoj svoj Telegram: chodia tam upozornenia a môžeš písať asistentovi. Odkaz funguje raz, 15 minút.', linked: 'Pripojené. Upozornenia sa riadia typmi a tichými hodinami vyššie.', notify: 'Upozornenia v Telegrame', unlink: 'Odpojiť', connect: 'Pripojiť', check: 'Stlačil som Start', privacy: 'Tvoje upozornenia dostáva len tvoj chat; ostatní ich nevidia a nemôžu písať za teba.' },
       notify: {
         title: 'Upozornenia',
         device: 'Na tomto zariadení',

@@ -313,6 +313,7 @@ const en: typeof sk = {
 
   // Private team panel (login, kanban, alarms)
   panel: {
+    assistant: { title: 'Assistant', subtitle: 'Write what to add or ask — the same chat as in Telegram.', clear: 'Clear chat', parser: 'Quick input', claudeOff: 'not connected', tgLinked: 'Telegram connected', tgConnect: 'Connect Telegram', empty: 'Short lines are saved at once, the rest is handled by Claude. Try:', placeholder: 'E.g. coffee 3.5 € · tomorrow 14:00 call with Anna · add client Anna', send: 'Send', undo: 'Undo', yes: 'Yes', no: 'No', undone: 'Undone', applied: 'Done', declined: 'Cancelled', fast: 'quick input', examples: ['coffee 3.5 €', 'tomorrow 14:00 call with Anna', 'add client Anna, barbecue', 'what do I have tomorrow?'] },
     monitoring: {
       title: 'Project monitoring', subtitle: 'State of my web apps, errors and logs; e-mails when something is wrong.',
       denied: 'Monitoring is for admins only (MONITORING_ADMINS).', tabs: { overview: 'Overview', errors: 'Errors', logs: 'Logs', settings: 'Settings' },
@@ -446,6 +447,7 @@ const en: typeof sk = {
     themeLight: 'Light theme',
     menu: 'Panel menu',
     nav: {
+      assistant: 'Assistant',
       monitoring: 'Monitoring',
       clients: 'Clients',
       time: 'Time',
@@ -603,6 +605,7 @@ const en: typeof sk = {
         fields: { name: 'Name / company', address: 'Address', ico: 'Company ID (IČO)', dic: 'Tax ID (DIČ)', icdph: 'VAT ID (IČ DPH)', register: 'Register entry', iban: 'IBAN', swift: 'SWIFT', bank: 'Bank', email: 'E-mail', phone: 'Phone', note: 'Note on the invoice (e.g. not a VAT payer)', prefix: 'Number prefix', dueDays: 'Due in (days)' },
       },
       calPrivate: 'Only you can see your calendar (sharing is off).',
+      telegram: { title: 'Telegram', hint: 'Connect your own Telegram: notifications come there and you can write to the assistant. The link works once, for 15 minutes.', linked: 'Connected. Notifications follow the types and quiet hours above.', notify: 'Notifications in Telegram', unlink: 'Disconnect', connect: 'Connect', check: 'I pressed Start', privacy: 'Only your chat gets your notifications; other users cannot see or write as you.' },
       notify: {
         title: 'Notifications',
         device: 'On this device',
