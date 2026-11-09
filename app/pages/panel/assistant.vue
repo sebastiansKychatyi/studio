@@ -21,6 +21,8 @@ const busy = ref(false)
 const loading = ref(true)
 const note = ref('')
 const list = ref<HTMLElement | null>(null)
+const input = ref<HTMLTextAreaElement | null>(null)
+const helpOpen = ref(false)  // phones only; wide screens always show the help
 const flash = (s: string) => {
   note.value = s
   setTimeout(() => (note.value = ''), 3500)
@@ -66,6 +68,12 @@ async function send(line = text.value) {
     busy.value = false
   }
 }
+// Help examples go into the input to be edited, not sent
+function fill(line: string) {
+  text.value = line
+  helpOpen.value = false
+  nextTick(() => input.value?.focus())
+}
 function onKey(e: KeyboardEvent) {
   // Enter sends, Shift+Enter is a new line
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
@@ -107,10 +115,43 @@ const doneLabel = (x: Action) => (x.done === 'declined' ? a.value.declined : x.k
         <h1>{{ a.title }}</h1>
         <p>{{ a.subtitle }}</p>
       </div>
-      <button v-if="messages.length" type="button" class="btn btn-ghost btn-sm" :class="{ 'tm-delete sure': sure }" @click="clear">
-        <AppIcon name="trash" /> {{ sure ? p.sure : a.clear }}
-      </button>
+      <div class="as-tools">
+        <button type="button" class="btn btn-ghost btn-sm as-help-btn" :aria-expanded="helpOpen" @click="helpOpen = !helpOpen">
+          <AppIcon name="note" /> {{ a.help.title }}
+        </button>
+        <button v-if="messages.length" type="button" class="btn btn-ghost btn-sm" :class="{ 'tm-delete sure': sure }" @click="clear">
+          <AppIcon name="trash" /> {{ sure ? p.sure : a.clear }}
+        </button>
+      </div>
     </header>
+
+    <!-- Short guide: right column on wide screens, toggled on phones -->
+    <aside class="as-help sd-card" :class="{ open: helpOpen }">
+      <h2>{{ a.help.title }}</h2>
+      <ol class="as-steps">
+        <li v-for="s in a.help.steps" :key="s">{{ s }}</li>
+      </ol>
+      <p v-if="status && !status.claude" class="as-warn">{{ a.help.claudeOff }}</p>
+
+      <h3><AppIcon name="spark" /> {{ a.help.quickTitle }}</h3>
+      <ul class="as-ex">
+        <li v-for="[kind, ex] in a.help.quick" :key="ex">
+          <span>{{ p.quick.kinds[kind as keyof typeof p.quick.kinds] }}</span>
+          <button type="button" @click="fill(ex)">{{ ex }}</button>
+        </li>
+      </ul>
+
+      <h3><AppIcon name="bot" /> {{ a.help.claudeTitle }}</h3>
+      <ul class="as-ex">
+        <li v-for="ex in a.help.claude" :key="ex"><button type="button" @click="fill(ex)">{{ ex }}</button></li>
+      </ul>
+      <small class="as-fill">{{ a.help.fill }}</small>
+
+      <h3>{{ a.help.tipsTitle }}</h3>
+      <ul class="as-tips">
+        <li v-for="tip in a.help.tips" :key="tip">{{ tip }}</li>
+      </ul>
+    </aside>
 
     <!-- What works on this server -->
     <div v-if="status" class="as-status">
@@ -155,7 +196,7 @@ const doneLabel = (x: Action) => (x.done === 'declined' ? a.value.declined : x.k
     </section>
 
     <form class="as-form" @submit.prevent="send()">
-      <textarea v-model="text" class="tp-input" rows="2" maxlength="2000" :placeholder="a.placeholder" :aria-label="a.placeholder" @keydown="onKey" />
+      <textarea ref="input" v-model="text" class="tp-input" rows="2" maxlength="2000" :placeholder="a.placeholder" :aria-label="a.placeholder" @keydown="onKey" />
       <button class="btn btn-primary" :disabled="busy || !text.trim()" :aria-label="a.send"><AppIcon name="send" /></button>
     </form>
 
@@ -166,6 +207,29 @@ const doneLabel = (x: Action) => (x.done === 'declined' ? a.value.declined : x.k
 <style>
 /* ===== Assistant ===== */
 .as { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; max-width: 860px; }
+.as-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Help: hidden on phones until toggled, a sticky right column on wide screens */
+.as-help { display: none; gap: 8px; align-content: start; font-size: .86rem; }
+.as-help.open { display: grid; }
+.as-help h2 { font-size: 1.05rem; }
+.as-help h3 { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: .84rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.as-help h3 .ico { width: 14px; height: 14px; }
+.as-steps { display: grid; gap: 6px; padding-left: 18px; line-height: 1.45; }
+.as-warn { padding: 8px 10px; border-radius: 10px; background: rgba(255, 170, 0, .12); color: var(--ink); font-size: .82rem; }
+.as-ex { list-style: none; display: grid; gap: 4px; padding: 0; }
+.as-ex li { display: flex; align-items: center; gap: 8px; }
+.as-ex li span { flex: none; width: 92px; color: var(--muted); font-size: .78rem; font-weight: 700; }
+.as-ex button { min-width: 0; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--bg); color: var(--ink); font: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.as-ex button:hover { border-color: var(--accent); }
+.as-fill { color: var(--muted); font-size: .76rem; }
+.as-tips { display: grid; gap: 6px; padding-left: 18px; color: var(--muted); line-height: 1.45; }
+@media (min-width: 1180px) {
+  /* The last 1fr row takes the help's extra height, so the chat rows stay tight */
+  .as { max-width: 1240px; grid-template-columns: minmax(0, 1fr) 320px; grid-template-rows: auto auto auto auto 1fr; column-gap: 20px; }
+  .as > :not(.as-help) { grid-column: 1; }
+  .as-help { display: grid; grid-column: 2; grid-row: 1 / 6; position: sticky; top: 16px; align-self: start; max-height: calc(100dvh - 32px); overflow-y: auto; }
+  .as-help-btn { display: none; }
+}
 .as .btn .ico { width: 16px; height: 16px; }
 .as-status { display: flex; flex-wrap: wrap; gap: 6px; }
 .as-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--bg-2); color: var(--muted); font-size: .78rem; font-weight: 700; text-decoration: none; }
