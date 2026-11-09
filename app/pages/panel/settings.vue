@@ -114,16 +114,24 @@ const tgBusy = ref(false)
 const refreshTelegram = () => api<NonNullable<typeof tg.value>>('/assistant').then((s) => (tg.value = s)).catch(() => {})
 onMounted(refreshTelegram)
 async function connectTelegram() {
+  // Opened before the request: phones block windows opened later, after an await
+  const win = window.open('', '_blank')
   tgBusy.value = true
   try {
     const { url } = await api<{ url: string }>('/assistant/telegram', { method: 'POST' })
-    window.open(url, '_blank', 'noopener')
+    if (win) win.location.href = url
+    else location.href = url
   } catch {
+    win?.close()
     flash(false)
   } finally {
     tgBusy.value = false
   }
 }
+// Back from Telegram after "Start": show the new state without a reload
+const onVisible = () => document.visibilityState === 'visible' && tg.value && !tg.value.telegram_linked && refreshTelegram()
+onMounted(() => document.addEventListener('visibilitychange', onVisible))
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisible))
 async function unlinkTelegram() {
   await api('/assistant/telegram', { method: 'DELETE' }).catch(() => flash(false))
   tg.value = tg.value && { ...tg.value, telegram_linked: false }

@@ -28,7 +28,9 @@ const flash = (s: string) => {
 
 async function scrollDown() {
   await nextTick()
+  // The list scrolls on wide screens, the page on phones
   list.value?.scrollTo({ top: list.value.scrollHeight, behavior: 'smooth' })
+  list.value?.lastElementChild?.scrollIntoView({ block: 'end', behavior: 'smooth' })
 }
 async function load() {
   try {
@@ -198,6 +200,7 @@ const doneLabel = (x: Action) => (x.done === 'declined' ? a.value.declined : x.k
 }
 @media (max-width: 640px) {
   .as-list { max-height: none; min-height: 200px; }
+  .as-msg { scroll-margin-bottom: 180px; }  /* above the input and the tab bar */
   .as-msg { max-width: 92%; }
 }
 </style>

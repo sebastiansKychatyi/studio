@@ -25,7 +25,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
@@ -47,25 +47,25 @@ TEXT = {
     "sk": {
         "expense": "Výdavok", "income": "Príjem", "event": "Udalosť", "task": "Úloha", "alarm": "Budík", "work": "Termín",
         "today": "dnes", "noClaude": "Nerozumiem. Napíš to inak (napr. „káva 3,5 €“ alebo „zajtra 14:00 hovor s Annou“) — Claude ešte nie je pripojený.",
-        "claudeFailed": "Claude teraz neodpovedá, skús to o chvíľu.", "busy": "Ešte pracujem na predošlej správe…", "noBoard": "Najprv vytvor nástenku pre úlohy.",
+        "claudeFailed": "Claude teraz neodpovedá, skús to o chvíľu.", "noBoard": "Najprv vytvor nástenku pre úlohy.",
         "failed": "Nepodarilo sa uložiť", "undone": "Vrátené", "applied": "Hotovo", "declined": "Zrušené", "gone": "Táto akcia už neplatí",
     },
     "cs": {
         "expense": "Výdaj", "income": "Příjem", "event": "Událost", "task": "Úkol", "alarm": "Budík", "work": "Termín",
         "today": "dnes", "noClaude": "Nerozumím. Napiš to jinak (např. „káva 3,5 €“ nebo „zítra 14:00 hovor s Annou“) — Claude ještě není připojený.",
-        "claudeFailed": "Claude teď neodpovídá, zkus to za chvíli.", "busy": "Ještě pracuji na předchozí zprávě…", "noBoard": "Nejdřív vytvoř nástěnku pro úkoly.",
+        "claudeFailed": "Claude teď neodpovídá, zkus to za chvíli.", "noBoard": "Nejdřív vytvoř nástěnku pro úkoly.",
         "failed": "Nepodařilo se uložit", "undone": "Vráceno", "applied": "Hotovo", "declined": "Zrušeno", "gone": "Tato akce už neplatí",
     },
     "uk": {
         "expense": "Витрата", "income": "Дохід", "event": "Подія", "task": "Завдання", "alarm": "Будильник", "work": "Дедлайн",
         "today": "сьогодні", "noClaude": "Не зрозумів. Напиши інакше (напр. «кава 3,5 €» або «завтра 14:00 дзвінок з Анною») — Claude ще не підключено.",
-        "claudeFailed": "Claude зараз не відповідає, спробуй трохи пізніше.", "busy": "Ще працюю над попереднім повідомленням…", "noBoard": "Спершу створи дошку для завдань.",
+        "claudeFailed": "Claude зараз не відповідає, спробуй трохи пізніше.", "noBoard": "Спершу створи дошку для завдань.",
         "failed": "Не вдалося зберегти", "undone": "Скасовано", "applied": "Готово", "declined": "Відхилено", "gone": "Ця дія вже недійсна",
     },
     "en": {
         "expense": "Expense", "income": "Income", "event": "Event", "task": "Task", "alarm": "Alarm", "work": "Deadline",
         "today": "today", "noClaude": "I did not get that. Try e.g. “coffee 3.5 €” or “tomorrow 14:00 call with Anna” — Claude is not connected yet.",
-        "claudeFailed": "Claude is not answering right now, try again in a moment.", "busy": "Still working on the previous message…", "noBoard": "Create a board for tasks first.",
+        "claudeFailed": "Claude is not answering right now, try again in a moment.", "noBoard": "Create a board for tasks first.",
         "failed": "Could not save", "undone": "Undone", "applied": "Done", "declined": "Cancelled", "gone": "This action is no longer valid",
     },
 }
@@ -83,6 +83,7 @@ class Reply:
 async def issue_token(db: AsyncSession, user_id: int) -> str:
     """Short-lived session for one assistant run (same cookie the panel uses)."""
     token = secrets.token_urlsafe(32)
+    await db.execute(delete(Session).where(Session.expires_at < utcnow()))
     db.add(Session(token_hash=hashlib.sha256(token.encode()).hexdigest(), user_id=user_id, expires_at=utcnow() + timedelta(minutes=TOKEN_MINUTES)))
     await db.commit()
     return token
@@ -221,7 +222,7 @@ def claude_ready(user: User) -> bool:
 def claude_args(mcp_config: str, system: str) -> list[str]:
     """No built-in tools at all, only our MCP server; anything else is refused without asking."""
     return [
-        settings.assistant_claude, "-p", "--output-format", "json", "--model", settings.assistant_model,
+        shutil.which(settings.assistant_claude) or settings.assistant_claude, "-p", "--output-format", "json", "--model", settings.assistant_model,
         "--tools", "", "--strict-mcp-config", "--mcp-config", mcp_config, "--allowedTools", "mcp__panel",
         "--permission-mode", "dontAsk", "--no-session-persistence", "--system-prompt", system,
     ]
@@ -259,7 +260,11 @@ def run_claude(user: User, prompt: str, system: str, tool_env: dict[str, str]) -
             raise RuntimeError(str(result.get("result") or result.get("subtype")))
         actions = []
         if actions_file.exists():
-            actions = [json.loads(line) for line in actions_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+            for line in actions_file.read_text(encoding="utf-8").splitlines():
+                try:
+                    actions.append(json.loads(line))
+                except ValueError:
+                    continue
         return str(result.get("result") or "").strip(), actions
 
 
@@ -314,12 +319,9 @@ async def handle(
     db.add(asked)
     await db.commit()
 
-    lock = _locks.setdefault(user.id, asyncio.Lock())
-    if lock.locked():
-        reply = Reply(t["busy"])
-    else:
-        async with lock:
-            reply = await _answer(db, user, asked, t, lang, local, caller, parser, claude)
+    # One answer at a time per user; later messages wait their turn (in order)
+    async with _locks.setdefault(user.id, asyncio.Lock()):
+        reply = await _answer(db, user, asked, t, lang, local, caller, parser, claude)
     answer = AssistantMessage(user_id=user.id, role="assistant", via=via, engine=reply.engine, text=reply.text, actions=json.dumps(reply.actions, ensure_ascii=False))
     db.add(answer)
     await db.commit()
@@ -329,18 +331,21 @@ async def handle(
 async def _answer(db, user, asked, t, lang, local, caller, parser, claude) -> Reply:
     today = local.date().isoformat()
     parsed = await asyncio.to_thread(parser, asked.text, await parser_ctx(db, user, await prefs_of(db, user.id), local.date()))
+    sure, ready = confident(parsed), claude_ready(user)
+    if not sure and not ready:
+        return Reply(t["noClaude"])
     token = await issue_token(db, user.id)
-    if confident(parsed):
+    if sure:
         code, _, undo = await save_parsed(parsed, today, token, caller)
-        line = summary(parsed, t, today)
         if code == 201:
+            line = summary(parsed, t, today)
             return Reply(f"✅ {line}", "parser", [{"label": "undo", "kind": "undo", "method": "DELETE", "path": undo, "done": False}] if undo else [])
         if code == 404 and parsed["kind"] == "task":
             return Reply(t["noBoard"], "parser")
-        # The API refused it (e.g. a category): let Claude sort it out below
-        log.info("parser result refused (%s), asking Claude", code)
-    if not claude_ready(user):
-        return Reply(t["noClaude"])
+        # The API refused it (e.g. a category): Claude may sort it out
+        log.info("parser result refused (%s)", code)
+        if not ready:
+            return Reply(f"{t['failed']} ({code})", "parser")
     history = await _history(db, user.id, asked.id)
     prompt = (f"Earlier in this conversation:\n{history}\n\n" if history else "") + f"Message: {asked.text}"
     tool_env = {"PANEL_API": settings.internal_api_url, "PANEL_COOKIE": settings.cookie_name, "PANEL_TOKEN": token, "PANEL_TODAY": today}

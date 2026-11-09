@@ -430,7 +430,7 @@ MENTION = re.compile(r"@([\w.-]+)")
 
 async def card_changed(card_id: int, actor_id: int, before: tuple[str, int | None] | None) -> None:
     """before = (title + description, assignee) before the change; None for a new card."""
-    if not enabled():
+    if not channels_on():
         return
     async with SessionLocal() as db:
         card = await db.get(Card, card_id)

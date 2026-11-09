@@ -41,6 +41,8 @@ def api(method: str, path: str, body: dict | None = None, query: dict | None = N
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", "replace")[:500]
         raise ToolError(f"panel API {e.code}: {detail}") from None
+    except OSError as e:  # API not reachable, timeout
+        raise ToolError(f"panel API not reachable: {e}") from None
 
 
 class ToolError(Exception):
@@ -81,7 +83,8 @@ def add_income(a: dict) -> dict:
 def add_event(a: dict) -> dict:
     start = a.get("start") or "09:00"
     h, m = map(int, start.split(":"))
-    end = a.get("end") or f"{min(h + 1, 23):02d}:{m:02d}"
+    end_min = min(h * 60 + m + 60, 23 * 60 + 59)  # one hour, not past midnight
+    end = a.get("end") or f"{end_min // 60:02d}:{end_min % 60:02d}"
     body = {"title": a["title"], "date": a["date"], "start": start, "end": end, "note": a.get("note") or "", **pick(a, "client_id", "remind")}
     return created(api("POST", "/events", body), "/events", a["title"])
 
@@ -261,8 +264,10 @@ def handle(msg: dict) -> dict | None:
         try:
             data = tool[0](params.get("arguments") or {})
             result = {"content": [{"type": "text", "text": data if isinstance(data, str) else json.dumps(data, ensure_ascii=False, default=str)}]}
-        except (ToolError, KeyError, ValueError) as e:
+        except (ToolError, KeyError, ValueError, TypeError) as e:
             result = {"content": [{"type": "text", "text": f"Error: {e}"}], "isError": True}
+        except Exception as e:  # noqa: BLE001 - one bad call must not stop the server
+            result = {"content": [{"type": "text", "text": f"Error: {type(e).__name__}: {e}"}], "isError": True}
     elif method == "ping":
         result = {}
     else:

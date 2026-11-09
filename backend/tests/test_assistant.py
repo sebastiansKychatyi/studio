@@ -205,6 +205,66 @@ class HandleTest(DbCase):
         self.assertEqual(len(api.calls), n)  # not twice
         self.assertNotEqual(result, again)
 
+    async def test_messages_wait_their_turn(self):
+        import asyncio
+
+        from sqlalchemy import select
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+        from app.models import Base, User
+
+        # Two sessions at once need a file database (each in-memory connection is its own database)
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        engine = create_async_engine(f"sqlite+aiosqlite:///{Path(folder.name) / 'q.db'}")
+        self.addAsyncCleanup(engine.dispose)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        sessions = async_sessionmaker(engine, expire_on_commit=False)
+        async with sessions() as db:
+            db.add(User(username="seb", name="Sebastian", password_hash="x"))
+            await db.commit()
+        a, b = sessions(), sessions()
+        self.addAsyncCleanup(a.close)
+        self.addAsyncCleanup(b.close)
+        seb = await a.scalar(select(User))
+        order = []
+
+        def claude(user, prompt, system, env):
+            import time as clock
+
+            order.append(prompt.rsplit("Message: ", 1)[1])
+            clock.sleep(0.2)
+            return "ok", []
+
+        parser = lambda text, ctx: None  # noqa: E731
+        with mock.patch.object(assistant, "claude_ready", return_value=True):
+            first, second = await asyncio.gather(
+                assistant.handle(a, seb, "first", "telegram", Api(), parser, claude),
+                assistant.handle(b, seb, "second", "telegram", Api(), parser, claude),
+            )
+        self.assertEqual(order, ["first", "second"])  # both answered, none dropped as "busy"
+        self.assertEqual((first.text, second.text), ("ok", "ok"))
+
+    async def test_refused_without_claude_says_not_saved(self):
+        class Refuse(Api):
+            def __call__(self, token, method, path, body=None):
+                return (422, {"detail": "bad"}) if method == "POST" else super().__call__(token, method, path, body)
+
+        parser = lambda text, ctx: {"kind": "expense", "confidence": 0.9, "amount": 5, "currency": "EUR", "title": "x"}  # noqa: E731
+        with mock.patch.object(assistant, "claude_ready", return_value=False):
+            m = await assistant.handle(self.db, self.seb, "x 5 €", "panel", Refuse(), parser, mock.Mock())
+        self.assertIn("422", m.text)
+
+    async def test_no_session_when_nothing_to_do(self):
+        from sqlalchemy import func, select
+
+        from app.models import Session
+
+        with mock.patch.object(assistant, "claude_ready", return_value=False):
+            await assistant.handle(self.db, self.seb, "hmm", "panel", Api(), lambda text, ctx: None, mock.Mock())
+        self.assertEqual(await self.db.scalar(select(func.count()).select_from(Session)), 0)
+
     async def test_declined_change_is_not_sent(self):
         from app.models import AssistantMessage
 
@@ -255,6 +315,17 @@ class McpTest(unittest.TestCase):
         self.assertIn("NOT done", ok["content"][0]["text"])
         self.assertTrue(bad["isError"] and post["isError"])
         self.assertEqual(len(self.actions.read_text(encoding="utf-8").splitlines()), 1)
+
+    def test_api_down_is_a_tool_error_not_a_crash(self):
+        with mock.patch.object(mcp_panel.urllib.request, "urlopen", side_effect=ConnectionRefusedError("refused")):
+            res = self.call("add_alarm", {"time": "06:30"})
+        self.assertTrue(res["isError"])
+        self.assertIn("not reachable", res["content"][0]["text"])
+
+    def test_late_event_ends_before_midnight(self):
+        with mock.patch.object(mcp_panel, "api", return_value={"id": 1}) as api:
+            self.call("add_event", {"title": "Late", "date": TODAY, "start": "23:30"})
+        self.assertEqual(api.call_args.args[2]["end"], "23:59")
 
     def test_list_events_expands_weekly(self):
         events = [{"id": 1, "title": "Gym", "date": "2026-11-02", "start": "18:00", "end": "19:00", "repeat": "weekly", "days": [1, 3], "until": None, "skip": ["2026-11-11"]},
@@ -341,6 +412,30 @@ class TelegramTest(DbCase):
         token.assert_not_called()  # Roman's chat never gets as far as the API
         self.assertFalse(json.loads(m.actions)[0].get("done"))
         self.assertEqual([x for x, _ in self.sent], ["answerCallbackQuery"])
+
+    async def test_bad_button_data_is_answered(self):
+        await self.link(self.seb, 555)
+        self.sent.clear()
+        await telegram.handle_update(self.db, {"update_id": 3, "callback_query": {"id": "q", "data": "a:x", "message": {"message_id": 9, "chat": {"id": 555}}}}, self.api)
+        self.assertEqual([x for x, _ in self.sent], ["answerCallbackQuery"])
+
+    async def test_mentions_reach_telegram_without_web_push(self):
+        from app.models import Board, BoardColumn, BoardMember, Card
+
+        await self.link(self.roman, 666)
+        board = Board(title="B", created_by=self.seb.id)
+        self.db.add(board)
+        await self.db.flush()
+        self.db.add(BoardMember(board_id=board.id, user_id=self.roman.id))  # Roman sees the board
+        col = BoardColumn(board_id=board.id, title="To do", position=0)
+        self.db.add(col)
+        await self.db.flush()
+        card = Card(column_id=col.id, title="Logo", position=0, assignee_id=self.roman.id, created_by=self.seb.id)
+        self.db.add(card)
+        await self.db.commit()
+        with mock.patch.object(notify, "enabled", return_value=False), mock.patch.object(notify, "SessionLocal", self.Session),                 mock.patch.object(telegram, "notify", return_value=1) as tg:
+            await notify.card_changed(card.id, self.seb.id, None)
+        self.assertEqual(tg.call_args.args[0], 666)
 
     def test_push_message(self):
         with mock.patch.object(telegram.settings, "site_url", "https://studio.k2drive.com"):

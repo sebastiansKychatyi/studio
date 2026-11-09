@@ -269,14 +269,15 @@ async def _callback(db: AsyncSession, q: dict, api: Call) -> None:
     user = await _user_of_chat(db, chat_id) if chat_id else None
     t = TEXT[await _lang(db, user, None)]
     data, note = str(q.get("data") or ""), ""
-    if user is not None and data.startswith(("a:", "n:")):
-        _, mid, idx = data.split(":")
+    parts = data.split(":")
+    if user is not None and parts[0] in ("a", "n") and len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
+        _, mid, idx = parts
         m, note = await assistant.run_action(db, user, int(mid), int(idx), data[0] == "a")
         if m is not None:
             markup = action_buttons(m.id, json.loads(m.actions), t) or {"inline_keyboard": []}
             await asyncio.to_thread(api, "editMessageReplyMarkup", {"chat_id": chat_id, "message_id": q["message"]["message_id"], "reply_markup": markup})
-    elif user is not None and data.startswith("z:"):
-        alarm = await db.get(Alarm, int(data[2:]))
+    elif user is not None and parts[0] == "z" and len(parts) == 2 and parts[1].isdigit():
+        alarm = await db.get(Alarm, int(parts[1]))
         if alarm is not None and alarm.user_id == user.id:
             lang = await _lang(db, user, None)
             payload = push.alarm_payload(push.TEXT[lang], lang, alarm.id, alarm.time, alarm.label)
